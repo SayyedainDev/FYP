@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "874657566001",
+    "project_id": "fyp26-a22b9",
+    "storage_bucket": "fyp26-a22b9.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:874657566001:android:03bdd215d0ca9816bf7410",
+        "android_client_info": {
+          "package_name": "com.example.dental_care"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB0uRs2j2AyGsr_vz6zm5hvJsmPvyt00uc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

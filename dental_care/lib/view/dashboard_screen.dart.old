@@ -1,0 +1,470 @@
+import 'package:dental_care/providers/app_provider.dart';
+import 'package:dental_care/providers/scan_provider.dart';
+import 'package:dental_care/view/widgets/add_patient_dialog.dart';
+import 'package:dental_care/view/widgets/upload_scan_dialog.dart';
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../providers/patient_provider.dart';
+import '../providers/case_provider.dart';
+import '../providers/navigation_provider.dart';
+
+class DashboardScreen extends StatelessWidget {
+  const DashboardScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Welcome Header
+          const Text(
+            'Welcome back, Dr. Test!',
+            style: TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Color(0xFF212121),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Here\'s your summary for today. Calm and focused.',
+            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+          ),
+          const SizedBox(height: 32),
+
+          // Stat Cards Row
+          Consumer2<PatientProvider, ScanProvider>(
+            builder: (context, patientProvider, scanProvider, child) {
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  return Wrap(
+                    spacing: 16,
+                    runSpacing: 16,
+                    children: [
+                      StatCard(
+                        title: 'Total Patients',
+                        value: patientProvider.totalPatients.toString(),
+                        icon: Icons.people,
+                        color: Colors.blue,
+                        width: _cardWidth(constraints.maxWidth, 4),
+                      ),
+                      StatCard(
+                        title: 'Total Scans',
+                        value: scanProvider.totalScans.toString(),
+                        icon: Icons.camera_alt,
+                        color: Colors.green,
+                        width: _cardWidth(constraints.maxWidth, 4),
+                      ),
+                      StatCard(
+                        title: 'Cavities Detected',
+                        value: scanProvider.cavitiesDetected.toString(),
+                        icon: Icons.warning_amber,
+                        color: Colors.orange,
+                        width: _cardWidth(constraints.maxWidth, 4),
+                      ),
+                      StatCard(
+                        title: 'Healthy Scans',
+                        value: scanProvider.healthyScans.toString(),
+                        icon: Icons.check_circle,
+                        color: Colors.teal,
+                        width: _cardWidth(constraints.maxWidth, 4),
+                      ),
+                    ],
+                  );
+                },
+              );
+            },
+          ),
+          const SizedBox(height: 32),
+
+          // Action Buttons
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return Wrap(
+                spacing: 16,
+                runSpacing: 16,
+                children: [
+                  SizedBox(
+                    width: _cardWidth(constraints.maxWidth, 2),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const UploadScanDialog(),
+                        );
+                      },
+                      icon: const Icon(Icons.upload_file, size: 28),
+                      label: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          'Upload New Scan',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        padding: const EdgeInsets.all(24),
+                      ),
+                    ),
+                  ),
+                  SizedBox(
+                    width: _cardWidth(constraints.maxWidth, 2),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const AddPatientDialog(),
+                        );
+                      },
+                      icon: const Icon(Icons.person_add, size: 28),
+                      label: const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 8),
+                        child: Text(
+                          'Add New Patient',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurple,
+                        padding: const EdgeInsets.all(24),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 32),
+
+          // Info Lists Row
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 1200;
+              if (isWide) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(child: _RecentScansCard()),
+                    const SizedBox(width: 16),
+                    Expanded(child: _PatientsCard()),
+                  ],
+                );
+              } else {
+                return Column(
+                  children: [
+                    _RecentScansCard(),
+                    const SizedBox(height: 16),
+                    _PatientsCard(),
+                  ],
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  double _cardWidth(double maxWidth, int columns) {
+    if (maxWidth >= 1200) {
+      return (maxWidth - (columns - 1) * 16) / columns;
+    } else if (maxWidth >= 800) {
+      return (maxWidth - 16) / 2;
+    } else {
+      return maxWidth;
+    }
+  }
+}
+
+class StatCard extends StatelessWidget {
+  const StatCard({
+    super.key,
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+    this.width,
+  });
+
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+  final double? width;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.shade200,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: color, size: 32),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecentScansCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<ScanProvider>(
+      builder: (context, scanProvider, child) {
+        final recentScans = scanProvider.recentScans;
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Recent Scans',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Provider.of<AppProvider>(
+                          context,
+                          listen: false,
+                        ).setTab(1);
+                      },
+                      child: const Text('View All'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (recentScans.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Text('No scans yet'),
+                    ),
+                  )
+                else
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: recentScans.length,
+                    separatorBuilder: (_, __) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final scan = recentScans[index];
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          backgroundColor: scan.hasCavity
+                              ? Colors.orange.shade100
+                              : Colors.green.shade100,
+                          child: Icon(
+                            scan.hasCavity ? Icons.warning : Icons.check,
+                            color: scan.hasCavity
+                                ? Colors.orange
+                                : Colors.green,
+                          ),
+                        ),
+                        title: Text(
+                          scan.patientName,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          'Tooth #${scan.toothNumber} • ${_formatDate(scan.scanDate)}',
+                        ),
+                        trailing: Chip(
+                          label: Text(
+                            scan.hasCavity ? 'Cavity' : 'Healthy',
+                            style: TextStyle(
+                              color: scan.hasCavity
+                                  ? Colors.orange
+                                  : Colors.green,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          backgroundColor: scan.hasCavity
+                              ? Colors.orange.shade50
+                              : Colors.green.shade50,
+                          side: BorderSide.none,
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final diff = now.difference(date);
+
+    if (diff.inHours < 1) {
+      return '${diff.inMinutes} min ago';
+    } else if (diff.inDays < 1) {
+      return '${diff.inHours} hr ago';
+    } else if (diff.inDays < 7) {
+      return '${diff.inDays} days ago';
+    } else {
+      return '${date.day}/${date.month}/${date.year}';
+    }
+  }
+}
+
+class _PatientsCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Consumer<PatientProvider>(
+      builder: (context, patientProvider, child) {
+        final patients = patientProvider.patients;
+        return Card(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'Patients',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    TextButton.icon(
+                      onPressed: () {
+                        showDialog(
+                          context: context,
+                          builder: (context) => const AddPatientDialog(),
+                        );
+                      },
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Add'),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                if (patients.isEmpty)
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(32),
+                      child: Text('No patients yet'),
+                    ),
+                  )
+                else
+                  ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    itemCount: patients.length,
+                    separatorBuilder: (_, __) => const Divider(),
+                    itemBuilder: (context, index) {
+                      final patient = patients[index];
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          backgroundColor: Colors.blue.shade100,
+                          child: Text(
+                            patient.name[0].toUpperCase(),
+                            style: TextStyle(
+                              color: Colors.blue.shade700,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          patient.name,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                        subtitle: Text(
+                          '${patient.age} years • ${patient.gender}',
+                        ),
+                        trailing: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              patient.email,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              patient.phone,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
