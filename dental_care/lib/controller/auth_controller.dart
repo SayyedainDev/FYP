@@ -17,6 +17,7 @@ class AuthController {
     required String cnic,
     required String address,
     required String highestEducation,
+    required String role,
   }) async {
     final cred = await _service.signUpWithEmail(email, password);
     final uid = cred.user!.uid;
@@ -29,6 +30,7 @@ class AuthController {
       address: address,
       highestEducation: highestEducation,
       email: email,
+      role: role,
     );
     await _service.saveUserProfile(uid, user.toMap());
     return uid;

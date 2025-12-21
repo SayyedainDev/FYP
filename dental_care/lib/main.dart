@@ -11,11 +11,33 @@ import 'package:dental_care/providers/patient_provider.dart';
 import 'package:dental_care/providers/scan_provider.dart';
 import 'package:dental_care/providers/case_provider.dart';
 import 'package:dental_care/providers/navigation_provider.dart';
+import 'package:dental_care/providers/quiz_provider.dart';
+import 'package:dental_care/utils/firebase_test.dart';
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+
+  try {
+    // Initialize Firebase
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    debugPrint('✅ Firebase Initialized Successfully');
+
+    // Run Firebase connection tests (in debug mode only)
+    assert(() {
+      FirebaseTest.runAllTests().then((results) {
+        if (results.values.every((v) => v)) {
+          debugPrint('🎉 All Firebase services are operational!');
+        }
+      });
+      return true;
+    }());
+  } catch (e) {
+    debugPrint('❌ Firebase Initialization Error: $e');
+    debugPrint('Please check your Firebase configuration.');
+  }
 
   final firebaseService = FirebaseService();
 
@@ -28,6 +50,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => PatientProvider()),
         ChangeNotifierProvider(create: (_) => ScanProvider()),
         ChangeNotifierProvider(create: (_) => CaseProvider()),
+        ChangeNotifierProvider(create: (_) => QuizProvider()),
       ],
       child: const MyApp(),
     ),

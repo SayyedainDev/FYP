@@ -3,12 +3,14 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/navigation_provider.dart';
+import '../provider/auth_provider.dart';
 import 'dashboard_screen.dart';
 import 'history_screen.dart';
 import 'create_case_screen.dart';
 import 'dentist_profile_screen.dart';
 import 'patients_screen.dart';
 import 'settings_screen.dart';
+import 'ai_quiz_screen.dart';
 import 'widgets/main_sidebar.dart';
 
 class MainLayout extends StatefulWidget {
@@ -52,6 +54,8 @@ class _MainLayoutState extends State<MainLayout>
         return const PatientsScreen(key: ValueKey('Patients'));
       case 'Scan History':
         return const HistoryScreen(key: ValueKey('Scan History'));
+      case 'AI Quiz':
+        return const AIQuizScreen(key: ValueKey('AI Quiz'));
       case 'Settings':
         return const SettingsScreen(key: ValueKey('Settings'));
       case 'Profile':
@@ -69,6 +73,8 @@ class _MainLayoutState extends State<MainLayout>
       backgroundColor: const Color(0xFFF8F9FA),
       body: Consumer<NavigationProvider>(
         builder: (context, navProvider, child) {
+          final auth = Provider.of<AuthProvider>(context);
+          final isDentist = auth.userRole.toLowerCase() != 'student';
           return Row(
             children: [
               // Sidebar
@@ -110,7 +116,8 @@ class _MainLayoutState extends State<MainLayout>
                             ),
 
                             const Spacer(),
-                            if (navProvider.currentPage == 'Dashboard')
+                            if (navProvider.currentPage == 'Dashboard' &&
+                                isDentist)
                               ElevatedButton.icon(
                                 onPressed: () =>
                                     navProvider.setPage('Upload New Scan'),

@@ -1,0 +1,61 @@
+// Firebase Storage Security Rules for Dental Care App
+// Copy these rules to your Firebase Console -> Storage -> Rules
+
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Helper function to check if user owns the folder
+    function isOwner(uid) {
+      return request.auth.uid == uid;
+    }
+    
+    // Dentist uploaded images - only accessible by the dentist who uploaded them
+    match /dentists/{dentistUid}/{allPaths=**} {
+      // Allow dentist to read their own images
+      allow read: if isAuthenticated() && isOwner(dentistUid);
+      
+      // Allow dentist to upload images to their own folder
+      allow create: if isAuthenticated() 
+                    && isOwner(dentistUid)
+                    && request.resource.size < 10 * 1024 * 1024  // Max 10MB
+                    && request.resource.contentType.matches('image/.*');  // Only images
+      
+      // Allow dentist to update/delete their own images
+      allow update, delete: if isAuthenticated() && isOwner(dentistUid);
+    }
+    
+    // Legacy uploads folder (if used)
+    match /uploads/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated() && isOwner(userId);
+      allow create: if isAuthenticated() 
+                    && isOwner(userId)
+                    && request.resource.size < 10 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow update, delete: if isAuthenticated() && isOwner(userId);
+    }
+    
+    // Cases folder
+    match /cases/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+                    && request.resource.size < 10 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow update, delete: if isAuthenticated();
+    }
+    
+    // Scans folder
+    match /scans/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated()
+                    && request.resource.size < 10 * 1024 * 1024
+                    && request.resource.contentType.matches('image/.*');
+      allow update, delete: if isAuthenticated();
+    }
+  }
+}

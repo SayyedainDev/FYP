@@ -6,9 +6,13 @@ class Case {
   final String patientName; // Denormalized for easier display
   final String toothNumber;
   final DateTime caseDate;
+  final DateTime updatedAt;
+  final String caseTitle;
+  final String caseStatus; // Uploaded | Under Review | Completed
   final List<String> imageUrls; // Firebase Storage URLs
   final Map<String, dynamic> analysisResults; // AI analysis output
   final String notes;
+  final String reviewNotes;
 
   Case({
     required this.id,
@@ -16,10 +20,14 @@ class Case {
     required this.patientName,
     required this.toothNumber,
     required this.caseDate,
+    DateTime? updatedAt,
+    this.caseTitle = '',
+    this.caseStatus = 'Uploaded',
     required this.imageUrls,
     required this.analysisResults,
     required this.notes,
-  });
+    this.reviewNotes = '',
+  }) : updatedAt = updatedAt ?? caseDate;
 
   // Convert Case to Firestore Map
   Map<String, dynamic> toFirestore() {
@@ -28,9 +36,13 @@ class Case {
       'patientName': patientName,
       'toothNumber': toothNumber,
       'caseDate': Timestamp.fromDate(caseDate),
+      'updatedAt': Timestamp.fromDate(updatedAt),
+      'caseTitle': caseTitle,
+      'caseStatus': caseStatus,
       'imageUrls': imageUrls,
       'analysisResults': analysisResults,
       'notes': notes,
+      'reviewNotes': reviewNotes,
     };
   }
 
@@ -43,9 +55,13 @@ class Case {
       patientName: data['patientName'] ?? '',
       toothNumber: data['toothNumber'] ?? '',
       caseDate: (data['caseDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      caseTitle: data['caseTitle'] ?? '',
+      caseStatus: data['caseStatus'] ?? 'Uploaded',
       imageUrls: List<String>.from(data['imageUrls'] ?? []),
       analysisResults: Map<String, dynamic>.from(data['analysisResults'] ?? {}),
       notes: data['notes'] ?? '',
+      reviewNotes: data['reviewNotes'] ?? '',
     );
   }
 
@@ -61,6 +77,8 @@ class Case {
   String get analysisStatus {
     return analysisResults['status'] as String? ?? 'Pending AI Analysis';
   }
+
+  String get lifecycleStatus => caseStatus;
 
   // Check if case has cavity detected (from analysis)
   bool get hasCavity {
@@ -104,9 +122,13 @@ class Case {
     String? patientName,
     String? toothNumber,
     DateTime? caseDate,
+    DateTime? updatedAt,
+    String? caseTitle,
+    String? caseStatus,
     List<String>? imageUrls,
     Map<String, dynamic>? analysisResults,
     String? notes,
+    String? reviewNotes,
   }) {
     return Case(
       id: id ?? this.id,
@@ -114,9 +136,13 @@ class Case {
       patientName: patientName ?? this.patientName,
       toothNumber: toothNumber ?? this.toothNumber,
       caseDate: caseDate ?? this.caseDate,
+      updatedAt: updatedAt ?? this.updatedAt,
+      caseTitle: caseTitle ?? this.caseTitle,
+      caseStatus: caseStatus ?? this.caseStatus,
       imageUrls: imageUrls ?? this.imageUrls,
       analysisResults: analysisResults ?? this.analysisResults,
       notes: notes ?? this.notes,
+      reviewNotes: reviewNotes ?? this.reviewNotes,
     );
   }
 }
