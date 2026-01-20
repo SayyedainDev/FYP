@@ -10,6 +10,7 @@ packages:
     source: hosted
     version: "1.3.64"
   archive:
+<<<<<<< HEAD
     dependency: "direct main"
     description:
       name: archive
@@ -17,6 +18,15 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.6.1"
+=======
+    dependency: transitive
+    description:
+      name: archive
+      sha256: "2fde1607386ab523f7a36bb3e7edb43bd58e6edaf2ffb29d8a6d578b297fdbbd"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.0.7"
+>>>>>>> 5669cf162f80097e9d3236822e75d8fa25ba2821
   async:
     dependency: transitive
     description:
@@ -342,10 +352,17 @@ packages:
     dependency: transitive
     description:
       name: image
+<<<<<<< HEAD
       sha256: f31d52537dc417fdcde36088fdf11d191026fd5e4fae742491ebd40e5a8bea7d
       url: "https://pub.dev"
     source: hosted
     version: "4.3.0"
+=======
+      sha256: "4e973fcf4caae1a4be2fa0a13157aa38a8f9cb049db6529aa00b4d71abc4d928"
+      url: "https://pub.dev"
+    source: hosted
+    version: "4.5.4"
+>>>>>>> 5669cf162f80097e9d3236822e75d8fa25ba2821
   image_picker:
     dependency: "direct main"
     description:
@@ -591,6 +608,17 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "2.1.8"
+<<<<<<< HEAD
+=======
+  posix:
+    dependency: transitive
+    description:
+      name: posix
+      sha256: "6323a5b0fa688b6a010df4905a56b00181479e6d10534cecfecede2aa55add61"
+      url: "https://pub.dev"
+    source: hosted
+    version: "6.0.3"
+>>>>>>> 5669cf162f80097e9d3236822e75d8fa25ba2821
   printing:
     dependency: "direct main"
     description:
