@@ -2,14 +2,8 @@ import 'dart:math' as math;
 import 'package:dental_care/view/register.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../provider/auth_provider.dart'; // Make sure this path is correct
+import '../provider/auth_provider.dart';
 
-// In the view use Provider to call methods and show loading/errors.
-// UI only: do not contain business logic.
-
-//
-// 1. LOGIN PAGE (The main screen)
-//
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
   @override
@@ -21,7 +15,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   final _password = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  // Controllers
   late final AnimationController _introController;
   late final AnimationController _floatingController;
   late final Animation<double> _cardScale;
@@ -29,8 +22,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-
-    // --- Initialize Animation Controllers ---
 
     _floatingController = AnimationController(
       vsync: this,
@@ -42,7 +33,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 800),
     );
 
-    // Example animation definitions (you can customize these)
     _cardScale = Tween<double>(
       begin: 0.8,
       end: 1.0,
@@ -53,7 +43,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
   @override
   void dispose() {
-    // Always dispose of controllers
     _introController.dispose();
     _floatingController.dispose();
     _email.dispose();
@@ -67,47 +56,13 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
       backgroundColor: const Color(0xFFF5F8FF), // Example background
       body: Consumer<AuthProvider>(
         builder: (context, auth, child) {
-          // Listen for errors from the provider
-
           return Stack(
             children: [
-              // TODO: Add your background elements (like _BlurredBlob) here
-              /*
-              AnimatedBuilder(
-                animation: _floatingController,
-                builder: (context, child) {
-                  final wave = math.sin(_floatingController.value * 2 * math.pi);
-                  return Positioned(
-                    top: 160,
-                    right: 80,
-                    child: Transform.translate(
-                      offset: Offset(0, wave * 18),
-                      child: Container( // Placeholder for _BlurredBlob
-                        width: 140,
-                        height: 140,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1A73E8).withOpacity(0.20),
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                    ),
-                  );
-                }
-              ),
-              */
-
-              // Center the Login Card
               Center(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.all(24.0),
-                  //
-                  // --- 💡 THIS IS THE FIX ---
-                  // This ConstrainedBox limits the card's width
-                  //
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(
-                      maxWidth: 480, // Set your desired max width here
-                    ),
+                    constraints: const BoxConstraints(maxWidth: 480),
                     child: ScaleTransition(
                       scale: _cardScale, // Using the animation
                       child: _LoginCard(
@@ -129,9 +84,6 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
   }
 }
 
-//
-// 2. LOGIN CARD (The form UI)
-//
 class _LoginCard extends StatefulWidget {
   const _LoginCard({
     required this.formKey,
@@ -222,7 +174,6 @@ class _LoginCardState extends State<_LoginCard> {
                 ),
                 const SizedBox(height: 32),
 
-                // Email Field
                 TextFormField(
                   controller: widget.email,
                   keyboardType: TextInputType.emailAddress,
@@ -256,7 +207,6 @@ class _LoginCardState extends State<_LoginCard> {
                 ),
                 const SizedBox(height: 20),
 
-                // Password Field
                 TextFormField(
                   controller: widget.password,
                   obscureText: _obscurePassword,
@@ -301,7 +251,6 @@ class _LoginCardState extends State<_LoginCard> {
                 ),
                 const SizedBox(height: 12),
 
-                // Forgot Password
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
@@ -368,7 +317,6 @@ class _LoginCardState extends State<_LoginCard> {
                 ),
                 const SizedBox(height: 20),
 
-                // Create Account Button
                 OutlinedButton(
                   onPressed: widget.auth.loading
                       ? null
@@ -401,9 +349,6 @@ class _LoginCardState extends State<_LoginCard> {
   }
 }
 
-//
-// 3. PASSWORD FIELD WIDGET (Separate helper widget, currently unused)
-//
 class _PasswordField extends StatefulWidget {
   const _PasswordField({
     required this.controller,

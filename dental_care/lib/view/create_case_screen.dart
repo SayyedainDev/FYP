@@ -1,14 +1,19 @@
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:dotted_border/dotted_border.dart';
+import 'package:provider/provider.dart';
 
 import '../models/patient.dart';
+import '../provider/auth_provider.dart' as app_auth;
+import '../service/ai_analysis_service.dart';
 
 class CreateCaseScreen extends StatefulWidget {
   const CreateCaseScreen({super.key});
@@ -23,14 +28,25 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   final _caseTitleController = TextEditingController();
   final _toothNumbersController = TextEditingController();
   final _symptomsController = TextEditingController();
+  final _manualReviewController = TextEditingController();
+
+  String _caseStatus = 'Uploaded';
+  final Map<String, double> _imageRotations = {};
+
+  static const List<String> _allowedExtensions = ['jpg', 'jpeg', 'png'];
+  static const int _maxFileSizeBytes = 8 * 1024 * 1024; // 8MB
+  static const Size _minResolution = Size(512, 512);
+  static const Size _maxResolution = Size(6000, 6000);
 
   bool _isAnalyzing = false;
   List<Patient> _cachedPatients = []; // Cache patients list
+  final AiAnalysisService _aiService = DummyAiAnalysisService();
 
   // AI Analysis state
   bool _hasAnalyzed = false;
   Map<String, dynamic> _aiResults = {};
   int _currentImageIndex = 0; // For carousel
+  final FocusNode _keyboardFocus = FocusNode();
 
   // Card decoration matching the target UI
   BoxDecoration get _cardDecoration => BoxDecoration(
@@ -52,10 +68,99 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
     _caseTitleController.dispose();
     _toothNumbersController.dispose();
     _symptomsController.dispose();
+    _manualReviewController.dispose();
+    _keyboardFocus.dispose();
     super.dispose();
   }
 
+  bool get _isStudentRole {
+    final auth = Provider.of<app_auth.AuthProvider>(context, listen: false);
+    return auth.userRole.toLowerCase() == 'student';
+  }
+
+  String _rotationKey(PlatformFile file) => file.identifier ?? file.name;
+
+  double _rotationFor(PlatformFile file) =>
+      _imageRotations[_rotationKey(file)] ?? 0;
+
+  void _rotateImage(int index, double deltaDegrees) {
+    final file = _selectedFiles[index];
+    final key = _rotationKey(file);
+    final next = ((_imageRotations[key] ?? 0) + deltaDegrees) % 360;
+    setState(() {
+      _imageRotations[key] = next;
+    });
+  }
+
+  void _onKey(KeyEvent e) {
+    if (_selectedFiles.isEmpty) return;
+    final key = e.logicalKey;
+    final isDown = e is KeyDownEvent;
+    if (!isDown) return;
+
+    if (key == LogicalKeyboardKey.arrowLeft) {
+      setState(() {
+        _currentImageIndex = (_currentImageIndex - 1).clamp(
+          0,
+          _selectedFiles.length - 1,
+        );
+      });
+    } else if (key == LogicalKeyboardKey.arrowRight) {
+      setState(() {
+        _currentImageIndex = (_currentImageIndex + 1).clamp(
+          0,
+          _selectedFiles.length - 1,
+        );
+      });
+    } else if (key == LogicalKeyboardKey.keyR) {
+      _rotateImage(_currentImageIndex, 90);
+    } else if (key == LogicalKeyboardKey.keyL) {
+      _rotateImage(_currentImageIndex, -90);
+    } else if (key == LogicalKeyboardKey.delete) {
+      _removeImage(_currentImageIndex);
+    }
+  }
+
+  Future<String?> _validateImageFile(PlatformFile file) async {
+    final ext = (file.extension ?? '').toLowerCase();
+    if (!_allowedExtensions.contains(ext)) {
+      return 'Unsupported format (${file.extension ?? ''}). Allowed: JPG, JPEG, PNG';
+    }
+
+    final size = file.size;
+    if (size > _maxFileSizeBytes) {
+      return 'File ${file.name} exceeds ${(_maxFileSizeBytes / (1024 * 1024)).toStringAsFixed(0)}MB limit';
+    }
+
+    if (file.bytes == null) {
+      return 'Missing image bytes for ${file.name}';
+    }
+
+    try {
+      final image = await decodeImageFromList(file.bytes!);
+      if (image.width < _minResolution.width ||
+          image.height < _minResolution.height) {
+        return 'Image ${file.name} is too small (< ${_minResolution.width.toInt()}px)';
+      }
+      if (image.width > _maxResolution.width ||
+          image.height > _maxResolution.height) {
+        return 'Image ${file.name} is too large (> ${_maxResolution.width.toInt()}px)';
+      }
+    } catch (e) {
+      return 'Could not read ${file.name}: $e';
+    }
+
+    return null;
+  }
+
   Future<void> _pickImages() async {
+    if (_isStudentRole) {
+      _showSnackBar(
+        'Students have view-only access. Upload requires Dentist role.',
+        Colors.orange,
+      );
+      return;
+    }
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
@@ -64,8 +169,20 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
       );
 
       if (result != null) {
+        final validFiles = <PlatformFile>[];
+        for (final file in result.files) {
+          final validation = await _validateImageFile(file);
+          if (validation != null) {
+            _showSnackBar(validation, Colors.red);
+            continue;
+          }
+          validFiles.add(file);
+        }
+
+        if (validFiles.isEmpty) return;
+
         setState(() {
-          _selectedFiles.addAll(result.files);
+          _selectedFiles.addAll(validFiles);
         });
       }
     } catch (e) {
@@ -75,6 +192,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
 
   void _removeImage(int index) {
     setState(() {
+      _imageRotations.remove(_rotationKey(_selectedFiles[index]));
       _selectedFiles.removeAt(index);
       if (_currentImageIndex >= _selectedFiles.length &&
           _selectedFiles.isNotEmpty) {
@@ -84,6 +202,13 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   }
 
   Future<void> _diagnoseCase() async {
+    if (_isStudentRole) {
+      _showSnackBar(
+        'Students have view-only access. Please log in as Dentist to create cases.',
+        Colors.orange,
+      );
+      return;
+    }
     // Validation (kept from your code)
     if (_selectedPatient == null) {
       _showSnackBar('Please select a patient', Colors.red);
@@ -97,50 +222,47 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
     setState(() {
       _isAnalyzing = true;
       _hasAnalyzed = false; // Reset analysis on new diagnosis
+      _caseStatus = 'Under Review';
     });
 
     try {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) throw Exception('No authenticated user');
 
-      // Simulate AI analysis with dummy data
-      await Future.delayed(const Duration(seconds: 3));
-
-      // --- NEW DUMMY DATA TO MATCH THE IMAGE UI ---
-      final dummyResults = {
-        'status': 'Analysis Complete',
-        'confidence': 0.92, // 92%
-        'riskLabel': 'Potential Lesion Detected',
-        'verdictNotes': [
-          'Potential Type II carious lesion detected on highlighted area (Tooth #3).',
-          'Recommend intraoral radiograph for confirmation of depth.',
-          'No other significant abnormalities detected on the provided scan.',
-        ],
-        // Dummy annotations (relative coordinates 0.0-1.0)
-        'annotations': [
-          {
-            'type': 'box',
-            'rect': [0.45, 0.35, 0.65, 0.55],
-          }, // [left, top, right, bottom]
-          {
-            'type': 'circle',
-            'center': [0.7, 0.65], // [dx, dy]
-            'radius': 0.05,
-          },
-        ],
-        'analyzedAt': DateTime.now().toIso8601String(),
-      };
-      // --- END OF NEW DUMMY DATA ---
+      final analyzed = await _aiService.analyze(
+        imageBytes: _selectedFiles
+            .where((f) => f.bytes != null)
+            .map((f) => f.bytes!)
+            .toList(),
+        toothNumbers: _toothNumbersController.text.trim(),
+        caseTitle: _caseTitleController.text.trim(),
+      );
 
       // TODO: Replace with Supabase storage integration
       final List<String> imageUrls = [];
       final timestamp = DateTime.now().millisecondsSinceEpoch;
 
+      final mainCaseRef = FirebaseFirestore.instance.collection('cases').doc();
+      final patientCaseRef = FirebaseFirestore.instance
+          .collection('patients')
+          .doc(_selectedPatient!.id)
+          .collection('cases')
+          .doc(mainCaseRef.id);
+      final caseId = mainCaseRef.id;
+      final nowTs = FieldValue.serverTimestamp();
+      final caseTitle = _caseTitleController.text.trim().isEmpty
+          ? 'Case for ${_selectedPatient!.name}'
+          : _caseTitleController.text.trim();
+      final reviewNotes = _manualReviewController.text.trim();
+      final statusToSave = _caseStatus == 'Under Review'
+          ? 'Completed'
+          : _caseStatus;
+
       for (int i = 0; i < _selectedFiles.length; i++) {
         final file = _selectedFiles[i];
         final fileName = '${timestamp}_image_$i.${file.extension ?? 'jpg'}';
         final storageRef = FirebaseStorage.instance.ref().child(
-          'dentists/${currentUser.uid}/patients/${_selectedPatient!.id}/cases/$fileName',
+          'cases/${currentUser.uid}/$caseId/$fileName',
         );
 
         try {
@@ -152,52 +274,33 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
         }
       }
 
-      // Create case document in patient subcollection
-      final patientCaseRef = FirebaseFirestore.instance
-          .collection('patients')
-          .doc(_selectedPatient!.id)
-          .collection('cases')
-          .doc();
-
-      await patientCaseRef.set({
-        'id': patientCaseRef.id,
-        'dentistUid': currentUser.uid,
-        'caseTitle': _caseTitleController.text.trim().isEmpty
-            ? 'Case for ${_selectedPatient!.name}'
-            : _caseTitleController.text.trim(),
-        'toothNumbers': _toothNumbersController.text.trim(),
-        'symptoms': _symptomsController.text.trim(),
-        'imageUrls': imageUrls,
-        'aiAnalysis': dummyResults, // Save the new dummy data
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
-
-      // Also save to main cases collection
-      final mainCaseRef = FirebaseFirestore.instance
-          .collection('cases')
-          .doc(patientCaseRef.id);
-      await mainCaseRef.set({
+      final baseCaseData = {
         'id': patientCaseRef.id,
         'dentistUid': currentUser.uid,
         'patientId': _selectedPatient!.id,
         'patientName': _selectedPatient!.name,
-        'caseTitle': _caseTitleController.text.trim().isEmpty
-            ? 'Case for ${_selectedPatient!.name}'
-            : _caseTitleController.text.trim(),
+        'caseTitle': caseTitle,
         'toothNumbers': _toothNumbersController.text.trim(),
+        'toothNumber': _toothNumbersController.text.trim(),
         'symptoms': _symptomsController.text.trim(),
         'imageUrls': imageUrls,
-        'aiAnalysis': dummyResults, // Save the new dummy data
-        'createdAt': FieldValue.serverTimestamp(),
-        'updatedAt': FieldValue.serverTimestamp(),
-      });
+        'analysisResults': analyzed,
+        'caseStatus': statusToSave,
+        'reviewNotes': reviewNotes,
+        'caseDate': nowTs,
+        'createdAt': nowTs,
+        'updatedAt': nowTs,
+      };
+
+      await patientCaseRef.set(baseCaseData);
+      await mainCaseRef.set(baseCaseData);
 
       // Update AI results state
       setState(() {
         _hasAnalyzed = true;
-        _aiResults = dummyResults;
+        _aiResults = analyzed;
         _isAnalyzing = false;
+        _caseStatus = statusToSave;
         _currentImageIndex = 0; // Reset carousel to first image
       });
 
@@ -218,9 +321,12 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
       _caseTitleController.clear();
       _toothNumbersController.clear();
       _symptomsController.clear();
+      _manualReviewController.clear();
       _hasAnalyzed = false;
       _aiResults = {};
       _currentImageIndex = 0;
+      _caseStatus = 'Uploaded';
+      _imageRotations.clear();
     });
   }
 
@@ -252,7 +358,6 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
               LayoutBuilder(
                 builder: (context, constraints) {
                   final isWideScreen = constraints.maxWidth > 900;
-
                   if (isWideScreen) {
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -325,52 +430,57 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                 dashPattern: const [6, 4],
                 padding: EdgeInsets.zero,
               ),
-              child: Container(
-                height: 280,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAFA),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: _selectedFiles.isEmpty
-                    ? Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.image_outlined,
-                            size: 48,
-                            color: Color(0xFF9CA3AF),
-                          ),
-                          const SizedBox(height: 16),
-                          RichText(
-                            text: const TextSpan(
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: Color(0xFF6B7280),
-                              ),
-                              children: [
-                                TextSpan(
-                                  text: 'Click to add image',
-                                  style: TextStyle(
-                                    color: Color(0xFF3B82F6),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                TextSpan(text: ' or drag and drop'),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          const Text(
-                            'PNG, JPG, BMP accepted',
-                            style: TextStyle(
-                              fontSize: 13,
+              child: KeyboardListener(
+                focusNode: _keyboardFocus,
+                autofocus: true,
+                onKeyEvent: _onKey,
+                child: Container(
+                  height: 280,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFAFAFA),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: _selectedFiles.isEmpty
+                      ? Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.image_outlined,
+                              size: 48,
                               color: Color(0xFF9CA3AF),
                             ),
-                          ),
-                        ],
-                      )
-                    : _buildUploadBoxCarousel(),
+                            const SizedBox(height: 16),
+                            RichText(
+                              text: const TextSpan(
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: Color(0xFF6B7280),
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text: 'Click to add image',
+                                    style: TextStyle(
+                                      color: Color(0xFF3B82F6),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  TextSpan(text: ' or drag and drop'),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            const Text(
+                              'PNG, JPG accepted (max 8MB, min 512px)',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF9CA3AF),
+                              ),
+                            ),
+                          ],
+                        )
+                      : _buildUploadBoxCarousel(),
+                ),
               ),
             ),
           ),
@@ -425,7 +535,17 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                     ],
                   ),
                   child: file.bytes != null
-                      ? Image.memory(file.bytes!, fit: BoxFit.contain)
+                      ? InteractiveViewer(
+                          minScale: 0.7,
+                          maxScale: 4,
+                          child: Transform.rotate(
+                            angle: _rotationFor(file) * math.pi / 180,
+                            child: Image.memory(
+                              file.bytes!,
+                              fit: BoxFit.contain,
+                            ),
+                          ),
+                        )
                       : Center(
                           child: Icon(
                             Icons.image,
@@ -464,6 +584,23 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                       ),
                     ),
                   ),
+                ),
+              ),
+              Positioned(
+                bottom: 40,
+                right: 12,
+                child: Row(
+                  children: [
+                    _RotationButton(
+                      icon: Icons.rotate_left,
+                      onTap: () => _rotateImage(index, -90),
+                    ),
+                    const SizedBox(width: 8),
+                    _RotationButton(
+                      icon: Icons.rotate_right,
+                      onTap: () => _rotateImage(index, 90),
+                    ),
+                  ],
                 ),
               ),
               // Image counter at bottom
@@ -604,6 +741,16 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
           ),
           const SizedBox(height: 16),
 
+          // Tooth number (FDI notation)
+          TextFormField(
+            controller: _toothNumbersController,
+            decoration: const InputDecoration(
+              labelText: 'Tooth number (FDI notation)',
+              hintText: 'e.g., 11, 14, 36',
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // Symptoms / Notes
           TextFormField(
             controller: _symptomsController,
@@ -613,6 +760,32 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
             ),
             maxLines: 3,
           ),
+          const SizedBox(height: 16),
+
+          // Case status lifecycle
+          DropdownButtonFormField<String>(
+            value: _caseStatus,
+            decoration: const InputDecoration(
+              labelText: 'Case Status',
+              prefixIcon: Icon(Icons.flag_outlined),
+            ),
+            items: const [
+              DropdownMenuItem(value: 'Uploaded', child: Text('Uploaded')),
+              DropdownMenuItem(
+                value: 'Under Review',
+                child: Text('Under Review'),
+              ),
+              DropdownMenuItem(value: 'Completed', child: Text('Completed')),
+            ],
+            onChanged: _isAnalyzing
+                ? null
+                : (value) {
+                    if (value == null) return;
+                    setState(() {
+                      _caseStatus = value;
+                    });
+                  },
+          ),
         ],
       ),
     );
@@ -621,7 +794,9 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   Widget _buildActionButtons() {
     // Kept your buttons as they are functional
     final bool canDiagnose =
-        _selectedPatient != null && _selectedFiles.isNotEmpty;
+        !_isStudentRole &&
+        _selectedPatient != null &&
+        _selectedFiles.isNotEmpty;
 
     return Row(
       children: [
@@ -684,8 +859,32 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
             _buildAIResultState()
           else
             _buildAIEmptyState(),
+          const SizedBox(height: 16),
+          _buildManualReviewSection(),
         ],
       ),
+    );
+  }
+
+  Widget _buildManualReviewSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Manual Review (AI placeholder)',
+          style: TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _manualReviewController,
+          maxLines: 3,
+          decoration: const InputDecoration(
+            labelText: 'Manual notes / review comments',
+            hintText:
+                'Document observations while AI module is integrated later.',
+          ),
+        ),
+      ],
     );
   }
 
@@ -1067,6 +1266,29 @@ class _AnnotationPainter extends CustomPainter {
 }
 
 // Add Patient Dialog (kept exactly as you provided)
+class _RotationButton extends StatelessWidget {
+  const _RotationButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.black.withOpacity(0.5),
+      shape: const CircleBorder(),
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(8.0),
+          child: Icon(icon, color: Colors.white, size: 20),
+        ),
+      ),
+    );
+  }
+}
+
 class _AddPatientDialog extends StatefulWidget {
   const _AddPatientDialog();
 

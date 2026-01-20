@@ -143,7 +143,6 @@ class _PatientsScreenState extends State<PatientsScreen> {
                       stream: FirebaseFirestore.instance
                           .collection('patients')
                           .where('dentistUid', isEqualTo: uid)
-                          .orderBy('createdAt', descending: true)
                           .snapshots(),
                       builder: (context, snapshot) {
                         if (snapshot.connectionState ==
@@ -185,10 +184,13 @@ class _PatientsScreenState extends State<PatientsScreen> {
                         }
 
                         final patients =
-                            snapshot.data?.docs
-                                .map((doc) => Patient.fromFirestore(doc))
-                                .toList() ??
-                            [];
+                            (snapshot.data?.docs
+                                      .map((doc) => Patient.fromFirestore(doc))
+                                      .toList() ??
+                                  [])
+                              ..sort(
+                                (a, b) => b.createdAt.compareTo(a.createdAt),
+                              );
 
                         if (patients.isEmpty) {
                           return Container(

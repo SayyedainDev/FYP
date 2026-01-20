@@ -17,23 +17,19 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
 
-  // --- MODIFIED ---
-  final _notesController =
-      TextEditingController(); // Was _medicalHistoryController
-  DateTime? _selectedDate; // Was _ageController
+  final _notesController = TextEditingController();
+  DateTime? _selectedDate;
   String _selectedGender = 'Male';
-  // --- END OF MODIFIED ---
 
   @override
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
     _emailController.dispose();
-    _notesController.dispose(); // Updated
+    _notesController.dispose();
     super.dispose();
   }
 
-  // --- NEW METHOD ---
   Future<void> _selectDate() async {
     final picked = await showDatePicker(
       context: context,
@@ -48,9 +44,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
       });
     }
   }
-  // --- END OF NEW METHOD ---
 
-  // --- COMPLETELY REWRITTEN _submit METHOD ---
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) {
       return;
@@ -84,18 +78,17 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
 
     try {
       final patient = Patient(
-        id: '', // Firestore will generate this
+        id: '',
         dentistUid: uid,
         name: _nameController.text.trim(),
         dob: _selectedDate!,
         gender: _selectedGender,
         contactPhone: _phoneController.text.trim(),
         contactEmail: _emailController.text.trim(),
-        notes: _notesController.text.trim(), // Using notes field
+        notes: _notesController.text.trim(),
         createdAt: DateTime.now(),
       );
 
-      // Assumes addPatient method signature from your 3rd file
       await patientProvider.addPatient(patient, uid);
 
       if (!mounted) return;
@@ -119,7 +112,6 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
       );
     }
   }
-  // --- END OF REWRITTEN _submit METHOD ---
 
   @override
   Widget build(BuildContext context) {
@@ -134,7 +126,6 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              // ... (Your header UI is fine)
               children: [
                 Container(
                   padding: const EdgeInsets.all(12),
@@ -166,7 +157,6 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                   child: Column(
                     children: [
                       TextFormField(
-                        // ... (Name field is fine)
                         controller: _nameController,
                         decoration: const InputDecoration(
                           labelText: 'Full Name',
@@ -183,7 +173,6 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                       const SizedBox(height: 16),
                       Row(
                         children: [
-                          // --- MODIFIED: Age field replaced with DOB picker ---
                           Expanded(
                             child: GestureDetector(
                               onTap: _selectDate,
@@ -200,11 +189,9 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                               ),
                             ),
                           ),
-                          // --- END OF MODIFIED ---
                           const SizedBox(width: 16),
                           Expanded(
                             child: DropdownButtonFormField<String>(
-                              // ... (Gender field is fine)
                               value: _selectedGender,
                               decoration: const InputDecoration(
                                 labelText: 'Gender',
@@ -229,7 +216,6 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
-                        // ... (Phone field is fine)
                         controller: _phoneController,
                         decoration: const InputDecoration(
                           labelText: 'Phone',
@@ -237,13 +223,11 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                         ),
                         keyboardType: TextInputType.phone,
                         validator: (value) {
-                          // Making phone optional, remove validator if required
                           return null;
                         },
                       ),
                       const SizedBox(height: 16),
                       TextFormField(
-                        // ... (Email field is fine, but validation updated)
                         controller: _emailController,
                         decoration: const InputDecoration(
                           labelText: 'Email',
@@ -260,7 +244,6 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      // --- MODIFIED: Medical History -> Notes ---
                       TextFormField(
                         controller: _notesController,
                         decoration: const InputDecoration(
@@ -271,11 +254,9 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                         maxLines: 4,
                         textCapitalization: TextCapitalization.sentences,
                         validator: (value) {
-                          // Making notes optional, remove validator if required
                           return null;
                         },
                       ),
-                      // --- END OF MODIFIED ---
                     ],
                   ),
                 ),
@@ -292,7 +273,6 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                 const SizedBox(width: 12),
                 Consumer<PatientProvider>(
                   builder: (context, provider, child) {
-                    // This loading logic is good
                     return ElevatedButton.icon(
                       onPressed: provider.loading ? null : _submit,
                       icon: provider.loading

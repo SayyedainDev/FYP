@@ -8,6 +8,7 @@ class UserModel {
   final String address;
   final String highestEducation;
   final String email;
+  final String role; // Student | Dentist
 
   UserModel({
     required this.uid,
@@ -18,6 +19,7 @@ class UserModel {
     required this.address,
     required this.highestEducation,
     required this.email,
+    required this.role,
   });
 
   Map<String, dynamic> toMap() => {
@@ -29,6 +31,7 @@ class UserModel {
     'address': address,
     'highestEducation': highestEducation,
     'email': email,
+    'role': role,
   };
 
   factory UserModel.fromMap(Map<String, dynamic> m) => UserModel(
@@ -40,5 +43,6 @@ class UserModel {
     address: m['address'] ?? '',
     highestEducation: m['highestEducation'] ?? '',
     email: m['email'] ?? '',
+    role: m['role'] ?? 'Dentist',
   );
 }

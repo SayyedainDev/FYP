@@ -47,29 +47,29 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyALWcGUf3afOs4K-Fr8Q8FAbBJ_gsjauiA',
-    appId: '1:874657566001:web:304d91f64b9bcc1dbf7410',
-    messagingSenderId: '874657566001',
-    projectId: 'fyp26-a22b9',
-    authDomain: 'fyp26-a22b9.firebaseapp.com',
-    storageBucket: 'fyp26-a22b9.firebasestorage.app',
-    measurementId: 'G-CL604XBQ9S',
+    apiKey: 'AIzaSyA0Iq3I5oaCmGjesX75r3Q_SHOhEA8YSqY',
+    appId: '1:1073333582888:web:8166baf5019224f243491d',
+    messagingSenderId: '1073333582888',
+    projectId: 'dental-care-6daf8',
+    authDomain: 'dental-care-6daf8.firebaseapp.com',
+    storageBucket: 'dental-care-6daf8.firebasestorage.app',
+    measurementId: 'G-04DZKJFC3B',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyB0uRs2j2AyGsr_vz6zm5hvJsmPvyt00uc',
-    appId: '1:874657566001:android:03bdd215d0ca9816bf7410',
-    messagingSenderId: '874657566001',
-    projectId: 'fyp26-a22b9',
-    storageBucket: 'fyp26-a22b9.firebasestorage.app',
+    apiKey: 'AIzaSyCYfLK7ewivGmUsy8DYu1-pXSbtlwcwIWo',
+    appId: '1:1073333582888:android:747ed956a0b24d9e43491d',
+    messagingSenderId: '1073333582888',
+    projectId: 'dental-care-6daf8',
+    storageBucket: 'dental-care-6daf8.firebasestorage.app',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyDkzV20MGP7hX7A6rkWJ3Dzo7mSuoS_uvY',
-    appId: '1:874657566001:ios:8d30ec18bb30a0c8bf7410',
-    messagingSenderId: '874657566001',
-    projectId: 'fyp26-a22b9',
-    storageBucket: 'fyp26-a22b9.firebasestorage.app',
+    apiKey: 'AIzaSyBEbFRVoJmGD6piczD78bP4PDOJalwZA-s',
+    appId: '1:1073333582888:ios:0a8ce7f6aa97fb5043491d',
+    messagingSenderId: '1073333582888',
+    projectId: 'dental-care-6daf8',
+    storageBucket: 'dental-care-6daf8.firebasestorage.app',
     iosBundleId: 'com.example.dentalCare',
   );
 }

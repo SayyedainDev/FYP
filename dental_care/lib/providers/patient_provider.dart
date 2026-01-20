@@ -20,15 +20,26 @@ class PatientProvider extends ChangeNotifier {
       _error = null;
       notifyListeners();
 
-      final querySnapshot = await _firestore
+      Query query = _firestore
           .collection('patients')
-          .where('dentistUid', isEqualTo: dentistUid)
-          .orderBy('createdAt', descending: true)
-          .get();
+          .where('dentistUid', isEqualTo: dentistUid);
+
+      QuerySnapshot querySnapshot;
+      try {
+        querySnapshot = await query
+            .orderBy('createdAt', descending: true)
+            .get();
+      } catch (e) {
+        // Fallback without orderBy if index missing (web may need composite index)
+        debugPrint('OrderBy failed, falling back without ordering: $e');
+        querySnapshot = await query.get();
+      }
 
       _patients = querySnapshot.docs
           .map((doc) => Patient.fromFirestore(doc))
           .toList();
+
+      _patients.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       _loading = false;
       notifyListeners();
@@ -45,13 +56,13 @@ class PatientProvider extends ChangeNotifier {
     _firestore
         .collection('patients')
         .where('dentistUid', isEqualTo: dentistUid)
-        .orderBy('createdAt', descending: true)
         .snapshots()
         .listen(
           (snapshot) {
             _patients = snapshot.docs
                 .map((doc) => Patient.fromFirestore(doc))
                 .toList();
+            _patients.sort((a, b) => b.createdAt.compareTo(a.createdAt));
             notifyListeners();
           },
           onError: (e) {

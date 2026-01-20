@@ -18,7 +18,6 @@ class DashboardScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Welcome Header
           const Text(
             'Welcome back, Dr. Test!',
             style: TextStyle(
@@ -67,7 +66,6 @@ class DashboardScreen extends StatelessWidget {
           ),
           const SizedBox(height: 32),
 
-          // Recent Scans and Patients Row
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -82,7 +80,6 @@ class DashboardScreen extends StatelessWidget {
   }
 }
 
-/// Stat Card Widget
 class _StatCard extends StatelessWidget {
   final String title;
   final String value;
@@ -136,7 +133,6 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-/// Recent Scans Section
 class _RecentScansSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -210,7 +206,6 @@ class _RecentScansSection extends StatelessWidget {
   }
 }
 
-/// Recent Scan Item
 class _RecentScanItem extends StatelessWidget {
   final Case case_;
 
@@ -320,7 +315,6 @@ class _RecentScanItem extends StatelessWidget {
   }
 }
 
-/// Patients Section
 class _PatientsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
@@ -394,7 +388,6 @@ class _PatientsSection extends StatelessWidget {
   }
 }
 
-/// Patient Item
 class _PatientItem extends StatelessWidget {
   final Patient patient;
 

@@ -10,6 +10,7 @@ class MainSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final navProvider = Provider.of<NavigationProvider>(context);
     final authProvider = Provider.of<AuthProvider>(context);
+    final isDentist = authProvider.userRole.toLowerCase() != 'student';
 
     return Container(
       width: 240,
@@ -52,37 +53,8 @@ class MainSidebar extends StatelessWidget {
             ),
           ),
 
-          // Upload New Scan Button
-          // Padding(
-          //   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          //   child: SizedBox(
-          //     width: double.infinity,
-          //     child: ElevatedButton(
-          //       onPressed: () {
-          //         showDialog(
-          //           context: context,
-          //           builder: (context) => const CreateCaseScreen(),
-          //         );
-          //       },
-          //       style: ElevatedButton.styleFrom(
-          //         backgroundColor: const Color(0xFF4A90E2),
-          //         foregroundColor: Colors.white,
-          //         padding: const EdgeInsets.symmetric(vertical: 14),
-          //         shape: RoundedRectangleBorder(
-          //           borderRadius: BorderRadius.circular(8),
-          //         ),
-          //         elevation: 0,
-          //       ),
-          //       child: const Text(
-          //         'Upload New Scan',
-          //         style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-          //       ),
-          //     ),
-          //   ),
-          // ),
           const SizedBox(height: 24),
 
-          // Navigation Items
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
@@ -98,12 +70,14 @@ class MainSidebar extends StatelessWidget {
                     icon: Icons.upload,
                     label: "Upload New Scan",
                     isActive: navProvider.isActive('Upload New Scan'),
+                    enabled: isDentist,
                     onTap: () => navProvider.setPage('Upload New Scan'),
                   ),
                   _SidebarItem(
                     icon: Icons.people_outline,
                     label: 'Patients',
                     isActive: navProvider.isActive('Patients'),
+                    enabled: isDentist,
                     onTap: () => navProvider.setPage('Patients'),
                   ),
                   _SidebarItem(
@@ -111,6 +85,18 @@ class MainSidebar extends StatelessWidget {
                     label: 'Scan History',
                     isActive: navProvider.isActive('Scan History'),
                     onTap: () => navProvider.setPage('Scan History'),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.quiz_outlined,
+                    label: 'AI Quiz',
+                    isActive: navProvider.isActive('AI Quiz'),
+                    onTap: () => navProvider.setPage('AI Quiz'),
+                  ),
+                  _SidebarItem(
+                    icon: Icons.list_alt_outlined,
+                    label: 'My Quizzes',
+                    isActive: navProvider.isActive('My Quizzes'),
+                    onTap: () => navProvider.setPage('My Quizzes'),
                   ),
                   _SidebarItem(
                     icon: Icons.settings_outlined,
@@ -123,7 +109,6 @@ class MainSidebar extends StatelessWidget {
             ),
           ),
 
-          // User Profile Section
           Container(
             padding: const EdgeInsets.all(16.0),
             decoration: BoxDecoration(
@@ -166,6 +151,13 @@ class MainSidebar extends StatelessWidget {
                                   fontWeight: FontWeight.w600,
                                 ),
                                 overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                authProvider.userRole,
+                                style: const TextStyle(
+                                  color: Color(0xFF9B9B9B),
+                                  fontSize: 12,
+                                ),
                               ),
                               const Text(
                                 'View profile',
@@ -216,11 +208,13 @@ class _SidebarItem extends StatelessWidget {
   final String label;
   final bool isActive;
   final VoidCallback onTap;
+  final bool enabled;
 
   const _SidebarItem({
     required this.icon,
     required this.label,
     required this.isActive,
+    this.enabled = true,
     required this.onTap,
   });
 
@@ -231,12 +225,24 @@ class _SidebarItem extends StatelessWidget {
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: onTap,
+          onTap: enabled
+              ? onTap
+              : () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Access restricted to dentists'),
+                      backgroundColor: Colors.orange,
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                },
           borderRadius: BorderRadius.circular(8),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
-              color: isActive
+              color: !enabled
+                  ? const Color(0xFF9B9B9B).withOpacity(0.08)
+                  : isActive
                   ? const Color(0xFF4A90E2).withOpacity(0.15)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
@@ -251,7 +257,9 @@ class _SidebarItem extends StatelessWidget {
               children: [
                 Icon(
                   icon,
-                  color: isActive
+                  color: !enabled
+                      ? const Color(0xFF6B7280)
+                      : isActive
                       ? const Color(0xFF4A90E2)
                       : const Color(0xFF9B9B9B),
                   size: 20,
@@ -260,7 +268,11 @@ class _SidebarItem extends StatelessWidget {
                 Text(
                   label,
                   style: TextStyle(
-                    color: isActive ? Colors.white : const Color(0xFF9B9B9B),
+                    color: !enabled
+                        ? const Color(0xFF6B7280)
+                        : isActive
+                        ? Colors.white
+                        : const Color(0xFF9B9B9B),
                     fontSize: 14,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
                   ),

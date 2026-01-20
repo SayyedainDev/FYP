@@ -1,14 +1,15 @@
-// lib/screens/main_layout.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../providers/navigation_provider.dart';
+import '../provider/auth_provider.dart';
 import 'dashboard_screen.dart';
 import 'history_screen.dart';
 import 'create_case_screen.dart';
 import 'dentist_profile_screen.dart';
 import 'patients_screen.dart';
 import 'settings_screen.dart';
+import 'ai_quiz_screen.dart';
+import 'quiz_list_screen.dart';
 import 'widgets/main_sidebar.dart';
 
 class MainLayout extends StatefulWidget {
@@ -44,7 +45,6 @@ class _MainLayoutState extends State<MainLayout>
   }
 
   Widget _getCurrentScreen(String page) {
-    // We add a Key to each screen to help the AnimatedSwitcher
     switch (page) {
       case 'Dashboard':
         return const DashboardScreen(key: ValueKey('Dashboard'));
@@ -52,6 +52,10 @@ class _MainLayoutState extends State<MainLayout>
         return const PatientsScreen(key: ValueKey('Patients'));
       case 'Scan History':
         return const HistoryScreen(key: ValueKey('Scan History'));
+      case 'AI Quiz':
+        return const AIQuizScreen(key: ValueKey('AI Quiz'));
+      case 'My Quizzes':
+        return const QuizListScreen(key: ValueKey('My Quizzes'));
       case 'Settings':
         return const SettingsScreen(key: ValueKey('Settings'));
       case 'Profile':
@@ -69,19 +73,18 @@ class _MainLayoutState extends State<MainLayout>
       backgroundColor: const Color(0xFFF8F9FA),
       body: Consumer<NavigationProvider>(
         builder: (context, navProvider, child) {
+          final auth = Provider.of<AuthProvider>(context);
+          final isDentist = auth.userRole.toLowerCase() != 'student';
           return Row(
             children: [
-              // Sidebar
               SlideTransition(
                 position: _slideAnimation,
                 child: const MainSidebar(),
               ),
 
-              // Main Content
               Expanded(
                 child: Column(
                   children: [
-                    // Top Bar
                     Container(
                       height: 70,
                       decoration: BoxDecoration(
@@ -110,7 +113,8 @@ class _MainLayoutState extends State<MainLayout>
                             ),
 
                             const Spacer(),
-                            if (navProvider.currentPage == 'Dashboard')
+                            if (navProvider.currentPage == 'Dashboard' &&
+                                isDentist)
                               ElevatedButton.icon(
                                 onPressed: () =>
                                     navProvider.setPage('Upload New Scan'),
@@ -134,7 +138,6 @@ class _MainLayoutState extends State<MainLayout>
                       ),
                     ),
 
-                    // Screen Content
                     Expanded(
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 300),

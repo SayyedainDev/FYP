@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
 import '../models/case.dart';
 
 class CaseProvider extends ChangeNotifier {
@@ -11,11 +13,15 @@ class CaseProvider extends ChangeNotifier {
   bool _loading = false;
   String? _error;
 
+  // Auth
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   // Filters
   String? _filterPatientId;
-  String? _filterAnalysisStatus;
+  String? _filterCaseStatus;
   DateTime? _filterStartDate;
   DateTime? _filterEndDate;
+  String _searchQuery = '';
 
   List<Case> get cases => _getFilteredCases();
   List<Case> get allCases => List.unmodifiable(_cases);
@@ -34,23 +40,33 @@ class CaseProvider extends ChangeNotifier {
       _cases.where((c) => !c.hasCavity && c.isAnalysisComplete).length;
 
   String? get filterPatientId => _filterPatientId;
-  String? get filterAnalysisStatus => _filterAnalysisStatus;
+  String? get filterCaseStatus => _filterCaseStatus;
   DateTime? get filterStartDate => _filterStartDate;
   DateTime? get filterEndDate => _filterEndDate;
+  String get searchQuery => _searchQuery;
 
   CaseProvider() {
     fetchCases();
   }
 
+  String? get _uid => _auth.currentUser?.uid;
+
   // Fetch all cases from Firestore
   Future<void> fetchCases() async {
     try {
+      final uid = _uid;
+      if (uid == null) {
+        _cases = [];
+        return;
+      }
+
       _loading = true;
       _error = null;
       notifyListeners();
 
       final querySnapshot = await _firestore
           .collection('cases')
+          .where('dentistUid', isEqualTo: uid)
           .orderBy('caseDate', descending: true)
           .get();
 
@@ -70,8 +86,12 @@ class CaseProvider extends ChangeNotifier {
 
   // Listen to real-time updates from Firestore
   void listenToCases() {
+    final uid = _uid;
+    if (uid == null) return;
+
     _firestore
         .collection('cases')
+        .where('dentistUid', isEqualTo: uid)
         .orderBy('caseDate', descending: true)
         .snapshots()
         .listen(
@@ -105,6 +125,13 @@ class CaseProvider extends ChangeNotifier {
     String notes = '',
   }) async {
     try {
+      final uid = _uid;
+      if (uid == null) {
+        _error = 'User not authenticated';
+        notifyListeners();
+        return null;
+      }
+
       _loading = true;
       _error = null;
       notifyListeners();
@@ -143,9 +170,10 @@ class CaseProvider extends ChangeNotifier {
         notes: notes,
       );
 
-      final docRef = await _firestore
-          .collection('cases')
-          .add(newCase.toFirestore());
+      final caseData = newCase.toFirestore();
+      caseData['dentistUid'] = uid;
+
+      final docRef = await _firestore.collection('cases').add(caseData);
 
       _loading = false;
       notifyListeners();
@@ -194,8 +222,12 @@ class CaseProvider extends ChangeNotifier {
   // Fetch cases for a specific patient
   Future<List<Case>> fetchCasesForPatient(String patientId) async {
     try {
+      final uid = _uid;
+      if (uid == null) return [];
+
       final querySnapshot = await _firestore
           .collection('cases')
+          .where('dentistUid', isEqualTo: uid)
           .where('patientId', isEqualTo: patientId)
           .orderBy('caseDate', descending: true)
           .get();
@@ -217,9 +249,9 @@ class CaseProvider extends ChangeNotifier {
           .toList();
     }
 
-    if (_filterAnalysisStatus != null) {
+    if (_filterCaseStatus != null) {
       filtered = filtered
-          .where((c) => c.analysisStatus == _filterAnalysisStatus)
+          .where((c) => c.caseStatus == _filterCaseStatus)
           .toList();
     }
 
@@ -235,6 +267,17 @@ class CaseProvider extends ChangeNotifier {
           .toList();
     }
 
+    if (_searchQuery.isNotEmpty) {
+      final q = _searchQuery.toLowerCase();
+      filtered = filtered.where((c) {
+        return c.patientName.toLowerCase().contains(q) ||
+            c.caseTitle.toLowerCase().contains(q) ||
+            c.toothNumber.toLowerCase().contains(q) ||
+            c.analysisStatus.toLowerCase().contains(q) ||
+            c.caseStatus.toLowerCase().contains(q);
+      }).toList();
+    }
+
     filtered.sort((a, b) => b.caseDate.compareTo(a.caseDate));
     return List.unmodifiable(filtered);
   }
@@ -244,8 +287,8 @@ class CaseProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setAnalysisStatusFilter(String? status) {
-    _filterAnalysisStatus = status;
+  void setCaseStatusFilter(String? status) {
+    _filterCaseStatus = status;
     notifyListeners();
   }
 
@@ -259,11 +302,92 @@ class CaseProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setSearchQuery(String value) {
+    _searchQuery = value;
+    notifyListeners();
+  }
+
   void clearFilters() {
     _filterPatientId = null;
-    _filterAnalysisStatus = null;
+    _filterCaseStatus = null;
     _filterStartDate = null;
     _filterEndDate = null;
+    _searchQuery = '';
     notifyListeners();
+  }
+
+  // Update an existing case
+  Future<bool> updateCase(String caseId, Map<String, dynamic> updates) async {
+    try {
+      await _firestore.collection('cases').doc(caseId).update({
+        ...updates,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Update local cache
+      final index = _cases.indexWhere((c) => c.id == caseId);
+      if (index != -1) {
+        await fetchCases(); // Refresh to get updated data
+      }
+
+      return true;
+    } catch (e) {
+      _error = 'Failed to update case: $e';
+      debugPrint('Error updating case: $e');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Delete a case and its images
+  Future<bool> deleteCase(String caseId) async {
+    try {
+      // Find the case to get image URLs
+      final caseToDelete = _cases.firstWhere((c) => c.id == caseId);
+
+      // Delete images from Firebase Storage
+      for (String imageUrl in caseToDelete.imageUrls) {
+        try {
+          final ref = _storage.refFromURL(imageUrl);
+          await ref.delete();
+        } catch (e) {
+          debugPrint('Error deleting image: $e');
+        }
+      }
+
+      // Delete case from Firestore
+      await _firestore.collection('cases').doc(caseId).delete();
+
+      // Update local cache
+      _cases.removeWhere((c) => c.id == caseId);
+      notifyListeners();
+
+      return true;
+    } catch (e) {
+      _error = 'Failed to delete case: $e';
+      debugPrint('Error deleting case: $e');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Archive a case (sets status to 'Archived')
+  Future<bool> archiveCase(String caseId) async {
+    try {
+      await _firestore.collection('cases').doc(caseId).update({
+        'caseStatus': 'Archived',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // Update local cache
+      await fetchCases();
+
+      return true;
+    } catch (e) {
+      _error = 'Failed to archive case: $e';
+      debugPrint('Error archiving case: $e');
+      notifyListeners();
+      return false;
+    }
   }
 }

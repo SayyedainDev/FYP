@@ -17,7 +17,6 @@ class RecentScanCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Patient Avatar
           CircleAvatar(
             radius: 20,
             backgroundColor: isCavity
@@ -34,7 +33,6 @@ class RecentScanCard extends StatelessWidget {
           ),
           const SizedBox(width: 16),
 
-          // Scan Info
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -56,7 +54,6 @@ class RecentScanCard extends StatelessWidget {
             ),
           ),
 
-          // Status Badge
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(

@@ -1,1 +1,27 @@
-{"flutter":{"platforms":{"android":{"default":{"projectId":"fyp26-a22b9","appId":"1:874657566001:android:03bdd215d0ca9816bf7410","fileOutput":"android/app/google-services.json"}},"dart":{"lib/firebase_options.dart":{"projectId":"fyp26-a22b9","configurations":{"android":"1:874657566001:android:03bdd215d0ca9816bf7410","ios":"1:874657566001:ios:8d30ec18bb30a0c8bf7410","web":"1:874657566001:web:304d91f64b9bcc1dbf7410"}}}}}}
+{
+	"flutter": {
+		"platforms": {
+			"android": {
+				"default": {
+					"projectId": "dental-care-6daf8",
+					"appId": "1:1073333582888:android:747ed956a0b24d9e43491d",
+					"fileOutput": "android/app/google-services.json"
+				}
+			},
+			"dart": {
+				"lib/firebase_options.dart": {
+					"projectId": "dental-care-6daf8",
+					"configurations": {
+						"android": "1:1073333582888:android:747ed956a0b24d9e43491d",
+						"ios": "1:1073333582888:ios:0a8ce7f6aa97fb5043491d",
+						"web": "1:1073333582888:web:8166baf5019224f243491d"
+					}
+				}
+			}
+		}
+	},
+	"firestore": {
+		"rules": "firestore.rules",
+		"indexes": "firestore.indexes.json"
+	}
+}

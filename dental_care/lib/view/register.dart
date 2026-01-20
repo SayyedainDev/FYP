@@ -37,6 +37,7 @@ class _RegisterPageState extends State<RegisterPage>
   final _email = TextEditingController();
   final _password = TextEditingController();
   final _confirmPassword = TextEditingController();
+  String _selectedRole = 'Dentist';
 
   late final AnimationController _auraController;
   late final AnimationController _formIntroController;
@@ -86,6 +87,7 @@ class _RegisterPageState extends State<RegisterPage>
       'address': _address.text.trim(),
       'highestEducation': _highestEducation.text.trim(),
       'email': _email.text.trim(),
+      'role': _selectedRole,
     };
     final password = _password.text.trim();
 
@@ -137,6 +139,9 @@ class _RegisterPageState extends State<RegisterPage>
                     confirmPassword: _confirmPassword,
                     introAnimation: _formIntroController,
                     auth: auth,
+                    selectedRole: _selectedRole,
+                    onRoleChanged: (role) =>
+                        setState(() => _selectedRole = role),
                     onSubmit: () => _submit(auth),
                   ),
                 ),
@@ -149,9 +154,6 @@ class _RegisterPageState extends State<RegisterPage>
   }
 }
 
-//
-// --- The Main Registration Card Widget ---
-//
 class _RegisterCard extends StatefulWidget {
   const _RegisterCard({
     required this.formKey,
@@ -166,6 +168,8 @@ class _RegisterCard extends StatefulWidget {
     required this.confirmPassword,
     required this.introAnimation,
     required this.auth,
+    required this.selectedRole,
+    required this.onRoleChanged,
     required this.onSubmit,
   });
 
@@ -181,6 +185,8 @@ class _RegisterCard extends StatefulWidget {
   final TextEditingController confirmPassword;
   final Animation<double> introAnimation;
   final AuthProvider auth;
+  final String selectedRole;
+  final ValueChanged<String> onRoleChanged;
   final VoidCallback onSubmit;
 
   @override
@@ -285,6 +291,26 @@ class _RegisterCardState extends State<_RegisterCard> {
                     }
                     return null;
                   },
+                ),
+              ),
+              const SizedBox(height: 16),
+              _AnimatedFormField(
+                animation: curvedAnimation,
+                delay: 0.22,
+                child: DropdownButtonFormField<String>(
+                  value: widget.selectedRole,
+                  decoration: const InputDecoration(
+                    labelText: 'Role',
+                    prefixIcon: Icon(Icons.verified_user_outlined),
+                  ),
+                  items: const [
+                    DropdownMenuItem(value: 'Dentist', child: Text('Dentist')),
+                    DropdownMenuItem(value: 'Student', child: Text('Student')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) widget.onRoleChanged(value);
+                  },
+                  validator: (value) => value == null ? 'Select a role' : null,
                 ),
               ),
               const SizedBox(height: 16),
@@ -563,7 +589,6 @@ class _LabeledTextField extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // 1. The Label
         Text(
           label,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -572,7 +597,7 @@ class _LabeledTextField extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8),
-        // 2. The Text Field
+
         TextFormField(
           controller: controller,
           validator: validator,
@@ -612,9 +637,6 @@ class _LabeledTextField extends StatelessWidget {
   }
 }
 
-//
-// --- Animation Helper Widget ---
-//
 class _AnimatedFormField extends StatelessWidget {
   const _AnimatedFormField({
     required this.animation,
@@ -647,9 +669,6 @@ class _AnimatedFormField extends StatelessWidget {
   }
 }
 
-//
-// --- Animated Background Widgets ---
-//
 class _AnimatedAura extends StatelessWidget {
   const _AnimatedAura({required this.controller});
 

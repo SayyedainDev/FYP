@@ -18,7 +18,6 @@ void main() {
       app.main();
       await tester.pumpAndSettle(const Duration(seconds: 3));
 
-      // Verify we're on the login page
       expect(
         find.text('Welcome Back'),
         findsOneWidget,
@@ -27,58 +26,32 @@ void main() {
 
       print('✓ App launched successfully');
 
-      // ====================
-      // TEST 1: LOGIN
-      // ====================
       await _testLogin(tester);
 
-      // ====================
-      // TEST 2: DASHBOARD
-      // ====================
       await _testDashboard(tester);
 
-      // ====================
-      // TEST 3: PATIENTS PAGE
-      // ====================
       await _testPatientsPage(tester);
 
-      // ====================
-      // TEST 4: UPLOAD NEW SCAN (CREATE CASE)
-      // ====================
       await _testCreateCasePage(tester);
 
-      // ====================
-      // TEST 5: SCAN HISTORY
-      // ====================
       await _testScanHistoryPage(tester);
 
-      // ====================
-      // TEST 6: SETTINGS PAGE
-      // ====================
       await _testSettingsPage(tester);
 
-      // ====================
-      // TEST 7: PROFILE PAGE
-      // ====================
       await _testProfilePage(tester);
 
-      // ====================
-      // TEST 8: LOGOUT
-      // ====================
       await _testLogout(tester);
 
       print('\n✅ ALL TESTS PASSED! App navigation is working correctly.');
     });
 
     testWidgets('Registration flow test', (WidgetTester tester) async {
-      // Initialize Firebase
       await Firebase.initializeApp();
 
       // Start the app
       app.main();
       await tester.pumpAndSettle(const Duration(seconds: 2));
 
-      // Navigate to registration page
       final registerButton = find.text('Create Account');
       expect(registerButton, findsOneWidget);
       await tester.tap(registerButton);
@@ -86,7 +59,6 @@ void main() {
 
       print('✓ Navigated to registration page');
 
-      // Check registration form fields
       expect(
         find.byType(TextFormField),
         findsWidgets,
@@ -99,14 +71,12 @@ void main() {
     testWidgets('Error handling test - Invalid login credentials', (
       WidgetTester tester,
     ) async {
-      // Initialize Firebase
       await Firebase.initializeApp();
 
       // Start the app
       app.main();
       await tester.pumpAndSettle(const Duration(seconds: 2));
 
-      // Try login with invalid credentials
       final emailField = find.byType(TextFormField).first;
       final passwordField = find.byType(TextFormField).last;
 
@@ -125,19 +95,13 @@ void main() {
   });
 }
 
-// ====================
-// HELPER FUNCTIONS
-// ====================
-
 Future<void> _testLogin(WidgetTester tester) async {
   print('\n--- Testing Login ---');
 
   try {
-    // Find email and password fields
     final emailFields = find.byType(TextFormField);
     expect(emailFields, findsWidgets, reason: 'Should find email field');
 
-    // Enter test credentials (update with your test account)
     await tester.enterText(emailFields.first, 'test@dentist.com');
     await tester.pumpAndSettle();
 
@@ -146,7 +110,6 @@ Future<void> _testLogin(WidgetTester tester) async {
 
     print('✓ Entered login credentials');
 
-    // Tap login button
     final loginButton = find.widgetWithText(ElevatedButton, 'Login');
     if (loginButton.evaluate().isNotEmpty) {
       await tester.tap(loginButton);
@@ -154,12 +117,10 @@ Future<void> _testLogin(WidgetTester tester) async {
       print('✓ Login button tapped');
     }
 
-    // Verify we're on dashboard (check for sidebar or dashboard elements)
     await tester.pumpAndSettle(const Duration(seconds: 2));
     print('✓ Login flow completed');
   } catch (e) {
     print('⚠️  Login test warning: $e');
-    // Don't fail the test if we can't login (might need real credentials)
   }
 }
 
@@ -167,7 +128,6 @@ Future<void> _testDashboard(WidgetTester tester) async {
   print('\n--- Testing Dashboard ---');
 
   try {
-    // Look for dashboard elements
     final dashboardIcon = find.byIcon(Icons.dashboard);
     if (dashboardIcon.evaluate().isNotEmpty) {
       await tester.tap(dashboardIcon);
@@ -206,7 +166,6 @@ Future<void> _testPatientsPage(WidgetTester tester) async {
       await tester.pumpAndSettle(const Duration(seconds: 2));
       print('✓ Navigated to Patients page');
     } else {
-      // Try icon-based navigation
       final patientsIcon = find.byIcon(Icons.people);
       if (patientsIcon.evaluate().isNotEmpty) {
         await tester.tap(patientsIcon.first);
@@ -215,11 +174,9 @@ Future<void> _testPatientsPage(WidgetTester tester) async {
       }
     }
 
-    // Verify patients page loaded
     await tester.pumpAndSettle();
     print('✓ Patients page loaded successfully');
 
-    // Check for list or empty state
     expect(
       find.byType(ListView),
       findsAny,
@@ -234,14 +191,12 @@ Future<void> _testCreateCasePage(WidgetTester tester) async {
   print('\n--- Testing Create Case Page ---');
 
   try {
-    // Find and tap Upload New Scan navigation
     final uploadNav = find.text('Upload New Scan');
     if (uploadNav.evaluate().isNotEmpty) {
       await tester.tap(uploadNav.first);
       await tester.pumpAndSettle(const Duration(seconds: 2));
       print('✓ Navigated to Create Case page');
     } else {
-      // Try icon navigation
       final uploadIcon = find.byIcon(Icons.upload);
       if (uploadIcon.evaluate().isNotEmpty) {
         await tester.tap(uploadIcon.first);
@@ -249,7 +204,6 @@ Future<void> _testCreateCasePage(WidgetTester tester) async {
       }
     }
 
-    // Verify create case page elements
     expect(
       find.text('Upload Scan / Photo'),
       findsOneWidget,
@@ -270,7 +224,6 @@ Future<void> _testCreateCasePage(WidgetTester tester) async {
 
     print('✓ Create Case page loaded successfully');
 
-    // Test form fields
     final textFields = find.byType(TextField);
     expect(
       textFields,
@@ -280,7 +233,6 @@ Future<void> _testCreateCasePage(WidgetTester tester) async {
 
     print('✓ Create Case form fields present');
 
-    // Test dropdowns
     final dropdowns = find.byType(DropdownButtonFormField);
     if (dropdowns.evaluate().isNotEmpty) {
       print('✓ Patient dropdown present');
@@ -294,14 +246,12 @@ Future<void> _testScanHistoryPage(WidgetTester tester) async {
   print('\n--- Testing Scan History Page ---');
 
   try {
-    // Find and tap Scan History navigation
     final historyNav = find.text('Scan History');
     if (historyNav.evaluate().isNotEmpty) {
       await tester.tap(historyNav.first);
       await tester.pumpAndSettle(const Duration(seconds: 2));
       print('✓ Navigated to Scan History page');
     } else {
-      // Try icon navigation
       final historyIcon = find.byIcon(Icons.history);
       if (historyIcon.evaluate().isNotEmpty) {
         await tester.tap(historyIcon.first);
@@ -309,11 +259,9 @@ Future<void> _testScanHistoryPage(WidgetTester tester) async {
       }
     }
 
-    // Verify history page loaded
     await tester.pumpAndSettle();
     print('✓ Scan History page loaded successfully');
 
-    // Check for list or empty state
     expect(
       find.byType(Card),
       findsAny,
@@ -328,14 +276,12 @@ Future<void> _testSettingsPage(WidgetTester tester) async {
   print('\n--- Testing Settings Page ---');
 
   try {
-    // Find and tap Settings navigation
     final settingsNav = find.text('Settings');
     if (settingsNav.evaluate().isNotEmpty) {
       await tester.tap(settingsNav.first);
       await tester.pumpAndSettle(const Duration(seconds: 2));
       print('✓ Navigated to Settings page');
     } else {
-      // Try icon navigation
       final settingsIcon = find.byIcon(Icons.settings);
       if (settingsIcon.evaluate().isNotEmpty) {
         await tester.tap(settingsIcon.first);
@@ -343,11 +289,9 @@ Future<void> _testSettingsPage(WidgetTester tester) async {
       }
     }
 
-    // Verify settings page loaded
     await tester.pumpAndSettle();
     print('✓ Settings page loaded successfully');
 
-    // Check for settings options
     expect(
       find.byType(ListTile),
       findsAny,
@@ -362,7 +306,6 @@ Future<void> _testProfilePage(WidgetTester tester) async {
   print('\n--- Testing Profile Page ---');
 
   try {
-    // Find profile navigation (might be avatar or text)
     final profileText = find.text('Profile');
     if (profileText.evaluate().isNotEmpty) {
       await tester.tap(profileText.first);
@@ -374,7 +317,6 @@ Future<void> _testProfilePage(WidgetTester tester) async {
     await tester.pumpAndSettle();
     print('✓ Profile page loaded successfully');
 
-    // Check for profile elements
     expect(
       find.byType(Card),
       findsAny,
@@ -389,7 +331,6 @@ Future<void> _testLogout(WidgetTester tester) async {
   print('\n--- Testing Logout ---');
 
   try {
-    // Find logout button
     final logoutButton = find.text('Logout');
     if (logoutButton.evaluate().isNotEmpty) {
       await tester.tap(logoutButton.first);

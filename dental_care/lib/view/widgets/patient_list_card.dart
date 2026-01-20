@@ -21,7 +21,6 @@ class PatientListCard extends StatelessWidget {
         ),
         child: Row(
           children: [
-            // Patient Avatar with Initials
             CircleAvatar(
               radius: 20,
               backgroundColor: _getAvatarColor(patient.initials),
@@ -36,7 +35,6 @@ class PatientListCard extends StatelessWidget {
             ),
             const SizedBox(width: 16),
 
-            // Patient Info
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

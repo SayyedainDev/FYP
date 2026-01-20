@@ -11,14 +11,19 @@ class AuthProvider extends ChangeNotifier {
   String? uid;
   String? _userName;
   String? _userEmail;
+  String _role = 'Dentist';
 
   bool get loading => _loading;
   String? get providerId => uid; // Alias for consistency
   String? get userName => _userName;
   String? get userEmail => _userEmail;
+  String get userRole => _role;
 
   // Get current Firebase user ID
   String? get currentUserId => FirebaseAuth.instance.currentUser?.uid;
+
+  // Get current Firebase user
+  User? get user => FirebaseAuth.instance.currentUser;
 
   // Get display name with Dr. title
   String get displayName {
@@ -75,11 +80,16 @@ class AuthProvider extends ChangeNotifier {
           } else {
             _userName = _userEmail?.split('@').first;
           }
+
+          _role = (data['role'] as String?)?.trim().isNotEmpty == true
+              ? (data['role'] as String).trim()
+              : 'Dentist';
         }
       }
     } catch (e) {
       debugPrint('Error fetching user data: $e');
       _userName = _userEmail?.split('@').first;
+      _role = 'Dentist';
     }
   }
 
@@ -96,8 +106,10 @@ class AuthProvider extends ChangeNotifier {
         cnic: form['cnic']!,
         address: form['address']!,
         highestEducation: form['highestEducation']!,
+        role: form['role'] ?? 'Dentist',
       );
       uid = id;
+      _role = form['role'] ?? 'Dentist';
     } finally {
       _loading = false;
       notifyListeners();
@@ -126,6 +138,7 @@ class AuthProvider extends ChangeNotifier {
       uid = null;
       _userName = null;
       _userEmail = null;
+      _role = 'Dentist';
     } finally {
       _loading = false;
       notifyListeners();

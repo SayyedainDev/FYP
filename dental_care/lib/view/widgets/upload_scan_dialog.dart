@@ -53,9 +53,6 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
         ),
       );
       try {
-        // The ScanProvider currently doesn't expose an `addScan` method.
-        // Simulate upload and analysis here or replace this with the correct
-        // provider method (e.g. `uploadScan` or similar) if available.
         await Future.delayed(const Duration(seconds: 1));
 
         if (!mounted) return;
