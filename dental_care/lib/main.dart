@@ -4,7 +4,6 @@ import 'package:dental_care/view/main_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dental_care/service/firebase_service.dart';
 import 'package:dental_care/provider/auth_provider.dart';
 import 'package:dental_care/providers/app_provider.dart';

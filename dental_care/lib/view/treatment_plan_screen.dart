@@ -14,39 +14,123 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Treatment Plans'),
-        elevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _showCreatePlanDialog(),
-          ),
-        ],
-      ),
-      body: Consumer<TreatmentPlanProvider>(
-        builder: (context, planProvider, _) {
-          if (planProvider.loading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final plans = planProvider.activePlans;
-
-          return plans.isEmpty
-              ? Center(
-                  child: Text(
-                    'No active treatment plans',
-                    style: TextStyle(color: Colors.grey[600]),
+      backgroundColor: const Color(0xFFF8F9FA),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Treatment Plans',
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF212121),
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Manage patient treatment plans and progress',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
+                ElevatedButton.icon(
+                  onPressed: () => _showCreatePlanDialog(),
+                  icon: const Icon(Icons.add),
+                  label: const Text('New Plan'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF4A90E2),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 14,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    elevation: 0,
                   ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.all(12),
+                ),
+              ],
+            ),
+            const SizedBox(height: 32),
+
+            // Treatment Plans List
+            Consumer<TreatmentPlanProvider>(
+              builder: (context, planProvider, _) {
+                if (planProvider.loading) {
+                  return const Center(
+                    child: Padding(
+                      padding: EdgeInsets.all(64.0),
+                      child: CircularProgressIndicator(),
+                    ),
+                  );
+                }
+
+                final plans = planProvider.activePlans;
+
+                if (plans.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(64),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Center(
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.medical_information_outlined,
+                            size: 64,
+                            color: Colors.grey[300],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'No active treatment plans',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[700],
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Create a new treatment plan to get started',
+                            style: TextStyle(color: Colors.grey[500]),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
                   itemCount: plans.length,
                   itemBuilder: (context, index) {
                     return _buildTreatmentPlanCard(plans[index]);
                   },
                 );
-        },
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -54,108 +138,262 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
   Widget _buildTreatmentPlanCard(TreatmentPlan plan) {
     final priorityColor = _getPriorityColor(plan.priority);
 
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: ExpansionTile(
-        title: Text(plan.title),
-        subtitle: Text(
-          'Progress: ${plan.progressPercentage}%',
-          style: const TextStyle(fontSize: 12),
-        ),
-        leading: Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: priorityColor.withOpacity(0.2),
-            borderRadius: BorderRadius.circular(8),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          child: Center(
-            child: Text(
-              '${plan.progressPercentage}%',
-              style: TextStyle(
-                color: priorityColor,
-                fontWeight: FontWeight.bold,
+        ],
+      ),
+      child: Theme(
+        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.all(20),
+          childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
+          leading: Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  priorityColor.withOpacity(0.2),
+                  priorityColor.withOpacity(0.1),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Center(
+              child: Text(
+                '${plan.progressPercentage}%',
+                style: TextStyle(
+                  color: priorityColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             ),
           ),
-        ),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          title: Text(
+            plan.title,
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF212121),
+            ),
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 8.0),
+            child: Row(
               children: [
-                _buildInfoRow('Status', plan.status),
-                _buildInfoRow('Priority', plan.priority),
-                _buildInfoRow(
-                  'Estimated Cost',
-                  '\$${plan.estimatedCost.toStringAsFixed(2)}',
-                ),
-                _buildInfoRow(
-                  'Start Date',
+                _buildStatusBadge(plan.status, priorityColor),
+                const SizedBox(width: 12),
+                Icon(Icons.calendar_today, size: 14, color: Colors.grey[500]),
+                const SizedBox(width: 4),
+                Text(
                   plan.startDate.toString().split(' ')[0],
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Progress',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: LinearProgressIndicator(
-                    value: plan.progressPercentage / 100,
-                    minHeight: 8,
-                    backgroundColor: Colors.grey[300],
-                    valueColor: AlwaysStoppedAnimation<Color>(priorityColor),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Phases',
-                  style: TextStyle(fontWeight: FontWeight.bold),
-                ),
-                const SizedBox(height: 8),
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: plan.phases.length,
-                  itemBuilder: (context, index) {
-                    final phase = plan.phases[index];
-                    return ListTile(
-                      title: Text(phase.name),
-                      subtitle: Text(phase.description),
-                      trailing: Checkbox(
-                        value: phase.isCompleted,
-                        onChanged: (value) {},
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-                ElevatedButton.icon(
-                  onPressed: () => _updateProgress(plan),
-                  icon: const Icon(Icons.edit),
-                  label: const Text('Update Progress'),
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                 ),
               ],
             ),
           ),
-        ],
+          children: [
+            const Divider(height: 24),
+            // Plan Details
+            _buildInfoRow('Priority', plan.priority, Icons.flag, priorityColor),
+            const SizedBox(height: 12),
+            _buildInfoRow(
+              'Estimated Cost',
+              '\$${plan.estimatedCost.toStringAsFixed(2)}',
+              Icons.attach_money,
+              Colors.green,
+            ),
+            const SizedBox(height: 20),
+
+            // Progress Bar
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Overall Progress',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: Color(0xFF212121),
+                      ),
+                    ),
+                    Text(
+                      '${plan.progressPercentage}%',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        fontSize: 14,
+                        color: priorityColor,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: LinearProgressIndicator(
+                    value: plan.progressPercentage / 100,
+                    minHeight: 10,
+                    backgroundColor: Colors.grey[200],
+                    valueColor: AlwaysStoppedAnimation<Color>(priorityColor),
+                  ),
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 20),
+
+            // Phases
+            if (plan.phases.isNotEmpty) ...[
+              const Text(
+                'Treatment Phases',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                  color: Color(0xFF212121),
+                ),
+              ),
+              const SizedBox(height: 12),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: plan.phases.length,
+                itemBuilder: (context, index) {
+                  final phase = plan.phases[index];
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 10),
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: phase.isCompleted
+                          ? Colors.green.shade50
+                          : Colors.grey.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: phase.isCompleted
+                            ? Colors.green.shade200
+                            : Colors.grey.shade200,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          phase.isCompleted
+                              ? Icons.check_circle
+                              : Icons.radio_button_unchecked,
+                          color: phase.isCompleted ? Colors.green : Colors.grey,
+                          size: 22,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                phase.name,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 14,
+                                  color: phase.isCompleted
+                                      ? Colors.green.shade900
+                                      : const Color(0xFF212121),
+                                ),
+                              ),
+                              if (phase.description.isNotEmpty) ...[
+                                const SizedBox(height: 4),
+                                Text(
+                                  phase.description,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
+            ],
+
+            // Action Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _updateProgress(plan),
+                icon: const Icon(Icons.edit, size: 18),
+                label: const Text('Update Progress'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: priorityColor,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(label, style: TextStyle(color: Colors.grey[600])),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w500)),
-        ],
+  Widget _buildStatusBadge(String status, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.15),
+        borderRadius: BorderRadius.circular(6),
       ),
+      child: Text(
+        status,
+        style: TextStyle(
+          color: color,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, IconData icon, Color color) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: color),
+        const SizedBox(width: 8),
+        Text(
+          '$label: ',
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 13,
+            color: Colors.grey[700],
+          ),
+        ),
+        Text(
+          value,
+          style: const TextStyle(fontSize: 13, color: Color(0xFF212121)),
+        ),
+      ],
     );
   }
 
