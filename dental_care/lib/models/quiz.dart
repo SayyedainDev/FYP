@@ -176,6 +176,9 @@ class Quiz {
   final List<Question> questions;
   final String? noteFileUrl;
   final String? noteFileName;
+  final List<String>? lectureNoteIds; // References to lecture notes
+  final String? additionalNotesUrl; // Additional notes uploaded for this quiz
+  final String? additionalNotesFileName;
   final DateTime createdAt;
   final DateTime? lastModified;
   final int totalMarks;
@@ -190,6 +193,9 @@ class Quiz {
     required this.questions,
     this.noteFileUrl,
     this.noteFileName,
+    this.lectureNoteIds,
+    this.additionalNotesUrl,
+    this.additionalNotesFileName,
     required this.createdAt,
     this.lastModified,
     required this.totalMarks,
@@ -206,6 +212,9 @@ class Quiz {
       'questions': questions.map((q) => q.toFirestore()).toList(),
       'noteFileUrl': noteFileUrl,
       'noteFileName': noteFileName,
+      'lectureNoteIds': lectureNoteIds,
+      'additionalNotesUrl': additionalNotesUrl,
+      'additionalNotesFileName': additionalNotesFileName,
       'createdAt': Timestamp.fromDate(createdAt),
       'lastModified': lastModified != null
           ? Timestamp.fromDate(lastModified!)
@@ -230,6 +239,11 @@ class Quiz {
           [],
       noteFileUrl: data['noteFileUrl'],
       noteFileName: data['noteFileName'],
+      lectureNoteIds: (data['lectureNoteIds'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList(),
+      additionalNotesUrl: data['additionalNotesUrl'],
+      additionalNotesFileName: data['additionalNotesFileName'],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       lastModified: (data['lastModified'] as Timestamp?)?.toDate(),
       totalMarks: data['totalMarks'] ?? 0,

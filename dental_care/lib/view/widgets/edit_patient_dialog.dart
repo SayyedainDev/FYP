@@ -4,22 +4,34 @@ import 'package:provider/provider.dart';
 import '../../provider/auth_provider.dart';
 import '../../providers/patient_provider.dart';
 
-class AddPatientDialog extends StatefulWidget {
-  const AddPatientDialog({super.key});
+class EditPatientDialog extends StatefulWidget {
+  final Patient patient;
+
+  const EditPatientDialog({super.key, required this.patient});
 
   @override
-  State<AddPatientDialog> createState() => _AddPatientDialogState();
+  State<EditPatientDialog> createState() => _EditPatientDialogState();
 }
 
-class _AddPatientDialogState extends State<AddPatientDialog> {
+class _EditPatientDialogState extends State<EditPatientDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController();
-  final _phoneController = TextEditingController();
-  final _emailController = TextEditingController();
+  late TextEditingController _nameController;
+  late TextEditingController _phoneController;
+  late TextEditingController _emailController;
+  late TextEditingController _notesController;
+  late DateTime _selectedDate;
+  late String _selectedGender;
 
-  final _notesController = TextEditingController();
-  DateTime? _selectedDate;
-  String _selectedGender = 'Male';
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.patient.name);
+    _phoneController = TextEditingController(text: widget.patient.contactPhone);
+    _emailController = TextEditingController(text: widget.patient.contactEmail);
+    _notesController = TextEditingController(text: widget.patient.notes);
+    _selectedDate = widget.patient.dob;
+    _selectedGender = widget.patient.gender;
+  }
 
   @override
   void dispose() {
@@ -33,14 +45,14 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
   Future<void> _selectDate() async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().subtract(const Duration(days: 365 * 30)),
+      initialDate: _selectedDate,
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: const Color(0xFF4CAF50),
+              primary: const Color(0xFF4A90E2),
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black87,
@@ -64,16 +76,6 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
       return;
     }
 
-    if (_selectedDate == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a date of birth'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
     final patientProvider = Provider.of<PatientProvider>(
       context,
       listen: false,
@@ -91,19 +93,16 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
     }
 
     try {
-      final patient = Patient(
-        id: '',
-        dentistUid: uid,
+      final updatedPatient = widget.patient.copyWith(
         name: _nameController.text.trim(),
-        dob: _selectedDate!,
+        dob: _selectedDate,
         gender: _selectedGender,
         contactPhone: _phoneController.text.trim(),
         contactEmail: _emailController.text.trim(),
         notes: _notesController.text.trim(),
-        createdAt: DateTime.now(),
       );
 
-      await patientProvider.addPatient(patient, uid);
+      await patientProvider.updatePatient(updatedPatient, uid);
 
       if (!mounted) return;
 
@@ -113,7 +112,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
             children: [
               const Icon(Icons.check_circle, color: Colors.white),
               const SizedBox(width: 12),
-              const Text('Patient added successfully!'),
+              const Text('Patient updated successfully!'),
             ],
           ),
           backgroundColor: Colors.green.shade600,
@@ -123,7 +122,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
         ),
       );
 
-      Navigator.pop(context);
+      Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
 
@@ -172,7 +171,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [const Color(0xFF4CAF50), const Color(0xFF45A049)],
+                  colors: [const Color(0xFF4A90E2), const Color(0xFF357ABD)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -190,7 +189,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                       borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
-                      Icons.person_add,
+                      Icons.edit,
                       color: Colors.white,
                       size: 28,
                     ),
@@ -201,7 +200,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'Add New Patient',
+                          'Edit Patient Information',
                           style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
@@ -210,7 +209,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          'Enter patient details below',
+                          'Update patient details below',
                           style: TextStyle(
                             fontSize: 14,
                             color: Colors.white.withOpacity(0.9),
@@ -278,9 +277,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                                     ),
                                     decoration: BoxDecoration(
                                       border: Border.all(
-                                        color: _selectedDate == null
-                                            ? Colors.red.shade300
-                                            : Colors.grey.shade300,
+                                        color: Colors.grey.shade300,
                                       ),
                                       borderRadius: BorderRadius.circular(12),
                                       color: Colors.grey.shade50,
@@ -290,18 +287,14 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                                         Icon(
                                           Icons.calendar_today,
                                           size: 20,
-                                          color: const Color(0xFF4CAF50),
+                                          color: const Color(0xFF4A90E2),
                                         ),
                                         const SizedBox(width: 12),
                                         Text(
-                                          _selectedDate == null
-                                              ? 'Select date'
-                                              : '${_selectedDate!.day.toString().padLeft(2, '0')}/${_selectedDate!.month.toString().padLeft(2, '0')}/${_selectedDate!.year}',
+                                          '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
                                           style: TextStyle(
                                             fontSize: 16,
-                                            color: _selectedDate == null
-                                                ? Colors.grey[500]
-                                                : Colors.grey[800],
+                                            color: Colors.grey[800],
                                           ),
                                         ),
                                       ],
@@ -342,7 +335,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                                       isExpanded: true,
                                       icon: Icon(
                                         Icons.arrow_drop_down,
-                                        color: const Color(0xFF4CAF50),
+                                        color: const Color(0xFF4A90E2),
                                       ),
                                       items: ['Male', 'Female', 'Other']
                                           .map(
@@ -354,7 +347,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                                                     Icons.person_outline,
                                                     size: 20,
                                                     color: const Color(
-                                                      0xFF4CAF50,
+                                                      0xFF4A90E2,
                                                     ),
                                                   ),
                                                   const SizedBox(width: 12),
@@ -453,7 +446,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                       return ElevatedButton(
                         onPressed: provider.loading ? null : _submit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4CAF50),
+                          backgroundColor: const Color(0xFF4A90E2),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 32,
@@ -478,10 +471,10 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                                 ),
                               )
                             else
-                              const Icon(Icons.add, size: 20),
+                              const Icon(Icons.save, size: 20),
                             const SizedBox(width: 8),
                             Text(
-                              provider.loading ? 'Adding...' : 'Add Patient',
+                              provider.loading ? 'Saving...' : 'Save Changes',
                               style: const TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.w600,
@@ -507,7 +500,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
       style: const TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.bold,
-        color: Color(0xFF4CAF50),
+        color: Color(0xFF4A90E2),
       ),
     );
   }
@@ -524,14 +517,9 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
-      textCapitalization: maxLines == 1
-          ? (keyboardType == TextInputType.emailAddress
-                ? TextCapitalization.none
-                : TextCapitalization.words)
-          : TextCapitalization.sentences,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: const Color(0xFF4CAF50)),
+        prefixIcon: Icon(icon, color: const Color(0xFF4A90E2)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade300),
@@ -542,15 +530,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF4CAF50), width: 2),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 1),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 2),
+          borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 2),
         ),
         filled: true,
         fillColor: Colors.grey.shade50,

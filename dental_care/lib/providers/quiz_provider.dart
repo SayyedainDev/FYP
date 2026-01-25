@@ -212,12 +212,18 @@ class QuizProvider with ChangeNotifier {
     String? noteFileName,
   }) async {
     try {
+      debugPrint('🔄 Starting quiz creation...');
+      debugPrint('👤 Dentist UID: $dentistUid');
+      debugPrint('📝 Title: $title');
+      debugPrint('❓ Questions count: ${questions.length}');
+
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
 
       // Calculate total marks
       final totalMarks = questions.fold<int>(0, (sum, q) => sum + q.marks);
+      debugPrint('📊 Total marks: $totalMarks');
 
       // Calculate section marks
       Map<String, int>? sectionMarks;
@@ -245,19 +251,39 @@ class QuizProvider with ChangeNotifier {
         sectionMarks: sectionMarks,
       );
 
+      debugPrint('📤 Attempting to save quiz to Firestore...');
       final docRef = await _firestore
           .collection('quizzes')
           .add(quiz.toFirestore());
 
+      debugPrint('✅ Quiz saved with ID: ${docRef.id}');
+
       // Update with generated ID
       await docRef.update({'id': docRef.id});
+      debugPrint('✅ Quiz ID updated in document');
 
-      _currentQuiz = quiz;
+      // Create a new quiz instance with the correct ID
+      _currentQuiz = Quiz(
+        id: docRef.id,
+        title: title,
+        description: description,
+        dentistUid: dentistUid,
+        config: config,
+        questions: questions,
+        noteFileUrl: noteFileUrl,
+        noteFileName: noteFileName,
+        createdAt: quiz.createdAt,
+        totalMarks: totalMarks,
+        sectionMarks: sectionMarks,
+      );
       _isLoading = false;
       notifyListeners();
 
+      debugPrint('🎉 Quiz creation completed successfully!');
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error creating quiz: $e');
+      debugPrint('📚 Stack trace: $stackTrace');
       _isLoading = false;
       _errorMessage = 'Failed to create quiz: $e';
       notifyListeners();
@@ -274,6 +300,7 @@ class QuizProvider with ChangeNotifier {
   // Fetch all quizzes for a dentist
   Future<void> fetchQuizzes(String dentistUid) async {
     try {
+      debugPrint('🔍 Fetching quizzes for dentist: $dentistUid');
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
@@ -286,9 +313,12 @@ class QuizProvider with ChangeNotifier {
 
       _quizzes = snapshot.docs.map((doc) => Quiz.fromFirestore(doc)).toList();
 
+      debugPrint('✅ Fetched ${_quizzes.length} quizzes');
       _isLoading = false;
       notifyListeners();
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error fetching quizzes: $e');
+      debugPrint('📚 Stack trace: $stackTrace');
       _isLoading = false;
       _errorMessage = 'Failed to fetch quizzes: $e';
       notifyListeners();
@@ -298,6 +328,7 @@ class QuizProvider with ChangeNotifier {
   // Get a single quiz by ID
   Future<Quiz?> getQuizById(String quizId) async {
     try {
+      debugPrint('🔍 Fetching quiz with ID: $quizId');
       _isLoading = true;
       notifyListeners();
 
@@ -305,15 +336,19 @@ class QuizProvider with ChangeNotifier {
 
       if (doc.exists) {
         _currentQuiz = Quiz.fromFirestore(doc);
+        debugPrint('✅ Quiz fetched successfully');
         _isLoading = false;
         notifyListeners();
         return _currentQuiz;
       }
 
+      debugPrint('⚠️ Quiz not found');
       _isLoading = false;
       notifyListeners();
       return null;
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('❌ Error fetching quiz: $e');
+      debugPrint('📚 Stack trace: $stackTrace');
       _isLoading = false;
       _errorMessage = 'Failed to fetch quiz: $e';
       notifyListeners();

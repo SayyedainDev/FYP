@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/quiz_provider.dart';
-import '../providers/navigation_provider.dart';
-import '../provider/auth_provider.dart';
 import '../models/quiz.dart';
+import '../provider/auth_provider.dart';
+import '../providers/navigation_provider.dart';
+import '../providers/quiz_provider.dart';
+import '../service/quiz_pdf_service.dart';
 import 'quiz_detail_screen.dart';
 
 class QuizListScreen extends StatefulWidget {
@@ -51,63 +52,83 @@ class _QuizListScreenState extends State<QuizListScreen> {
 
   Widget _buildHeader(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(24),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        gradient: LinearGradient(
+          colors: [const Color(0xFF6366F1), const Color(0xFF4F46E5)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
+            color: Colors.black.withOpacity(0.12),
+            blurRadius: 24,
+            offset: const Offset(0, 10),
           ),
         ],
+        borderRadius: const BorderRadius.only(
+          bottomLeft: Radius.circular(24),
+          bottomRight: Radius.circular(24),
+        ),
       ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(Icons.quiz, color: Colors.blue.shade700, size: 28),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'My Quizzes',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF212121),
-                  ),
-                ),
-                Text(
-                  'View and manage your generated quizzes',
-                  style: TextStyle(color: Colors.grey[600], fontSize: 14),
-                ),
-              ],
-            ),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              context.read<NavigationProvider>().setPage('AI Quiz');
-            },
-            icon: const Icon(Icons.add, size: 18),
-            label: const Text('Create New Quiz'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue.shade700,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+      child: SafeArea(
+        bottom: false,
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.15),
+                borderRadius: BorderRadius.circular(14),
               ),
-              elevation: 0,
+              child: const Icon(Icons.quiz, color: Colors.white, size: 30),
             ),
-          ),
-        ],
+            const SizedBox(width: 18),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Quiz Library',
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Generate, review, and share assessments with your students.',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                context.read<NavigationProvider>().setPage('AI Quiz');
+              },
+              icon: const Icon(Icons.add, size: 18),
+              label: const Text('New Quiz'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: const Color(0xFF4F46E5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 18,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -204,8 +225,15 @@ class _QuizListScreenState extends State<QuizListScreen> {
 
     return RefreshIndicator(
       onRefresh: _loadQuizzes,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(24),
+      child: GridView.builder(
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+        physics: const AlwaysScrollableScrollPhysics(),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: 20,
+          crossAxisSpacing: 20,
+          childAspectRatio: 1.3,
+        ),
         itemCount: quizProvider.quizzes.length,
         itemBuilder: (context, index) {
           final quiz = quizProvider.quizzes[index];
@@ -220,11 +248,23 @@ class _QuizListScreenState extends State<QuizListScreen> {
     QuizProvider quizProvider,
     AuthProvider authProvider,
   ) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      elevation: 2,
+    final difficultyColor = _getDifficultyColor(quiz.config.difficulty);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade100),
+      ),
       child: InkWell(
+        borderRadius: BorderRadius.circular(18),
         onTap: () {
           Navigator.push(
             context,
@@ -233,14 +273,27 @@ class _QuizListScreenState extends State<QuizListScreen> {
             ),
           );
         },
-        borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: difficultyColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Icon(
+                      Icons.quiz_outlined,
+                      color: difficultyColor,
+                      size: 26,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -249,18 +302,20 @@ class _QuizListScreenState extends State<QuizListScreen> {
                           quiz.title,
                           style: const TextStyle(
                             fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF212121),
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF111827),
                           ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 6),
                         Text(
                           quiz.description.isNotEmpty
                               ? quiz.description
-                              : 'No description',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
+                              : 'No description added',
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF6B7280),
                           ),
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
@@ -268,27 +323,24 @@ class _QuizListScreenState extends State<QuizListScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: _getDifficultyColor(
-                        quiz.config.difficulty,
-                      ).withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(20),
+                      color: difficultyColor.withOpacity(0.12),
+                      borderRadius: BorderRadius.circular(30),
                       border: Border.all(
-                        color: _getDifficultyColor(quiz.config.difficulty),
-                        width: 1,
+                        color: difficultyColor.withOpacity(0.4),
                       ),
                     ),
                     child: Text(
                       quiz.difficultyText,
                       style: TextStyle(
-                        color: _getDifficultyColor(quiz.config.difficulty),
-                        fontWeight: FontWeight.bold,
+                        color: difficultyColor,
+                        fontWeight: FontWeight.w700,
                         fontSize: 12,
                       ),
                     ),
@@ -296,40 +348,52 @@ class _QuizListScreenState extends State<QuizListScreen> {
                 ],
               ),
               const SizedBox(height: 16),
-              const Divider(height: 1),
-              const SizedBox(height: 16),
               Row(
                 children: [
                   _buildInfoChip(
-                    Icons.quiz_outlined,
+                    Icons.help_outline,
                     '${quiz.questions.length} Questions',
-                    Colors.blue,
+                    Colors.indigo,
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   _buildInfoChip(
-                    Icons.star_outline,
+                    Icons.grade_outlined,
                     '${quiz.totalMarks} Marks',
                     Colors.orange,
                   ),
-                  const SizedBox(width: 12),
-                  _buildInfoChip(
-                    Icons.access_time,
-                    quiz.timeText,
-                    Colors.green,
-                  ),
+                  const SizedBox(width: 10),
+                  _buildInfoChip(Icons.schedule, quiz.timeText, Colors.green),
                   const Spacer(),
+                  IconButton(
+                    tooltip: 'Share',
+                    onPressed: () async {
+                      try {
+                        await QuizPdfService.shareQuiz(quiz);
+                      } catch (e) {
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Share failed: $e'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+                    icon: const Icon(Icons.share, color: Color(0xFF6366F1)),
+                  ),
                   IconButton(
                     icon: Icon(
                       Icons.delete_outline,
-                      color: Colors.red.shade700,
+                      color: Colors.red.shade600,
                     ),
+                    tooltip: 'Delete',
                     onPressed: () => _confirmDelete(
                       context,
                       quiz,
                       quizProvider,
                       authProvider,
                     ),
-                    tooltip: 'Delete Quiz',
                   ),
                 ],
               ),
@@ -339,27 +403,27 @@ class _QuizListScreenState extends State<QuizListScreen> {
                   Icon(
                     Icons.calendar_today,
                     size: 14,
-                    color: Colors.grey.shade600,
+                    color: Colors.grey.shade500,
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'Created: ${_formatDate(quiz.createdAt)}',
+                    'Created ${_formatDate(quiz.createdAt)}',
                     style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                   if (quiz.noteFileName != null) ...[
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 12),
                     Icon(
                       Icons.attach_file,
                       size: 14,
-                      color: Colors.grey.shade600,
+                      color: Colors.grey.shade500,
                     ),
-                    const SizedBox(width: 6),
+                    const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         quiz.noteFileName!,
                         style: TextStyle(
                           fontSize: 12,
-                          color: Colors.grey.shade600,
+                          color: Colors.grey.shade700,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

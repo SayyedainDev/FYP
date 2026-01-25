@@ -5,8 +5,10 @@ import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import '../providers/quiz_provider.dart';
 import '../providers/navigation_provider.dart';
+import '../providers/lecture_notes_provider.dart';
 import '../provider/auth_provider.dart';
 import '../models/quiz.dart';
+import '../models/lecture_note.dart';
 import '../service/quiz_pdf_service.dart';
 import '../service/file_parser_service.dart';
 
@@ -32,6 +34,10 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
   bool _includeAnswerKey = true;
   String _explanationLevel = 'brief';
   QuizMode? _specialMode = QuizMode.practice;
+
+  // Lecture Notes Management
+  final List<String> _selectedLectureNoteIds = [];
+  String? _additionalNotesFileName;
 
   // Controllers
   final TextEditingController _titleController = TextEditingController();
@@ -208,6 +214,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
     QuizProvider quizProvider,
     AuthProvider authProvider,
   ) {
+    final lectureNotesProvider = Provider.of<LectureNotesProvider>(context);
+
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
@@ -221,173 +229,407 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Upload Lecture Notes',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF212121),
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Upload & Select Lecture Notes',
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF212121),
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Upload your lecture notes or study materials',
-            style: TextStyle(color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Supported formats: ${FileParserService.getSupportedFormatsString()} (Max 25MB)',
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.blue.shade700,
-              fontWeight: FontWeight.w500,
+            const SizedBox(height: 8),
+            Text(
+              'Upload your lecture notes or select from existing ones',
+              style: TextStyle(color: Colors.grey[600]),
             ),
-          ),
-          const SizedBox(height: 32),
+            const SizedBox(height: 4),
+            Text(
+              'Supported formats: ${FileParserService.getSupportedFormatsString()} (Max 25MB)',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.blue.shade700,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 32),
 
-          // File upload area
-          InkWell(
-            onTap: quizProvider.isLoading
-                ? null
-                : () => _pickFile(quizProvider, authProvider),
-            child: Container(
-              padding: const EdgeInsets.all(48),
+            // === NEW FILE UPLOAD AREA ===
+            Container(
+              padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                border: Border.all(
-                  color: quizProvider.uploadedFileName != null
-                      ? Colors.green.shade300
-                      : Colors.blue.shade200,
-                  width: 2,
-                ),
+                color: Colors.blue.shade50,
                 borderRadius: BorderRadius.circular(12),
-                color: quizProvider.uploadedFileName != null
-                    ? Colors.green.shade50
-                    : Colors.blue.shade50,
+                border: Border.all(color: Colors.blue.shade200),
               ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Icon(
-                    quizProvider.uploadedFileName != null
-                        ? Icons.check_circle
-                        : Icons.cloud_upload,
-                    size: 64,
-                    color: quizProvider.uploadedFileName != null
-                        ? Colors.green.shade700
-                        : Colors.blue.shade700,
+                  Row(
+                    children: [
+                      Icon(Icons.cloud_upload, color: Colors.blue.shade700),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Upload New Lecture Notes',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 16),
-                  Text(
-                    quizProvider.uploadedFileName ??
-                        'Click to upload lecture notes',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: quizProvider.uploadedFileName != null
-                          ? Colors.green.shade700
-                          : Colors.blue.shade700,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    quizProvider.uploadedFileName != null
-                        ? 'File uploaded successfully! Click to change.'
-                        : 'Supported formats: ${FileParserService.getSupportedFormatsString()} (Max 25MB)',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                    textAlign: TextAlign.center,
-                  ),
-                  if (quizProvider.isLoading)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 16),
+                  InkWell(
+                    onTap: quizProvider.isLoading
+                        ? null
+                        : () => _pickFile(quizProvider, authProvider),
+                    child: Container(
+                      padding: const EdgeInsets.all(48),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: quizProvider.uploadedFileName != null
+                              ? Colors.green.shade300
+                              : Colors.blue.shade200,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        color: quizProvider.uploadedFileName != null
+                            ? Colors.green.shade50
+                            : Colors.white,
+                      ),
                       child: Column(
                         children: [
-                          LinearProgressIndicator(
-                            value: quizProvider.uploadProgress,
-                            backgroundColor: Colors.grey[300],
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              Colors.blue.shade700,
+                          Icon(
+                            quizProvider.uploadedFileName != null
+                                ? Icons.check_circle
+                                : Icons.folder_open,
+                            size: 64,
+                            color: quizProvider.uploadedFileName != null
+                                ? Colors.green.shade700
+                                : Colors.blue.shade700,
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            quizProvider.uploadedFileName ??
+                                'Click to upload lecture notes',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: quizProvider.uploadedFileName != null
+                                  ? Colors.green.shade700
+                                  : Colors.blue.shade700,
                             ),
+                            textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Uploading... ${(quizProvider.uploadProgress * 100).toInt()}%',
+                            quizProvider.uploadedFileName != null
+                                ? 'File selected! Click to change.'
+                                : 'Supported formats: PDF, DOCX, PPTX, Images (Max 25MB)',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: 14,
                               color: Colors.grey[600],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          if (quizProvider.isLoading)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 16),
+                              child: Column(
+                                children: [
+                                  LinearProgressIndicator(
+                                    value: quizProvider.uploadProgress,
+                                    backgroundColor: Colors.grey[300],
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.blue.shade700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    'Uploading... ${(quizProvider.uploadProgress * 100).toInt()}%',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            // === SELECT EXISTING LECTURE NOTES ===
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.orange.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.orange.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.library_books, color: Colors.orange.shade700),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Select Existing Lecture Notes',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  StreamBuilder<List<LectureNote>>(
+                    stream: lectureNotesProvider.getLectureNotesStream(
+                      authProvider.user?.uid ?? '',
+                    ),
+                    builder: (context, snapshot) {
+                      if (snapshot.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+
+                      final notes = snapshot.data ?? [];
+
+                      if (notes.isEmpty) {
+                        return Text(
+                          'No lecture notes available. Upload notes in Lecture Notes Management.',
+                          style: TextStyle(color: Colors.grey[600]),
+                        );
+                      }
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Available Notes (${notes.length})',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 12,
+                            runSpacing: 12,
+                            children: notes.map((note) {
+                              final isSelected = _selectedLectureNoteIds
+                                  .contains(note.id);
+                              return FilterChip(
+                                selected: isSelected,
+                                onSelected: (selected) {
+                                  setState(() {
+                                    if (selected) {
+                                      _selectedLectureNoteIds.add(note.id);
+                                    } else {
+                                      _selectedLectureNoteIds.remove(note.id);
+                                    }
+                                  });
+                                },
+                                label: Text('${note.typeIcon} ${note.title}'),
+                                backgroundColor: Colors.white,
+                                selectedColor: Colors.orange.shade200,
+                                side: BorderSide(
+                                  color: isSelected
+                                      ? Colors.orange.shade700
+                                      : Colors.orange.shade300,
+                                ),
+                              );
+                            }).toList(),
+                          ),
+                          if (_selectedLectureNoteIds.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.all(8),
+                              decoration: BoxDecoration(
+                                color: Colors.green.shade50,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                '✓ ${_selectedLectureNoteIds.length} note(s) selected',
+                                style: TextStyle(
+                                  color: Colors.green.shade700,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            // === ADDITIONAL NOTES UPLOAD ===
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.purple.shade50,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.purple.shade200),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.add_circle, color: Colors.purple.shade700),
+                      const SizedBox(width: 12),
+                      Text(
+                        'Additional Notes (Optional)',
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Upload extra materials specifically for this quiz',
+                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                  ),
+                  const SizedBox(height: 12),
+                  InkWell(
+                    onTap: _pickAdditionalFile,
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: _additionalNotesFileName != null
+                              ? Colors.green.shade300
+                              : Colors.purple.shade200,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                        color: _additionalNotesFileName != null
+                            ? Colors.green.shade50
+                            : Colors.white,
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _additionalNotesFileName != null
+                                ? Icons.check_circle
+                                : Icons.attach_file,
+                            color: _additionalNotesFileName != null
+                                ? Colors.green.shade700
+                                : Colors.purple.shade700,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              _additionalNotesFileName ?? 'No file selected',
+                              style: TextStyle(
+                                color: _additionalNotesFileName != null
+                                    ? Colors.green.shade700
+                                    : Colors.grey[600],
+                                fontWeight: _additionalNotesFileName != null
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
                       ),
                     ),
+                  ),
                 ],
               ),
             ),
-          ),
 
-          const SizedBox(height: 32),
+            const SizedBox(height: 32),
 
-          // Quiz title and description
-          TextField(
-            controller: _titleController,
-            decoration: InputDecoration(
-              labelText: 'Quiz Title',
-              hintText: 'e.g., Dental Anatomy Chapter 1 Quiz',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              filled: true,
-              fillColor: Colors.grey.shade50,
+            // === QUIZ DETAILS ===
+            Text(
+              'Quiz Details',
+              style: Theme.of(
+                context,
+              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _descriptionController,
-            maxLines: 3,
-            decoration: InputDecoration(
-              labelText: 'Description (optional)',
-              hintText: 'Brief description of the quiz...',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              filled: true,
-              fillColor: Colors.grey.shade50,
-            ),
-          ),
-
-          const SizedBox(height: 32),
-
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              ElevatedButton.icon(
-                onPressed: () {
-                  final hasUpload =
-                      quizProvider.uploadedFile != null ||
-                      quizProvider.uploadedBytes != null;
-                  if (hasUpload && _titleController.text.isNotEmpty) {
-                    setState(() => _currentStep = 1);
-                  }
-                },
-                icon: const Icon(Icons.arrow_forward),
-                label: const Text('Next: Configure Quiz'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade700,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 0,
+            const SizedBox(height: 16),
+            TextField(
+              controller: _titleController,
+              decoration: InputDecoration(
+                labelText: 'Quiz Title',
+                hintText: 'e.g., Dental Anatomy Chapter 1 Quiz',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
                 ),
+                filled: true,
+                fillColor: Colors.grey.shade50,
               ),
-            ],
-          ),
-        ],
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _descriptionController,
+              maxLines: 3,
+              decoration: InputDecoration(
+                labelText: 'Description (optional)',
+                hintText: 'Brief description of the quiz...',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                filled: true,
+                fillColor: Colors.grey.shade50,
+              ),
+            ),
+
+            const SizedBox(height: 32),
+
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () {
+                    final hasUpload =
+                        quizProvider.uploadedFile != null ||
+                        quizProvider.uploadedBytes != null;
+                    final hasLectureNotes =
+                        _selectedLectureNoteIds.isNotEmpty || hasUpload;
+                    if (hasLectureNotes && _titleController.text.isNotEmpty) {
+                      setState(() => _currentStep = 1);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Please upload or select lecture notes and enter a quiz title',
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.arrow_forward),
+                  label: const Text('Next: Configure Quiz'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue.shade700,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 24,
+                      vertical: 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -647,7 +889,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
           const SizedBox(height: 32),
 
           // Configuration Summary
-          _buildSummaryCard(),
+          _buildSummaryCard(quizProvider),
 
           const SizedBox(height: 32),
 
@@ -749,7 +991,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
     );
   }
 
-  Widget _buildSummaryCard() {
+  Widget _buildSummaryCard(QuizProvider quizProvider) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -762,7 +1004,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
         children: [
           _buildSummaryRow(
             'File',
-            context.read<QuizProvider>().uploadedFileName ?? 'No file selected',
+            quizProvider.uploadedFileName ?? 'No file selected',
           ),
           _buildSummaryRow(
             'Difficulty',
@@ -1277,6 +1519,81 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
     }
   }
 
+  Future<void> _pickAdditionalFile() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: [
+          'pdf',
+          'doc',
+          'docx',
+          'pptx',
+          'ppt',
+          'txt',
+          'jpg',
+          'jpeg',
+          'png',
+        ],
+        withData: true,
+        allowMultiple: false,
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final pickedFile = result.files.first;
+        final fileName = pickedFile.name;
+        final fileSize = pickedFile.size;
+
+        // Validate file size (Max 25MB)
+        if (fileSize > 250 * 1024 * 1024) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('File is too large. Maximum size is 250MB'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+          return;
+        }
+
+        if (kIsWeb) {
+          if (pickedFile.bytes != null) {
+            setState(() {
+              _additionalNotesFileName = fileName;
+              // Store bytes if needed
+            });
+          }
+        } else {
+          if (pickedFile.path != null) {
+            setState(() {
+              _additionalNotesFileName = fileName;
+            });
+          }
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('✅ File selected: $fileName'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('❌ Error picking additional file: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
   Future<void> _generateQuiz(
     QuizProvider quizProvider,
     AuthProvider authProvider,
@@ -1412,7 +1729,13 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
       );
     }
 
-    // Stay on step 2 to show the generated quiz
-    setState(() {});
+    // Stay on step 2 to show the generated quiz (schedule for after build completes)
+    if (mounted) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {});
+        }
+      });
+    }
   }
 }

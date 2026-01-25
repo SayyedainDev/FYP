@@ -5,7 +5,7 @@ import '../models/medical_history.dart';
 class MedicalHistoryProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Map<String, MedicalHistory> _histories = {};
+  final Map<String, MedicalHistory> _histories = {};
   bool _loading = false;
   String? _error;
 

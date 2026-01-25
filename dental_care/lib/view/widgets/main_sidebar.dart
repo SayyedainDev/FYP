@@ -99,6 +99,13 @@ class MainSidebar extends StatelessWidget {
                     onTap: () => navProvider.setPage('My Quizzes'),
                   ),
                   _SidebarItem(
+                    icon: Icons.library_books_outlined,
+                    label: 'Lecture Notes',
+                    isActive: navProvider.isActive('Lecture Notes'),
+                    enabled: isDentist,
+                    onTap: () => navProvider.setPage('Lecture Notes'),
+                  ),
+                  _SidebarItem(
                     icon: Icons.settings_outlined,
                     label: 'Settings',
                     isActive: navProvider.isActive('Settings'),

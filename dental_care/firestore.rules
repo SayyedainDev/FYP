@@ -48,6 +48,20 @@ service cloud.firestore {
       allow update, delete: if isAuthenticated() && resource.data.dentistUid == request.auth.uid;
     }
     
+    // Quizzes collection - dentists can only access their own quizzes
+    match /quizzes/{quizId} {
+      allow read: if isAuthenticated() && resource.data.dentistUid == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.dentistUid == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.dentistUid == request.auth.uid;
+    }
+    
+    // Lecture Notes collection - dentists can only access their own notes
+    match /lectureNotes/{noteId} {
+      allow read: if isAuthenticated() && resource.data.dentistUid == request.auth.uid;
+      allow create: if isAuthenticated() && request.resource.data.dentistUid == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.dentistUid == request.auth.uid;
+    }
+    
     // Test collection for connection tests
     match /_test/{testId} {
       allow read, write: if isAuthenticated();

@@ -10,6 +10,7 @@ import 'patients_screen.dart';
 import 'settings_screen.dart';
 import 'ai_quiz_screen.dart';
 import 'quiz_list_screen.dart';
+import 'lecture_notes_screen.dart';
 import 'widgets/main_sidebar.dart';
 
 class MainLayout extends StatefulWidget {
@@ -56,6 +57,8 @@ class _MainLayoutState extends State<MainLayout>
         return const AIQuizScreen(key: ValueKey('AI Quiz'));
       case 'My Quizzes':
         return const QuizListScreen(key: ValueKey('My Quizzes'));
+      case 'Lecture Notes':
+        return const LectureNotesScreen(key: ValueKey('Lecture Notes'));
       case 'Settings':
         return const SettingsScreen(key: ValueKey('Settings'));
       case 'Profile':
