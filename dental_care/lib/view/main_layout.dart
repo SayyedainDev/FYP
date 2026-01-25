@@ -4,7 +4,7 @@ import '../providers/navigation_provider.dart';
 import '../provider/auth_provider.dart';
 import 'dashboard_screen.dart';
 import 'history_screen.dart';
-import 'create_case_screen.dart';
+import 'dental_detection_screen.dart';
 import 'dentist_profile_screen.dart';
 import 'patients_screen.dart';
 import 'settings_screen.dart';
@@ -63,8 +63,8 @@ class _MainLayoutState extends State<MainLayout>
         return const SettingsScreen(key: ValueKey('Settings'));
       case 'Profile':
         return const DentistProfileScreen(key: ValueKey('Profile'));
-      case 'Upload New Scan':
-        return const CreateCaseScreen(key: ValueKey('Upload New Scan'));
+      case 'Disease Detection':
+        return const DentalDetectionScreen(key: ValueKey('Disease Detection'));
       default:
         return const DashboardScreen(key: ValueKey('Dashboard'));
     }
@@ -105,9 +105,7 @@ class _MainLayoutState extends State<MainLayout>
                         child: Row(
                           children: [
                             Text(
-                              navProvider.currentPage == 'Upload New Scan'
-                                  ? 'Create & Review Case'
-                                  : navProvider.currentPage,
+                              navProvider.currentPage,
                               style: Theme.of(context).textTheme.headlineMedium
                                   ?.copyWith(
                                     fontWeight: FontWeight.bold,
@@ -120,9 +118,9 @@ class _MainLayoutState extends State<MainLayout>
                                 isDentist)
                               ElevatedButton.icon(
                                 onPressed: () =>
-                                    navProvider.setPage('Upload New Scan'),
-                                icon: const Icon(Icons.add, size: 18),
-                                label: const Text('Quick Add Scan'),
+                                    navProvider.setPage('Disease Detection'),
+                                icon: const Icon(Icons.auto_awesome, size: 18),
+                                label: const Text('Quick Detection'),
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: const Color(0xFF4A90E2),
                                   foregroundColor: Colors.white,

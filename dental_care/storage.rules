@@ -9,6 +9,16 @@ service firebase.storage {
     function isAuthenticated() {
       return request.auth != null;
     }
+
+    // Lecture notes files (PDF, DOCX, PPTX, TXT, images, videos)
+    match /lecture_notes/{dentistUid}/{noteId}/{fileName} {
+      allow read: if isAuthenticated() && isOwner(dentistUid);
+      allow create: if isAuthenticated()
+                    && isOwner(dentistUid)
+                    && request.resource.size < 50 * 1024 * 1024 // Max 50MB
+                    && request.resource.contentType.matches('application/.*|text/.*|image/.*|video/.*');
+      allow update, delete: if isAuthenticated() && isOwner(dentistUid);
+    }
     
     // Helper function to check if user owns the folder
     function isOwner(uid) {

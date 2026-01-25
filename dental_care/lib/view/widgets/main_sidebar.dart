@@ -67,11 +67,11 @@ class MainSidebar extends StatelessWidget {
                     onTap: () => navProvider.setPage('Dashboard'),
                   ),
                   _SidebarItem(
-                    icon: Icons.upload,
-                    label: "Upload New Scan",
-                    isActive: navProvider.isActive('Upload New Scan'),
+                    icon: Icons.auto_awesome,
+                    label: 'Disease Detection',
+                    isActive: navProvider.isActive('Disease Detection'),
                     enabled: isDentist,
-                    onTap: () => navProvider.setPage('Upload New Scan'),
+                    onTap: () => navProvider.setPage('Disease Detection'),
                   ),
                   _SidebarItem(
                     icon: Icons.people_outline,

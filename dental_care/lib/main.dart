@@ -4,6 +4,7 @@ import 'package:dental_care/view/main_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dental_care/service/firebase_service.dart';
 import 'package:dental_care/provider/auth_provider.dart';
 import 'package:dental_care/providers/app_provider.dart';
@@ -30,6 +31,15 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
     debugPrint('✅ Firebase Initialized Successfully');
+
+    // Initialize Supabase for lecture notes storage
+    // TODO: Replace with your actual Supabase URL and Anon Key
+    // await Supabase.initialize(
+    //   url: 'https://your-project.supabase.co',
+    //   anonKey: 'your-anon-key',
+    //   authCallbackUrlScheme: 'io.supabase.flutter-examples',
+    // );
+    // debugPrint('✅ Supabase Initialized Successfully');
 
     // Run Firebase connection tests (in debug mode only)
     assert(() {

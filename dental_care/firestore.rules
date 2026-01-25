@@ -56,7 +56,7 @@ service cloud.firestore {
     }
     
     // Lecture Notes collection - dentists can only access their own notes
-    match /lectureNotes/{noteId} {
+    match /lecture_notes/{noteId} {
       allow read: if isAuthenticated() && resource.data.dentistUid == request.auth.uid;
       allow create: if isAuthenticated() && request.resource.data.dentistUid == request.auth.uid;
       allow update, delete: if isAuthenticated() && resource.data.dentistUid == request.auth.uid;

@@ -396,6 +396,7 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
                   controller: _titleController,
                   hint: 'e.g., Orthodontics Chapter 1: Basics',
                   icon: Icons.title,
+                  onChanged: (_) => setState(() {}),
                 ),
                 const SizedBox(height: 24),
                 _buildModernTextField(
@@ -426,6 +427,7 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
     required String hint,
     required IconData icon,
     int maxLines = 1,
+    ValueChanged<String>? onChanged,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -442,6 +444,7 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
         TextField(
           controller: controller,
           maxLines: maxLines,
+          onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hint,
             prefixIcon: Icon(icon, color: const Color(0xFF6366F1)),
