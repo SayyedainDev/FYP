@@ -167,7 +167,8 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
   }
 
   Future<void> _runDetection() async {
-    if (_selectedFiles.isEmpty || _selectedFiles[_currentImageIndex].bytes == null) {
+    if (_selectedFiles.isEmpty ||
+        _selectedFiles[_currentImageIndex].bytes == null) {
       setState(() {
         _errorMessage = 'Please select an image first';
       });
@@ -210,25 +211,29 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
         _showSnackBar('✓ Detection successful!', Colors.green);
       } else {
         setState(() {
-          _errorMessage = 'Detection failed: HTTP ${response.statusCode}\n${response.body}';
+          _errorMessage =
+              'Detection failed: HTTP ${response.statusCode}\n${response.body}';
           _isDetecting = false;
         });
       }
     } on TimeoutException {
       setState(() {
-        _errorMessage = 'Request timeout (${_timeoutSeconds}s). Check if Flask API is running.';
+        _errorMessage =
+            'Request timeout (${_timeoutSeconds}s). Check if Flask API is running.';
         _isDetecting = false;
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Connection error: $e\n\nMake sure Flask API is running:\ncd model/Dental-Disease-Detection\npy app.py';
+        _errorMessage =
+            'Connection error: $e\n\nMake sure Flask API is running:\ncd model/Dental-Disease-Detection\npy app.py';
         _isDetecting = false;
       });
     }
   }
 
   Future<void> _runAnalysis() async {
-    if (_selectedFiles.isEmpty || _selectedFiles[_currentImageIndex].bytes == null) {
+    if (_selectedFiles.isEmpty ||
+        _selectedFiles[_currentImageIndex].bytes == null) {
       setState(() {
         _errorMessage = 'Please select an image first';
       });
@@ -272,7 +277,8 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
         _showSnackBar('✓ Analysis complete!', Colors.green);
       } else {
         setState(() {
-          _errorMessage = 'Analysis failed: HTTP ${response.statusCode}\n${response.body}';
+          _errorMessage =
+              'Analysis failed: HTTP ${response.statusCode}\n${response.body}';
           _isDetecting = false;
         });
       }
@@ -283,7 +289,8 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
       });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Connection error: $e\n\nMake sure Flask API is running.';
+        _errorMessage =
+            'Connection error: $e\n\nMake sure Flask API is running.';
         _isDetecting = false;
       });
     }
@@ -366,8 +373,7 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
           _buildErrorCard(),
           const SizedBox(height: 24),
         ],
-        if (_annotatedImageBytes != null)
-          _buildDetectionResultCard(),
+        if (_annotatedImageBytes != null) _buildDetectionResultCard(),
         if (_analysisData != null) ...[
           const SizedBox(height: 24),
           _buildAnalysisCard(),
@@ -385,7 +391,11 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.cloud_upload_outlined, color: Color(0xFF3B82F6), size: 24),
+              const Icon(
+                Icons.cloud_upload_outlined,
+                color: Color(0xFF3B82F6),
+                size: 24,
+              ),
               const SizedBox(width: 12),
               const Text(
                 'Upload X-ray Image',
@@ -401,7 +411,9 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
 
           // Drag & Drop Area with Carousel
           GestureDetector(
-            onTap: _isDetecting || _selectedFiles.isNotEmpty ? null : _pickImages,
+            onTap: _isDetecting || _selectedFiles.isNotEmpty
+                ? null
+                : _pickImages,
             child: DottedBorder(
               options: RoundedRectDottedBorderOptions(
                 radius: const Radius.circular(8),
@@ -637,7 +649,11 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.settings_outlined, color: Color(0xFF3B82F6), size: 22),
+              const Icon(
+                Icons.settings_outlined,
+                color: Color(0xFF3B82F6),
+                size: 22,
+              ),
               const SizedBox(width: 12),
               Text(
                 'Detection Options',
@@ -686,15 +702,16 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline, color: Color(0xFF3B82F6), size: 20),
+                const Icon(
+                  Icons.info_outline,
+                  color: Color(0xFF3B82F6),
+                  size: 20,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     'Model detects 31 dental conditions including caries, crowns, fillings, bone loss, and more.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.blue.shade900,
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.blue.shade900),
                   ),
                 ),
               ],
@@ -721,7 +738,9 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
                         height: 16,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : const Icon(Icons.auto_awesome),
@@ -820,7 +839,11 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 24),
+              const Icon(
+                Icons.check_circle,
+                color: Color(0xFF10B981),
+                size: 24,
+              ),
               const SizedBox(width: 12),
               const Text(
                 'Detection Result',
@@ -838,10 +861,7 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
             child: InteractiveViewer(
               minScale: 0.5,
               maxScale: 4,
-              child: Image.memory(
-                _annotatedImageBytes!,
-                fit: BoxFit.contain,
-              ),
+              child: Image.memory(_annotatedImageBytes!, fit: BoxFit.contain),
             ),
           ),
           const SizedBox(height: 12),
@@ -853,7 +873,11 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
             ),
             child: Row(
               children: [
-                const Icon(Icons.info_outline, color: Color(0xFF10B981), size: 18),
+                const Icon(
+                  Icons.info_outline,
+                  color: Color(0xFF10B981),
+                  size: 18,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -884,7 +908,11 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.analytics_outlined, color: Color(0xFF6B5B95), size: 24),
+              const Icon(
+                Icons.analytics_outlined,
+                color: Color(0xFF6B5B95),
+                size: 24,
+              ),
               const SizedBox(width: 12),
               const Text(
                 'Analysis Statistics',
@@ -907,7 +935,10 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(color: const Color(0xFFE5E7EB)),
               ),
-               child: _buildStatRow('Total Detections', '${overall['count'] ?? 0}'),
+              child: _buildStatRow(
+                'Total Detections',
+                '${overall['count'] ?? 0}',
+              ),
             ),
             const SizedBox(height: 20),
           ],
@@ -954,8 +985,8 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
                         ),
                       ),
                     ),
-                     Text(
-                       '×$count',
+                    Text(
+                      '×$count',
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.grey.shade600,
@@ -978,10 +1009,7 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 14,
-            color: Color(0xFF6B7280),
-          ),
+          style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
         ),
         Text(
           value,
@@ -1000,10 +1028,7 @@ class _RotationButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
 
-  const _RotationButton({
-    required this.icon,
-    required this.onTap,
-  });
+  const _RotationButton({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -1025,11 +1050,7 @@ class _RotationButton extends StatelessWidget {
               ),
             ],
           ),
-          child: Icon(
-            icon,
-            color: Colors.white,
-            size: 20,
-          ),
+          child: Icon(icon, color: Colors.white, size: 20),
         ),
       ),
     );

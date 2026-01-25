@@ -79,14 +79,18 @@ class LectureNotesProvider with ChangeNotifier {
       final bytes = await file.readAsBytes();
 
       // Upload to Supabase Storage
-      await _supabase.storage.from(_bucketName).uploadBinary(
-        filePath,
-        bytes,
-        fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-      );
+      await _supabase.storage
+          .from(_bucketName)
+          .uploadBinary(
+            filePath,
+            bytes,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+          );
 
       // Get public URL
-      final publicUrl = _supabase.storage.from(_bucketName).getPublicUrl(filePath);
+      final publicUrl = _supabase.storage
+          .from(_bucketName)
+          .getPublicUrl(filePath);
 
       _uploadProgress = 1.0;
       notifyListeners();
@@ -115,14 +119,18 @@ class LectureNotesProvider with ChangeNotifier {
       final filePath = '$dentistUid/$noteId/$fileName';
 
       // Upload to Supabase Storage
-      await _supabase.storage.from(_bucketName).uploadBinary(
-        filePath,
-        bytes,
-        fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-      );
+      await _supabase.storage
+          .from(_bucketName)
+          .uploadBinary(
+            filePath,
+            bytes,
+            fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
+          );
 
       // Get public URL
-      final publicUrl = _supabase.storage.from(_bucketName).getPublicUrl(filePath);
+      final publicUrl = _supabase.storage
+          .from(_bucketName)
+          .getPublicUrl(filePath);
 
       _uploadProgress = 1.0;
       notifyListeners();
