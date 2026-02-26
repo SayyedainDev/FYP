@@ -50,6 +50,7 @@ dependencies:
   printing: ^5.13.3
   share_plus: ^10.1.2
   archive: ^3.4.10
+  image: ^4.3.0
 
   # Optional: For enhanced document parsing (uncomment to enable)
   # docx: ^0.2.7              # For better DOCX parsing
