@@ -17,14 +17,14 @@ jobs:
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.27.0'  # Adjust to your Flutter version
+          flutter-version: '3.27.0'
           channel: stable
 
       - name: Get Flutter Dependencies
         run: flutter pub get
 
       - name: Build Web App
-        run: flutter build web --release --web-renderer html
+        run: flutter build web --release
 
       - name: Deploy to Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
@@ -34,3 +34,4 @@ jobs:
           channelId: live
           projectId: dental-care-6daf8
           entryPoint: ./
+
