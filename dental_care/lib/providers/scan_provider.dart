@@ -87,13 +87,19 @@ class ScanProvider extends ChangeNotifier {
         );
   }
 
-  // Upload scan image to Firebase Storage and save scan data to Firestore
+  // Upload scan image to Firebase Storage and save scan data to Firestore.
+  //
+  // [cavityStatus] and [confidence] should come from real YOLO detection
+  // results (e.g. DetectionResponse). Pass the primary diagnosis label
+  // and its confidence score (0-100) from the detection pipeline.
   Future<void> uploadScan({
     required String patientId,
     required String patientName,
     required String toothNumber,
     required String notes,
     dynamic imageFile, // Can be File or Uint8List for web
+    String? cavityStatus,   // Real diagnosis from YOLO (e.g. "Caries", "Healthy")
+    double? confidence,     // Real confidence from YOLO (0-100)
   }) async {
     try {
       _loading = true;
@@ -112,10 +118,9 @@ class ScanProvider extends ChangeNotifier {
         imageUrl = await storageRef.getDownloadURL();
       }
 
-      // Simulate AI analysis (in real app, call your ML model here)
-      final random = DateTime.now().millisecond;
-      final cavityStatus = random % 2 == 0 ? 'Cavity' : 'Healthy';
-      final confidence = 75.0 + (random % 20);
+      // Use real detection results when provided; otherwise mark as pending
+      final effectiveStatus = cavityStatus ?? 'Pending Analysis';
+      final effectiveConfidence = confidence ?? 0.0;
 
       final newScan = Scan(
         id: '', // Will be set by Firestore
@@ -124,8 +129,8 @@ class ScanProvider extends ChangeNotifier {
         toothNumber: toothNumber,
         imageUrl: imageUrl,
         scanDate: DateTime.now(),
-        cavityStatus: cavityStatus,
-        confidence: confidence,
+        cavityStatus: effectiveStatus,
+        confidence: effectiveConfidence,
         notes: notes,
       );
 
