@@ -74,7 +74,7 @@ class PatientProvider extends ChangeNotifier {
   }
 
   // Add a new patient to Firestore and update user's patient list
-  Future<void> addPatient(Patient patient, String dentistUid) async {
+  Future<String> addPatient(Patient patient, String dentistUid) async {
     try {
       _loading = true;
       _error = null;
@@ -87,14 +87,18 @@ class PatientProvider extends ChangeNotifier {
           .collection('patients')
           .add(newPatient.toFirestore());
 
+      final patientId = patientDocRef.id;
+
       // Update user document to include this patient ID
-      await _updateUserPatientsList(dentistUid, patientDocRef.id, isAdd: true);
+      await _updateUserPatientsList(dentistUid, patientId, isAdd: true);
 
       _loading = false;
       notifyListeners();
 
       // Refresh the list
       await fetchPatients(dentistUid);
+      
+      return patientId;
     } catch (e) {
       _error = 'Failed to add patient: $e';
       _loading = false;

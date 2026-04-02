@@ -5,7 +5,9 @@ import '../../provider/auth_provider.dart';
 import '../../providers/patient_provider.dart';
 
 class AddPatientDialog extends StatefulWidget {
-  const AddPatientDialog({super.key});
+  final Function(String)? onPatientCreated;
+
+  const AddPatientDialog({super.key, this.onPatientCreated});
 
   @override
   State<AddPatientDialog> createState() => _AddPatientDialogState();
@@ -103,7 +105,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
         createdAt: DateTime.now(),
       );
 
-      await patientProvider.addPatient(patient, uid);
+      final patientId = await patientProvider.addPatient(patient, uid);
 
       if (!mounted) return;
 
@@ -123,7 +125,12 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
         ),
       );
 
-      Navigator.pop(context);
+      // Call the callback with the new patient ID
+      if (widget.onPatientCreated != null) {
+        widget.onPatientCreated!(patientId);
+      } else {
+        Navigator.pop(context);
+      }
     } catch (e) {
       if (!mounted) return;
 
