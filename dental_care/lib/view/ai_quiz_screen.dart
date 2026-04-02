@@ -92,43 +92,25 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
 
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border(bottom: BorderSide(color: Colors.grey[200]!, width: 1)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.blue.shade50,
-              borderRadius: BorderRadius.circular(12),
+          Text(
+            'Create Quiz',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF212121),
             ),
-            child: Icon(Icons.quiz, color: Colors.blue.shade700, size: 28),
           ),
-          const SizedBox(width: 16),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'AI Quiz Generator',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF212121),
-                ),
-              ),
-              Text(
-                'Create intelligent quizzes from your lecture notes',
-                style: TextStyle(color: Colors.grey[600], fontSize: 14),
-              ),
-            ],
+          const SizedBox(height: 4),
+          Text(
+            'Generate quizzes from your lecture notes',
+            style: TextStyle(color: Colors.grey[600], fontSize: 13),
           ),
         ],
       ),
@@ -158,15 +140,15 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
             width: 48,
             height: 48,
             decoration: BoxDecoration(
-              color: isActive || isCompleted
-                  ? Colors.blue.shade700
-                  : Colors.grey.shade300,
+              color: isActive
+                  ? const Color(0xFF4A90E2)
+                  : (isCompleted ? Colors.grey[400] : Colors.grey[200]),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isCompleted ? Icons.check : icon,
-              color: Colors.white,
-              size: 24,
+              isCompleted ? Icons.check : (isActive ? icon : Icons.circle_outlined),
+              color: isActive || isCompleted ? Colors.white : Colors.grey[600],
+              size: 20,
             ),
           ),
           const SizedBox(height: 8),
@@ -174,9 +156,10 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
             label,
             style: TextStyle(
               fontSize: 12,
-              fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
-              color: isActive ? Colors.blue.shade700 : Colors.grey[600],
+              fontWeight: FontWeight.w500,
+              color: isActive ? const Color(0xFF4A90E2) : Colors.grey[600],
             ),
+            textAlign: TextAlign.center,
           ),
         ],
       ),
@@ -189,7 +172,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
       child: Container(
         height: 2,
         margin: const EdgeInsets.only(bottom: 40),
-        color: isCompleted ? Colors.blue.shade700 : Colors.grey.shade300,
+        color: isCompleted ? const Color(0xFF4A90E2) : Colors.grey[300],
       ),
     );
   }
@@ -221,20 +204,14 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: Colors.grey[200]!, width: 1),
       ),
       child: SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Upload & Select Lecture Notes',
+              'Select Your Lecture Notes',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.bold,
                 color: const Color(0xFF212121),
@@ -242,311 +219,214 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Upload your lecture notes or select from existing ones',
-              style: TextStyle(color: Colors.grey[600]),
+              'Choose existing notes or upload new ones to generate a quiz',
+              style: TextStyle(color: Colors.grey[600], fontSize: 13),
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Supported formats: ${FileParserService.getSupportedFormatsString()} (Max 25MB)',
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.blue.shade700,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 32),
-
-            // === NEW FILE UPLOAD AREA ===
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.cloud_upload, color: Colors.blue.shade700),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Upload New Lecture Notes',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  InkWell(
-                    onTap: quizProvider.isLoading
-                        ? null
-                        : () => _pickFile(quizProvider, authProvider),
-                    child: Container(
-                      padding: const EdgeInsets.all(48),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: quizProvider.uploadedFileName != null
-                              ? Colors.green.shade300
-                              : Colors.blue.shade200,
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        color: quizProvider.uploadedFileName != null
-                            ? Colors.green.shade50
-                            : Colors.white,
-                      ),
-                      child: Column(
-                        children: [
-                          Icon(
-                            quizProvider.uploadedFileName != null
-                                ? Icons.check_circle
-                                : Icons.folder_open,
-                            size: 64,
-                            color: quizProvider.uploadedFileName != null
-                                ? Colors.green.shade700
-                                : Colors.blue.shade700,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            quizProvider.uploadedFileName ??
-                                'Click to upload lecture notes',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: quizProvider.uploadedFileName != null
-                                  ? Colors.green.shade700
-                                  : Colors.blue.shade700,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            quizProvider.uploadedFileName != null
-                                ? 'File selected! Click to change.'
-                                : 'Supported formats: PDF, DOCX, PPTX, Images (Max 25MB)',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey[600],
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                          if (quizProvider.isLoading)
-                            Padding(
-                              padding: const EdgeInsets.only(top: 16),
-                              child: Column(
-                                children: [
-                                  LinearProgressIndicator(
-                                    value: quizProvider.uploadProgress,
-                                    backgroundColor: Colors.grey[300],
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.blue.shade700,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Uploading... ${(quizProvider.uploadProgress * 100).toInt()}%',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      color: Colors.grey[600],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const SizedBox(height: 32),
+            const SizedBox(height: 24),
 
             // === SELECT EXISTING LECTURE NOTES ===
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.library_books, color: Colors.orange.shade700),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Select Existing Lecture Notes',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  StreamBuilder<List<LectureNote>>(
-                    stream: lectureNotesProvider.getLectureNotesStream(
-                      authProvider.user?.uid ?? '',
-                    ),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      }
-
-                      final notes = snapshot.data ?? [];
-
-                      if (notes.isEmpty) {
-                        return Text(
-                          'No lecture notes available. Upload notes in Lecture Notes Management.',
-                          style: TextStyle(color: Colors.grey[600]),
-                        );
-                      }
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Available Notes (${notes.length})',
-                            style: const TextStyle(
-                              fontWeight: FontWeight.w600,
-                              fontSize: 13,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Wrap(
-                            spacing: 12,
-                            runSpacing: 12,
-                            children: notes.map((note) {
-                              final isSelected = _selectedLectureNoteIds
-                                  .contains(note.id);
-                              return FilterChip(
-                                selected: isSelected,
-                                onSelected: (selected) {
-                                  setState(() {
-                                    if (selected) {
-                                      _selectedLectureNoteIds.add(note.id);
-                                    } else {
-                                      _selectedLectureNoteIds.remove(note.id);
-                                    }
-                                  });
-                                },
-                                label: Text('${note.typeIcon} ${note.title}'),
-                                backgroundColor: Colors.white,
-                                selectedColor: Colors.orange.shade200,
-                                side: BorderSide(
-                                  color: isSelected
-                                      ? Colors.orange.shade700
-                                      : Colors.orange.shade300,
-                                ),
-                              );
-                            }).toList(),
-                          ),
-                          if (_selectedLectureNoteIds.isNotEmpty) ...[
-                            const SizedBox(height: 12),
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.green.shade50,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                '✓ ${_selectedLectureNoteIds.length} note(s) selected',
-                                style: TextStyle(
-                                  color: Colors.green.shade700,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 13,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ],
-                      );
-                    },
-                  ),
-                ],
+            Text(
+              'Available Lecture Notes',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF212121),
               ),
             ),
-
-            const SizedBox(height: 32),
-
-            // === ADDITIONAL NOTES UPLOAD ===
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.purple.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.purple.shade200),
+            const SizedBox(height: 12),
+            StreamBuilder<List<LectureNote>>(
+              stream: lectureNotesProvider.getLectureNotesStream(
+                authProvider.user?.uid ?? '',
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(Icons.add_circle, color: Colors.purple.shade700),
-                      const SizedBox(width: 12),
-                      Text(
-                        'Additional Notes (Optional)',
-                        style: Theme.of(context).textTheme.titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Upload extra materials specifically for this quiz',
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                  ),
-                  const SizedBox(height: 12),
-                  InkWell(
-                    onTap: _pickAdditionalFile,
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: _additionalNotesFileName != null
-                              ? Colors.green.shade300
-                              : Colors.purple.shade200,
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        color: _additionalNotesFileName != null
-                            ? Colors.green.shade50
-                            : Colors.white,
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            _additionalNotesFileName != null
-                                ? Icons.check_circle
-                                : Icons.attach_file,
-                            color: _additionalNotesFileName != null
-                                ? Colors.green.shade700
-                                : Colors.purple.shade700,
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              _additionalNotesFileName ?? 'No file selected',
-                              style: TextStyle(
-                                color: _additionalNotesFileName != null
-                                    ? Colors.green.shade700
-                                    : Colors.grey[600],
-                                fontWeight: _additionalNotesFileName != null
-                                    ? FontWeight.w600
-                                    : FontWeight.normal,
-                              ),
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                final notes = snapshot.data ?? [];
+
+                if (notes.isEmpty) {
+                  return Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey[200]!, width: 1),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'No lecture notes yet. Upload notes to get started.',
+                        style: TextStyle(color: Colors.grey[600], fontSize: 13),
                       ),
                     ),
+                  );
+                }
+
+                return Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey[200]!, width: 1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
-                ],
+                  child: Wrap(
+                    children: notes.map((note) {
+                      final isSelected = _selectedLectureNoteIds.contains(note.id);
+                      return Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          onTap: () {
+                            setState(() {
+                              if (isSelected) {
+                                _selectedLectureNoteIds.remove(note.id);
+                              } else {
+                                _selectedLectureNoteIds.add(note.id);
+                              }
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? const Color(0xFF4A90E2).withOpacity(0.1)
+                                  : Colors.transparent,
+                              border: Border(
+                                right: BorderSide(
+                                  color: Colors.grey[200]!,
+                                  width: 1,
+                                ),
+                                bottom: BorderSide(
+                                  color: Colors.grey[200]!,
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 20,
+                                  height: 20,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? const Color(0xFF4A90E2)
+                                          : Colors.grey[400]!,
+                                      width: 2,
+                                    ),
+                                    color: isSelected
+                                        ? const Color(0xFF4A90E2)
+                                        : Colors.transparent,
+                                  ),
+                                  child: isSelected
+                                      ? const Icon(Icons.check,
+                                          color: Colors.white, size: 12)
+                                      : null,
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  note.title,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: isSelected
+                                        ? FontWeight.w600
+                                        : FontWeight.w500,
+                                    color: isSelected
+                                        ? const Color(0xFF4A90E2)
+                                        : const Color(0xFF212121),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                );
+              },
+            ),
+
+            const SizedBox(height: 24),
+
+            // === UPLOAD NEW NOTES ===
+            Text(
+              'Upload New Notes',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF212121),
+              ),
+            ),
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: quizProvider.isLoading
+                  ? null
+                  : () => _pickFile(quizProvider, authProvider),
+              child: Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: quizProvider.uploadedFileName != null
+                        ? const Color(0xFF4A90E2)
+                        : Colors.grey[300]!,
+                    width: 2,
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.grey[50],
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.upload_file,
+                      size: 48,
+                      color: quizProvider.uploadedFileName != null
+                          ? const Color(0xFF4A90E2)
+                          : Colors.grey[400],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      quizProvider.uploadedFileName ?? 'Click to upload file',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: quizProvider.uploadedFileName != null
+                            ? const Color(0xFF4A90E2)
+                            : const Color(0xFF212121),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'PDF, DOCX, PPTX, Images (Max 25MB)',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey[600],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    if (quizProvider.isLoading) ...[
+                      const SizedBox(height: 16),
+                      LinearProgressIndicator(
+                        value: quizProvider.uploadProgress,
+                        backgroundColor: Colors.grey[300],
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Color(0xFF4A90E2),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Uploading... ${(quizProvider.uploadProgress * 100).toInt()}%',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
               ),
             ),
 
@@ -554,36 +434,38 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
 
             // === QUIZ DETAILS ===
             Text(
-              'Quiz Details',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              'Quiz Information',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF212121),
+              ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             TextField(
               controller: _titleController,
               decoration: InputDecoration(
                 labelText: 'Quiz Title',
-                hintText: 'e.g., Dental Anatomy Chapter 1 Quiz',
+                hintText: 'e.g., Dental Anatomy Quiz',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
                 filled: true,
-                fillColor: Colors.grey.shade50,
+                fillColor: Colors.grey[50],
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             TextField(
               controller: _descriptionController,
               maxLines: 3,
               decoration: InputDecoration(
                 labelText: 'Description (optional)',
-                hintText: 'Brief description of the quiz...',
+                hintText: 'Brief description...',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
                 ),
                 filled: true,
-                fillColor: Colors.grey.shade50,
+                fillColor: Colors.grey[50],
               ),
             ),
 
@@ -605,20 +487,20 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                            'Please upload or select lecture notes and enter a quiz title',
+                            'Please select or upload lecture notes and enter a quiz title',
                           ),
                         ),
                       );
                     }
                   },
                   icon: const Icon(Icons.arrow_forward),
-                  label: const Text('Next: Configure Quiz'),
+                  label: const Text('Next'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue.shade700,
+                    backgroundColor: const Color(0xFF4A90E2),
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
-                      vertical: 16,
+                      vertical: 14,
                     ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -640,19 +522,13 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: Colors.grey[200]!, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Quiz Configuration',
+            'Configure Your Quiz',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
               color: const Color(0xFF212121),
@@ -660,8 +536,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Customize your quiz settings',
-            style: TextStyle(color: Colors.grey[600]),
+            'Customize the quiz settings to match your needs',
+            style: TextStyle(color: Colors.grey[600], fontSize: 13),
           ),
           const SizedBox(height: 32),
 
@@ -700,7 +576,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
 
           // Question Types
           _buildConfigSection(
-            'Question Types (Select multiple)',
+            'Question Types',
             Column(
               children: QuestionType.values.map((type) {
                 return CheckboxListTile(
@@ -717,7 +593,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                       }
                     });
                   },
-                  activeColor: Colors.blue.shade700,
+                  activeColor: const Color(0xFF4A90E2),
+                  dense: true,
                 );
               }).toList(),
             ),
@@ -771,7 +648,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                   value: _includeAnswerKey,
                   onChanged: (value) =>
                       setState(() => _includeAnswerKey = value),
-                  activeColor: Colors.blue.shade700,
+                  activeColor: const Color(0xFF4A90E2),
+                  dense: true,
                 ),
                 DropdownButtonFormField<String>(
                   value: _explanationLevel,
@@ -832,14 +710,14 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
               ),
               ElevatedButton.icon(
                 onPressed: () => setState(() => _currentStep = 2),
-                icon: const Icon(Icons.auto_awesome),
-                label: const Text('Generate Quiz'),
+                icon: const Icon(Icons.check),
+                label: const Text('Next'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade700,
+                  backgroundColor: const Color(0xFF4A90E2),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
-                    vertical: 16,
+                    vertical: 14,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -863,19 +741,13 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(color: Colors.grey[200]!, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Generate Quiz',
+            'Review & Generate',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
               fontWeight: FontWeight.bold,
               color: const Color(0xFF212121),
@@ -883,37 +755,13 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Review your configuration and generate the quiz',
-            style: TextStyle(color: Colors.grey[600]),
+            'Review your settings and generate the quiz',
+            style: TextStyle(color: Colors.grey[600], fontSize: 13),
           ),
           const SizedBox(height: 32),
 
           // Configuration Summary
           _buildSummaryCard(quizProvider),
-
-          const SizedBox(height: 32),
-
-          // AI Prompt Information
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.amber.shade50,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.amber.shade200),
-            ),
-            child: Row(
-              children: [
-                Icon(Icons.info_outline, color: Colors.amber.shade700),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Text(
-                    'The AI will analyze your notes and generate questions based on your configuration. This may take a few moments.',
-                    style: TextStyle(color: Colors.amber.shade900),
-                  ),
-                ),
-              ],
-            ),
-          ),
 
           const SizedBox(height: 32),
 
@@ -928,7 +776,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
               TextButton.icon(
                 onPressed: () => setState(() => _currentStep = 1),
                 icon: const Icon(Icons.arrow_back),
-                label: const Text('Back to Configuration'),
+                label: const Text('Back'),
                 style: TextButton.styleFrom(foregroundColor: Colors.grey[700]),
               ),
               ElevatedButton.icon(
@@ -944,18 +792,18 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                           color: Colors.white,
                         ),
                       )
-                    : const Icon(Icons.auto_awesome),
+                    : const Icon(Icons.check),
                 label: Text(
                   quizProvider.isLoading
                       ? 'Generating...'
-                      : 'Generate Quiz with AI',
+                      : 'Generate',
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade700,
+                  backgroundColor: const Color(0xFF4A90E2),
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
-                    vertical: 16,
+                    vertical: 14,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -995,21 +843,15 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.blue.shade50,
+        color: Colors.grey[50],
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.blue.shade200),
+        border: Border.all(color: Colors.grey[200]!, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSummaryRow(
-            'File',
-            quizProvider.uploadedFileName ?? 'No file selected',
-          ),
-          _buildSummaryRow(
-            'Difficulty',
-            _selectedDifficulty.name.toUpperCase(),
-          ),
+          _buildSummaryRow('File', quizProvider.uploadedFileName ?? 'Not selected'),
+          _buildSummaryRow('Difficulty', _selectedDifficulty.name.toUpperCase()),
           _buildSummaryRow('Questions', _totalQuestions.toString()),
           _buildSummaryRow(
             'Question Types',
@@ -1059,34 +901,34 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.green.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.green.shade200, width: 2),
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[300]!, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.green.shade700, size: 32),
+              Icon(Icons.check_circle, color: Colors.green[700], size: 28),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Quiz Generated Successfully!',
+                      'Quiz Generated Successfully',
                       style: TextStyle(
-                        fontSize: 20,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.green.shade900,
+                        color: Colors.green[700],
                       ),
                     ),
                     Text(
                       quiz.title,
                       style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.green.shade700,
+                        fontSize: 14,
+                        color: Colors.grey[700],
                       ),
                     ),
                   ],
@@ -1094,7 +936,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
               ),
             ],
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
           // Quiz Details
           _buildQuizDetailRow('Total Questions', '${quiz.questions.length}'),
@@ -1110,59 +952,41 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
               'Mode',
               _getQuizModeLabel(quiz.config.specialMode!),
             ),
-          _buildQuizDetailRow(
-            'Question Types',
-            quiz.config.questionTypes
-                .map((t) => _getQuestionTypeLabel(t))
-                .join(', '),
-          ),
-          _buildQuizDetailRow('Sections', '${quiz.config.numberOfSections}'),
-          _buildQuizDetailRow(
-            'Marks Distribution',
-            quiz.config.marksDistribution,
-          ),
-          _buildQuizDetailRow(
-            'Answer Key',
-            quiz.config.includeAnswerKey ? 'Included' : 'Not included',
-          ),
-          _buildQuizDetailRow(
-            'Explanation Level',
-            quiz.config.explanationLevel.toUpperCase(),
-          ),
 
-          const SizedBox(height: 24),
-          const Divider(),
+          const SizedBox(height: 16),
+          Divider(color: Colors.grey[300]),
           const SizedBox(height: 16),
 
           // Questions Preview
           Text(
-            'Questions Preview:',
+            'Question Preview',
             style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: Colors.green.shade900,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF212121),
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
           ...quiz.questions
-              .take(5)
+              .take(3)
               .map((question) => _buildQuestionPreview(question))
               .toList(),
 
-          if (quiz.questions.length > 5)
+          if (quiz.questions.length > 3)
             Padding(
-              padding: const EdgeInsets.only(top: 16),
+              padding: const EdgeInsets.only(top: 12),
               child: Text(
-                '... and ${quiz.questions.length - 5} more questions',
+                '+ ${quiz.questions.length - 3} more questions',
                 style: TextStyle(
                   fontStyle: FontStyle.italic,
                   color: Colors.grey[600],
+                  fontSize: 12,
                 ),
               ),
             ),
 
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
 
           // Action Buttons
           Wrap(
@@ -1184,12 +1008,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                 icon: const Icon(Icons.add),
                 label: const Text('Create Another'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.green.shade700,
-                  side: BorderSide(color: Colors.green.shade700),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
+                  foregroundColor: const Color(0xFF4A90E2),
+                  side: const BorderSide(color: Color(0xFF4A90E2)),
                 ),
               ),
               ElevatedButton.icon(
@@ -1208,12 +1028,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                 icon: const Icon(Icons.print),
                 label: const Text('Print'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue.shade700,
+                  backgroundColor: const Color(0xFF4A90E2),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
                 ),
               ),
               ElevatedButton.icon(
@@ -1232,17 +1048,12 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                 icon: const Icon(Icons.share),
                 label: const Text('Share'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.purple.shade700,
+                  backgroundColor: const Color(0xFF4A90E2),
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
                 ),
               ),
               ElevatedButton.icon(
                 onPressed: () {
-                  // Navigate to My Quizzes page
                   final navProvider = Provider.of<NavigationProvider>(
                     context,
                     listen: false,
@@ -1251,21 +1062,17 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
 
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Quiz saved! Opening your quiz list...'),
-                      backgroundColor: Colors.green,
+                      content: Text('Opening your quiz list...'),
+                      backgroundColor: Color(0xFF4A90E2),
                       duration: Duration(seconds: 2),
                     ),
                   );
                 },
                 icon: const Icon(Icons.visibility),
-                label: const Text('View Full Quiz'),
+                label: const Text('View Quiz'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green.shade700,
+                  backgroundColor: Colors.green,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 16,
-                  ),
                 ),
               ),
             ],
@@ -1296,11 +1103,11 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
   Widget _buildQuestionPreview(Question question) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: Colors.grey[200]!),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1310,15 +1117,15 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade100,
+                  color: const Color(0xFF4A90E2).withOpacity(0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   question.type.name.toUpperCase(),
-                  style: TextStyle(
+                  style: const TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade900,
+                    color: Color(0xFF4A90E2),
                   ),
                 ),
               ),
@@ -1326,7 +1133,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.orange.shade100,
+                  color: Colors.grey[200],
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -1334,7 +1141,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: Colors.orange.shade900,
+                    color: Colors.grey[700],
                   ),
                 ),
               ),
@@ -1343,7 +1150,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
           const SizedBox(height: 8),
           Text(
             question.questionText,
-            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
           ),
           if (question.options != null && question.options!.isNotEmpty) ...[
             const SizedBox(height: 8),
@@ -1353,7 +1160,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                     padding: const EdgeInsets.only(left: 16, top: 4),
                     child: Text(
                       '• $option',
-                      style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                     ),
                   ),
                 )
