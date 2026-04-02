@@ -62,9 +62,9 @@ class MainSidebar extends StatelessWidget {
                 children: [
                   _SidebarItem(
                     icon: Icons.dashboard_outlined,
-                    label: 'Dashboard',
-                    isActive: navProvider.isActive('Dashboard'),
-                    onTap: () => navProvider.setPage('Dashboard'),
+                    label: 'Overview',
+                    isActive: navProvider.isActive('Overview'),
+                    onTap: () => navProvider.setPage('Overview'),
                   ),
                   _SidebarItem(
                     icon: Icons.auto_awesome,

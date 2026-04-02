@@ -47,8 +47,8 @@ class _MainLayoutState extends State<MainLayout>
 
   Widget _getCurrentScreen(String page) {
     switch (page) {
-      case 'Dashboard':
-        return const DashboardScreen(key: ValueKey('Dashboard'));
+      case 'Overview':
+        return const DashboardScreen(key: ValueKey('Overview'));
       case 'Patients':
         return const PatientsScreen(key: ValueKey('Patients'));
       case 'Scan History':
@@ -66,7 +66,7 @@ class _MainLayoutState extends State<MainLayout>
       case 'Disease Detection':
         return const DentalDetectionScreen(key: ValueKey('Disease Detection'));
       default:
-        return const DashboardScreen(key: ValueKey('Dashboard'));
+        return const DashboardScreen(key: ValueKey('Overview'));
     }
   }
 
@@ -114,7 +114,7 @@ class _MainLayoutState extends State<MainLayout>
                             ),
 
                             const Spacer(),
-                            if (navProvider.currentPage == 'Dashboard' &&
+                            if (navProvider.currentPage == 'Overview' &&
                                 isDentist)
                               ElevatedButton.icon(
                                 onPressed: () =>
