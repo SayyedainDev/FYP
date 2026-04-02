@@ -75,82 +75,26 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
 
   Widget _buildModernHeader(LectureNotesProvider notesProvider) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [const Color(0xFF6366F1), const Color(0xFF8B5CF6)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: Colors.grey[200]!, width: 1)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Icon(
-              Icons.library_books,
-              color: Colors.white,
-              size: 36,
+          Text(
+            'Lecture Notes',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF212121),
             ),
           ),
-          const SizedBox(width: 24),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  'Lecture Notes Library',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Upload, organize, and share your study materials',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Colors.white.withOpacity(0.9),
-                  ),
-                ),
-              ],
-            ),
+          const SizedBox(height: 4),
+          Text(
+            'Upload and organize your study materials',
+            style: TextStyle(color: Colors.grey[600], fontSize: 13),
           ),
-          if (notesProvider.lectureNotes.isNotEmpty)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(30),
-                border: Border.all(color: Colors.white.withOpacity(0.3)),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.folder, color: Colors.white, size: 20),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${notesProvider.lectureNotes.length} Notes',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
         ],
       ),
     );
@@ -159,29 +103,18 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
   Widget _buildModernTabBar() {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFFF1F3F5),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: TabBar(
-          controller: _tabController,
-          indicator: BoxDecoration(
-            color: const Color(0xFF6366F1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          labelColor: Colors.white,
-          unselectedLabelColor: const Color(0xFF6B7280),
-          labelStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 15,
-          ),
-          tabs: const [
-            Tab(icon: Icon(Icons.cloud_upload_outlined), text: 'Upload Notes'),
-            Tab(icon: Icon(Icons.folder_open), text: 'My Library'),
-          ],
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: TabBar(
+        controller: _tabController,
+        dividerColor: Colors.grey[200],
+        indicatorColor: const Color(0xFF4A90E2),
+        labelColor: const Color(0xFF4A90E2),
+        unselectedLabelColor: Colors.grey[600],
+        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+        tabs: const [
+          Tab(text: 'Upload'),
+          Tab(text: 'My Notes'),
+        ],
       ),
     );
   }
@@ -219,127 +152,57 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            spreadRadius: 2,
-          ),
-        ],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!, width: 1),
       ),
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: const Color(0xFF6366F1).withOpacity(0.05),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.upload_file,
-                  color: const Color(0xFF6366F1),
-                  size: 24,
-                ),
-                const SizedBox(width: 12),
-                const Text(
-                  'Upload Lecture File',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF111827),
-                  ),
-                ),
-              ],
-            ),
-          ),
           Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(48),
-                  decoration: BoxDecoration(
-                    border: Border.all(
-                      color: _selectedPlatformFile != null
-                          ? const Color(0xFF10B981)
-                          : const Color(0xFFE5E7EB),
-                      width: 2,
-                      style: BorderStyle.solid,
-                    ),
-                    borderRadius: BorderRadius.circular(16),
+            padding: const EdgeInsets.all(20),
+            child: InkWell(
+              onTap: _pickFile,
+              child: Container(
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  border: Border.all(
                     color: _selectedPlatformFile != null
-                        ? const Color(0xFF10B981).withOpacity(0.05)
-                        : const Color(0xFFF9FAFB),
+                        ? const Color(0xFF4A90E2)
+                        : Colors.grey[300]!,
+                    width: 2,
                   ),
-                  child: Column(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: _selectedPlatformFile != null
-                              ? const Color(0xFF10B981).withOpacity(0.1)
-                              : const Color(0xFF6366F1).withOpacity(0.1),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          _selectedPlatformFile != null
-                              ? Icons.check_circle
-                              : Icons.cloud_upload_outlined,
-                          size: 64,
-                          color: _selectedPlatformFile != null
-                              ? const Color(0xFF10B981)
-                              : const Color(0xFF6366F1),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      Text(
-                        _selectedPlatformFile?.name ?? 'No file selected',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: _selectedPlatformFile != null
-                              ? const Color(0xFF10B981)
-                              : const Color(0xFF6B7280),
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        'Supported: PDF, DOCX, PPT, Images, Videos',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      ),
-                      const SizedBox(height: 28),
-                      ElevatedButton.icon(
-                        onPressed: _pickFile,
-                        icon: const Icon(Icons.folder_open),
-                        label: Text(
-                          _selectedPlatformFile != null
-                              ? 'Change File'
-                              : 'Browse Files',
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF6366F1),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 32,
-                            vertical: 16,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 0,
-                        ),
-                      ),
-                    ],
-                  ),
+                  borderRadius: BorderRadius.circular(8),
+                  color: Colors.grey[50],
                 ),
-              ],
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.upload_file,
+                      size: 48,
+                      color: _selectedPlatformFile != null
+                          ? const Color(0xFF4A90E2)
+                          : Colors.grey[400],
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      _selectedPlatformFile?.name ?? 'Click to upload file',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        color: _selectedPlatformFile != null
+                            ? const Color(0xFF4A90E2)
+                            : const Color(0xFF212121),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'PDF, DOCX, PPT, Images, Videos (Max 500MB)',
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -351,72 +214,38 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            spreadRadius: 2,
-          ),
-        ],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!, width: 1),
       ),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: const Color(0xFF8B5CF6).withOpacity(0.05),
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildModernTextField(
+              label: 'Title *',
+              controller: _titleController,
+              hint: 'e.g., Orthodontics Chapter 1: Basics',
+              icon: Icons.title,
+              onChanged: (_) => setState(() {}),
             ),
-            child: Row(
-              children: [
-                Icon(Icons.edit_note, color: const Color(0xFF8B5CF6), size: 24),
-                const SizedBox(width: 12),
-                const Text(
-                  'File Details',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Color(0xFF111827),
-                  ),
-                ),
-              ],
+            const SizedBox(height: 24),
+            _buildModernTextField(
+              label: 'Description',
+              controller: _descriptionController,
+              hint: 'Provide details about this lecture note',
+              icon: Icons.description,
+              maxLines: 4,
             ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildModernTextField(
-                  label: 'Title *',
-                  controller: _titleController,
-                  hint: 'e.g., Orthodontics Chapter 1: Basics',
-                  icon: Icons.title,
-                  onChanged: (_) => setState(() {}),
-                ),
-                const SizedBox(height: 24),
-                _buildModernTextField(
-                  label: 'Description',
-                  controller: _descriptionController,
-                  hint: 'Provide details about this lecture note',
-                  icon: Icons.description,
-                  maxLines: 4,
-                ),
-                const SizedBox(height: 24),
-                _buildModernTextField(
-                  label: 'Tags',
-                  controller: _tagsController,
-                  hint: 'orthodontics, basics, chapter1 (comma separated)',
-                  icon: Icons.label,
-                ),
-              ],
+            const SizedBox(height: 24),
+            _buildModernTextField(
+              label: 'Tags',
+              controller: _tagsController,
+              hint: 'orthodontics, basics, chapter1 (comma separated)',
+              icon: Icons.label,
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -435,9 +264,9 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
         Text(
           label,
           style: const TextStyle(
-            fontSize: 15,
+            fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF374151),
+            color: Color(0xFF212121),
           ),
         ),
         const SizedBox(height: 8),
@@ -447,22 +276,21 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
           onChanged: onChanged,
           decoration: InputDecoration(
             hintText: hint,
-            prefixIcon: Icon(icon, color: const Color(0xFF6366F1)),
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+              borderRadius: BorderRadius.circular(8),
+              borderSide: BorderSide(color: Colors.grey[300]!),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: Color(0xFF6366F1), width: 2),
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 2),
             ),
             filled: true,
-            fillColor: const Color(0xFFF9FAFB),
-            contentPadding: const EdgeInsets.all(16),
+            fillColor: Colors.grey[50],
+            contentPadding: const EdgeInsets.all(12),
           ),
         ),
       ],
@@ -478,38 +306,28 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
 
     if (notesProvider.isLoading) {
       return Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 20,
-              spreadRadius: 2,
-            ),
-          ],
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.grey[200]!),
         ),
         child: Column(
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: LinearProgressIndicator(
-                value: notesProvider.uploadProgress,
-                minHeight: 12,
-                backgroundColor: const Color(0xFFE5E7EB),
-                valueColor: const AlwaysStoppedAnimation<Color>(
-                  Color(0xFF10B981),
-                ),
+            LinearProgressIndicator(
+              value: notesProvider.uploadProgress,
+              backgroundColor: Colors.grey[300],
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                Color(0xFF4A90E2),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Text(
               '${(notesProvider.uploadProgress * 100).toStringAsFixed(0)}% Uploading...',
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Color(0xFF6B7280),
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[600],
               ),
             ),
           ],
@@ -517,34 +335,22 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
       );
     }
 
-    return SizedBox(
-      height: 60,
-      child: ElevatedButton(
-        onPressed: canUpload
-            ? () => _uploadFile(notesProvider, authProvider)
-            : null,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF10B981),
-          foregroundColor: Colors.white,
-          disabledBackgroundColor: const Color(0xFFE5E7EB),
-          disabledForegroundColor: const Color(0xFF9CA3AF),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          elevation: canUpload ? 4 : 0,
-          shadowColor: const Color(0xFF10B981).withOpacity(0.5),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(canUpload ? Icons.cloud_upload : Icons.info_outline),
-            const SizedBox(width: 12),
-            Text(
-              canUpload ? 'Upload Lecture Note' : 'Select File & Enter Title',
-              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-          ],
-        ),
+    return ElevatedButton(
+      onPressed: canUpload
+          ? () => _uploadFile(notesProvider, authProvider)
+          : null,
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF4A90E2),
+        foregroundColor: Colors.white,
+        disabledBackgroundColor: Colors.grey[300],
+        disabledForegroundColor: Colors.grey[700],
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        elevation: 0,
+      ),
+      child: Text(
+        canUpload ? 'Upload' : 'Select File & Enter Title',
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -597,15 +403,15 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
           children: [
             // Search Bar
             Container(
-              padding: const EdgeInsets.all(32),
+              padding: const EdgeInsets.all(20),
               color: Colors.white,
               child: TextField(
                 onChanged: (value) => setState(() => _searchQuery = value),
                 decoration: InputDecoration(
-                  hintText: 'Search your notes...',
+                  hintText: 'Search notes...',
                   prefixIcon: const Icon(
                     Icons.search,
-                    color: Color(0xFF6366F1),
+                    color: Color(0xFF4A90E2),
                   ),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
@@ -614,25 +420,25 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
                         )
                       : null,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: BorderSide(color: Colors.grey[300]!),
                   ),
                   focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(
-                      color: Color(0xFF6366F1),
+                      color: Color(0xFF4A90E2),
                       width: 2,
                     ),
                   ),
                   filled: true,
-                  fillColor: const Color(0xFFF9FAFB),
+                  fillColor: Colors.grey[50],
                   contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 16,
+                    horizontal: 16,
+                    vertical: 12,
                   ),
                 ),
               ),
@@ -655,56 +461,23 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Container(
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: const Color(0xFF6366F1).withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.folder_open,
-              size: 80,
-              color: const Color(0xFF6366F1).withOpacity(0.5),
-            ),
-          ),
-          const SizedBox(height: 24),
+          Icon(Icons.folder_open, size: 64, color: Colors.grey[400]),
+          const SizedBox(height: 16),
           Text(
-            _searchQuery.isEmpty
-                ? 'No lecture notes yet'
-                : 'No matching notes found',
+            _searchQuery.isEmpty ? 'No notes yet' : 'No matching notes found',
             style: const TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF374151),
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: Color(0xFF212121),
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           Text(
             _searchQuery.isEmpty
-                ? 'Upload your first lecture note to get started'
-                : 'Try different search keywords',
-            style: const TextStyle(fontSize: 16, color: Color(0xFF6B7280)),
+                ? 'Upload notes to get started'
+                : 'Try different keywords',
+            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
           ),
-          const SizedBox(height: 32),
-          if (_searchQuery.isEmpty)
-            ElevatedButton.icon(
-              onPressed: () {
-                _tabController.animateTo(0);
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('Upload First Note'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF6366F1),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
         ],
       ),
     );
@@ -716,11 +489,11 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
     AuthProvider authProvider,
   ) {
     return GridView.builder(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(20),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 3,
-        crossAxisSpacing: 24,
-        mainAxisSpacing: 24,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
         childAspectRatio: 0.85,
       ),
       itemCount: notes.length,
@@ -738,52 +511,53 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            spreadRadius: 2,
-          ),
-        ],
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.grey[200]!, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Header with icon
           Container(
-            padding: const EdgeInsets.all(20),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  _getTypeColor(note.type),
-                  _getTypeColor(note.type).withOpacity(0.7),
-                ],
-              ),
+              color: Colors.grey[50],
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
+                topLeft: Radius.circular(8),
+                topRight: Radius.circular(8),
+              ),
+              border: Border(
+                bottom: BorderSide(color: Colors.grey[200]!, width: 1),
               ),
             ),
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    _getTypeIcon(note.type),
-                    color: Colors.white,
-                    size: 28,
+                Icon(
+                  _getTypeIcon(note.type),
+                  size: 20,
+                  color: const Color(0xFF4A90E2),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    note.title,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF212121),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const Spacer(),
                 PopupMenuButton(
-                  icon: const Icon(Icons.more_vert, color: Colors.white),
+                  icon: Icon(
+                    Icons.more_vert,
+                    size: 18,
+                    color: Colors.grey[600],
+                  ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   itemBuilder: (context) => [
                     PopupMenuItem(
@@ -791,9 +565,9 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
                           Future.delayed(Duration.zero, () => _shareNote(note)),
                       child: const Row(
                         children: [
-                          Icon(Icons.share, size: 20),
-                          SizedBox(width: 12),
-                          Text('Share'),
+                          Icon(Icons.share, size: 18),
+                          SizedBox(width: 8),
+                          Text('Share', style: TextStyle(fontSize: 13)),
                         ],
                       ),
                     ),
@@ -808,9 +582,12 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
                       ),
                       child: const Row(
                         children: [
-                          Icon(Icons.delete, size: 20, color: Colors.red),
-                          SizedBox(width: 12),
-                          Text('Delete', style: TextStyle(color: Colors.red)),
+                          Icon(Icons.delete, size: 18, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text(
+                            'Delete',
+                            style: TextStyle(color: Colors.red, fontSize: 13),
+                          ),
                         ],
                       ),
                     ),
@@ -823,74 +600,29 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
           // Content
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.all(14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    note.title,
-                    style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF111827),
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
                     note.description,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: Color(0xFF6B7280),
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey[700]),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const Spacer(),
-                  if (note.tags.isNotEmpty)
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: note.tags
-                          .take(3)
-                          .map(
-                            (tag) => Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: _getTypeColor(
-                                  note.type,
-                                ).withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                tag,
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: _getTypeColor(note.type),
-                                ),
-                              ),
-                            ),
-                          )
-                          .toList(),
-                    ),
-                  const SizedBox(height: 12),
                   Row(
                     children: [
-                      Icon(Icons.visibility, size: 16, color: Colors.grey[400]),
+                      Icon(Icons.visibility, size: 14, color: Colors.grey[400]),
                       const SizedBox(width: 4),
                       Text(
                         '${note.views}',
-                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                       ),
                       const Spacer(),
                       Text(
                         note.formatFileSize(),
-                        style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
                       ),
                     ],
                   ),
@@ -904,21 +636,8 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
   }
 
   Color _getTypeColor(NoteType type) {
-    switch (type) {
-      case NoteType.pdf:
-        return const Color(0xFFEF4444);
-      case NoteType.doc:
-      case NoteType.docx:
-        return const Color(0xFF3B82F6);
-      case NoteType.pptx:
-        return const Color(0xFFF59E0B);
-      case NoteType.image:
-        return const Color(0xFF10B981);
-      case NoteType.video:
-        return const Color(0xFF8B5CF6);
-      default:
-        return const Color(0xFF6366F1);
-    }
+    // For simplified UI, all use the same accent color
+    return const Color(0xFF4A90E2);
   }
 
   IconData _getTypeIcon(NoteType type) {
