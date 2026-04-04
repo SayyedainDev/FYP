@@ -23,16 +23,23 @@ class LectureNotesProvider with ChangeNotifier {
 
   // Stream of lecture notes for a specific dentist
   Stream<List<LectureNote>> getLectureNotesStream(String dentistUid) {
-    return _firestore
-        .collection('lecture_notes')
-        .where('dentistUid', isEqualTo: dentistUid)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => LectureNote.fromFirestore(doc))
-              .toList(),
-        );
+    if (dentistUid.trim().isEmpty) return Stream.value(<LectureNote>[]);
+
+    try {
+      return _firestore
+          .collection('lecture_notes')
+          .where('dentistUid', isEqualTo: dentistUid)
+          .orderBy('createdAt', descending: true)
+          .snapshots()
+          .map(
+            (snapshot) => snapshot.docs
+                .map((doc) => LectureNote.fromFirestore(doc))
+                .toList(),
+          );
+    } catch (e) {
+      debugPrint('Failed to create lecture notes stream: $e');
+      return Stream.value(<LectureNote>[]);
+    }
   }
 
   // Fetch all lecture notes for a dentist

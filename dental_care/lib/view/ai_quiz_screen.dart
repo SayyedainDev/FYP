@@ -1,3 +1,5 @@
+// ignore_for_file: unused_field, unused_element
+
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -71,17 +73,13 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
       backgroundColor: const Color(0xFFF5F5F5),
       body: Column(
         children: [
-          _buildHeader(),
+          const SizedBox(height: 8),
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildStepIndicator(),
-                  const SizedBox(height: 32),
-                  _buildCurrentStep(quizProvider, authProvider),
-                ],
+                children: [_buildCurrentStep(quizProvider, authProvider)],
               ),
             ),
           ),
@@ -90,43 +88,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
     );
   }
 
-  Widget _buildHeader() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey[200]!, width: 1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Create Quiz',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF212121),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Generate quizzes from your lecture notes',
-            style: TextStyle(color: Colors.grey[600], fontSize: 13),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildStepIndicator() {
-    return Row(
-      children: [
-        _buildStepItem(0, 'Upload Notes', Icons.upload_file),
-        _buildStepConnector(0),
-        _buildStepItem(1, 'Configure', Icons.settings),
-        _buildStepConnector(1),
-        _buildStepItem(2, 'Generate', Icons.auto_awesome),
-      ],
-    );
+    return const SizedBox.shrink();
   }
 
   Widget _buildStepItem(int step, String label, IconData icon) {
@@ -146,7 +109,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isCompleted ? Icons.check : (isActive ? icon : Icons.circle_outlined),
+              isCompleted
+                  ? Icons.check
+                  : (isActive ? icon : Icons.circle_outlined),
               color: isActive || isCompleted ? Colors.white : Colors.grey[600],
               size: 20,
             ),
@@ -269,7 +234,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                   ),
                   child: Wrap(
                     children: notes.map((note) {
-                      final isSelected = _selectedLectureNoteIds.contains(note.id);
+                      final isSelected = _selectedLectureNoteIds.contains(
+                        note.id,
+                      );
                       return Material(
                         color: Colors.transparent,
                         child: InkWell(
@@ -321,8 +288,11 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                                         : Colors.transparent,
                                   ),
                                   child: isSelected
-                                      ? const Icon(Icons.check,
-                                          color: Colors.white, size: 12)
+                                      ? const Icon(
+                                          Icons.check,
+                                          color: Colors.white,
+                                          size: 12,
+                                        )
                                       : null,
                                 ),
                                 const SizedBox(width: 12),
@@ -401,10 +371,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                     const SizedBox(height: 8),
                     Text(
                       'PDF, DOCX, PPTX, Images (Max 25MB)',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       textAlign: TextAlign.center,
                     ),
                     if (quizProvider.isLoading) ...[
@@ -419,10 +386,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                       const SizedBox(height: 8),
                       Text(
                         'Uploading... ${(quizProvider.uploadProgress * 100).toInt()}%',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                       ),
                     ],
                   ],
@@ -794,9 +758,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                       )
                     : const Icon(Icons.check),
                 label: Text(
-                  quizProvider.isLoading
-                      ? 'Generating...'
-                      : 'Generate',
+                  quizProvider.isLoading ? 'Generating...' : 'Generate',
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF4A90E2),
@@ -850,8 +812,14 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSummaryRow('File', quizProvider.uploadedFileName ?? 'Not selected'),
-          _buildSummaryRow('Difficulty', _selectedDifficulty.name.toUpperCase()),
+          _buildSummaryRow(
+            'File',
+            quizProvider.uploadedFileName ?? 'Not selected',
+          ),
+          _buildSummaryRow(
+            'Difficulty',
+            _selectedDifficulty.name.toUpperCase(),
+          ),
           _buildSummaryRow('Questions', _totalQuestions.toString()),
           _buildSummaryRow(
             'Question Types',
@@ -926,10 +894,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                     ),
                     Text(
                       quiz.title,
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey[700]),
                     ),
                   ],
                 ),
@@ -1315,81 +1280,6 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
       }
     } catch (e) {
       debugPrint('❌ File picker error: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  Future<void> _pickAdditionalFile() async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: [
-          'pdf',
-          'doc',
-          'docx',
-          'pptx',
-          'ppt',
-          'txt',
-          'jpg',
-          'jpeg',
-          'png',
-        ],
-        withData: true,
-        allowMultiple: false,
-      );
-
-      if (result != null && result.files.isNotEmpty) {
-        final pickedFile = result.files.first;
-        final fileName = pickedFile.name;
-        final fileSize = pickedFile.size;
-
-        // Validate file size (Max 25MB)
-        if (fileSize > 250 * 1024 * 1024) {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('File is too large. Maximum size is 250MB'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-          return;
-        }
-
-        if (kIsWeb) {
-          if (pickedFile.bytes != null) {
-            setState(() {
-              _additionalNotesFileName = fileName;
-              // Store bytes if needed
-            });
-          }
-        } else {
-          if (pickedFile.path != null) {
-            setState(() {
-              _additionalNotesFileName = fileName;
-            });
-          }
-        }
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('✅ File selected: $fileName'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      debugPrint('❌ Error picking additional file: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

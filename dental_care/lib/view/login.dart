@@ -275,17 +275,30 @@ class _LoginCardState extends State<_LoginCard> {
                           if (!widget.formKey.currentState!.validate()) {
                             return;
                           }
-                          // Call the provider to log in
-                          await widget.auth.login(
-                            widget.email.text.trim(),
-                            widget.password.text.trim(),
-                          );
+                          try {
+                            // Call the provider to log in
+                            await widget.auth.login(
+                              widget.email.text.trim(),
+                              widget.password.text.trim(),
+                            );
 
-                          // Check login success *after* await
-                          if (widget.auth.uid != null && mounted) {
-                            Navigator.pushReplacementNamed(
-                              context,
-                              '/dashboard',
+                            // Check login success *after* await
+                            if (widget.auth.uid != null && mounted) {
+                              Navigator.pushReplacementNamed(
+                                context,
+                                '/dashboard',
+                              );
+                            }
+                          } catch (e) {
+                            if (!mounted) return;
+                            final msg = e is Exception
+                                ? e.toString().replaceFirst('Exception: ', '')
+                                : 'Login failed';
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(msg),
+                                backgroundColor: Colors.red.shade600,
+                              ),
                             );
                           }
                         },

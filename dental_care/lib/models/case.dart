@@ -10,6 +10,7 @@ class Case {
   final String caseTitle;
   final String caseStatus; // Uploaded | Under Review | Completed
   final List<String> imageUrls; // Firebase Storage URLs
+  final List<String> scanIds; // Linked scan document IDs
   final Map<String, dynamic> analysisResults; // AI analysis output
   final String notes;
   final String reviewNotes;
@@ -24,6 +25,7 @@ class Case {
     this.caseTitle = '',
     this.caseStatus = 'Uploaded',
     required this.imageUrls,
+    List<String>? scanIds,
     required this.analysisResults,
     required this.notes,
     this.reviewNotes = '',
@@ -40,6 +42,7 @@ class Case {
       'caseTitle': caseTitle,
       'caseStatus': caseStatus,
       'imageUrls': imageUrls,
+      'scanIds': scanIds,
       'analysisResults': analysisResults,
       'notes': notes,
       'reviewNotes': reviewNotes,
@@ -59,6 +62,7 @@ class Case {
       caseTitle: data['caseTitle'] ?? '',
       caseStatus: data['caseStatus'] ?? 'Uploaded',
       imageUrls: List<String>.from(data['imageUrls'] ?? []),
+      scanIds: List<String>.from(data['scanIds'] ?? []),
       analysisResults: Map<String, dynamic>.from(data['analysisResults'] ?? {}),
       notes: data['notes'] ?? '',
       reviewNotes: data['reviewNotes'] ?? '',
@@ -140,6 +144,7 @@ class Case {
       caseTitle: caseTitle ?? this.caseTitle,
       caseStatus: caseStatus ?? this.caseStatus,
       imageUrls: imageUrls ?? this.imageUrls,
+      scanIds: scanIds ?? this.scanIds,
       analysisResults: analysisResults ?? this.analysisResults,
       notes: notes ?? this.notes,
       reviewNotes: reviewNotes ?? this.reviewNotes,

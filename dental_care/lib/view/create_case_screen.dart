@@ -26,7 +26,6 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   Patient? _selectedPatient;
   final List<PlatformFile> _selectedFiles = [];
   final _caseTitleController = TextEditingController();
-  final _toothNumbersController = TextEditingController();
   final _symptomsController = TextEditingController();
   final _manualReviewController = TextEditingController();
 
@@ -66,7 +65,6 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   @override
   void dispose() {
     _caseTitleController.dispose();
-    _toothNumbersController.dispose();
     _symptomsController.dispose();
     _manualReviewController.dispose();
     _keyboardFocus.dispose();
@@ -234,7 +232,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
             .where((f) => f.bytes != null)
             .map((f) => f.bytes!)
             .toList(),
-        toothNumbers: _toothNumbersController.text.trim(),
+        toothNumbers: '',
         caseTitle: _caseTitleController.text.trim(),
       );
 
@@ -280,8 +278,8 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
         'patientId': _selectedPatient!.id,
         'patientName': _selectedPatient!.name,
         'caseTitle': caseTitle,
-        'toothNumbers': _toothNumbersController.text.trim(),
-        'toothNumber': _toothNumbersController.text.trim(),
+        'toothNumbers': '',
+        'toothNumber': '',
         'symptoms': _symptomsController.text.trim(),
         'imageUrls': imageUrls,
         'analysisResults': analyzed,
@@ -319,7 +317,6 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
       _selectedPatient = null;
       _selectedFiles.clear();
       _caseTitleController.clear();
-      _toothNumbersController.clear();
       _symptomsController.clear();
       _manualReviewController.clear();
       _hasAnalyzed = false;
@@ -737,16 +734,6 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
             decoration: const InputDecoration(
               labelText: 'Case Title',
               hintText: 'e.g., Annual Checkup',
-            ),
-          ),
-          const SizedBox(height: 16),
-
-          // Tooth number (FDI notation)
-          TextFormField(
-            controller: _toothNumbersController,
-            decoration: const InputDecoration(
-              labelText: 'Tooth number (FDI notation)',
-              hintText: 'e.g., 11, 14, 36',
             ),
           ),
           const SizedBox(height: 16),

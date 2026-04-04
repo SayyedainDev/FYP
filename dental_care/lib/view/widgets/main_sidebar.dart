@@ -88,9 +88,9 @@ class MainSidebar extends StatelessWidget {
                   ),
                   _SidebarItem(
                     icon: Icons.quiz_outlined,
-                    label: 'AI Quiz',
-                    isActive: navProvider.isActive('AI Quiz'),
-                    onTap: () => navProvider.setPage('AI Quiz'),
+                    label: 'Create Quiz',
+                    isActive: navProvider.isActive('Create Quiz'),
+                    onTap: () => navProvider.setPage('Create Quiz'),
                   ),
                   _SidebarItem(
                     icon: Icons.list_alt_outlined,

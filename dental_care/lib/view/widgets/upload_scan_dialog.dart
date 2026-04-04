@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
+import 'package:file_picker/file_picker.dart';
 import '../../providers/scan_provider.dart';
 import '../../providers/patient_provider.dart';
+import '../../providers/case_provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UploadScanDialog extends StatefulWidget {
   const UploadScanDialog({super.key});
@@ -12,14 +18,14 @@ class UploadScanDialog extends StatefulWidget {
 
 class _UploadScanDialogState extends State<UploadScanDialog> {
   final _formKey = GlobalKey<FormState>();
-  final _toothNumberController = TextEditingController();
   final _notesController = TextEditingController();
   String? _selectedPatientId;
   String? _imagePath;
+  Uint8List? _pickedBytes;
+  File? _pickedFile;
 
   @override
   void dispose() {
-    _toothNumberController.dispose();
     _notesController.dispose();
     super.dispose();
   }
@@ -46,36 +52,201 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
     final patient = patientProvider.getPatientById(_selectedPatientId!);
 
     if (patient == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Patient not found'),
-          backgroundColor: Colors.red,
-        ),
-      );
-      try {
-        await Future.delayed(const Duration(seconds: 1));
-
-        if (!mounted) return;
-
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Scan uploaded and analyzed successfully!'),
-            backgroundColor: Colors.green,
-          ),
-        );
-
-        Navigator.pop(context);
-      } catch (e) {
-        Navigator.pop(context);
-
-        if (!mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text('Patient not found'),
             backgroundColor: Colors.red,
           ),
         );
+      }
+      return;
+    }
+
+    // Call upload on the provider
+    final scanProvider = Provider.of<ScanProvider>(context, listen: false);
+    try {
+      final result = await scanProvider.uploadScan(
+        patientId: patient.id,
+        patientName: patient.name,
+        toothNumber: '',
+        notes: _notesController.text.trim(),
+        imageFile: kIsWeb ? _pickedBytes : _pickedFile,
+      );
+
+      if (mounted) {
+        if (result != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Scan uploaded and analyzed successfully!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+
+          // Prompt user to attach to case or create a new case
+          await _showAttachOrCreateCaseDialog(
+            patient.id,
+            result,
+            kIsWeb ? _pickedBytes : _pickedFile,
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Upload failed: ${scanProvider.error}'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error uploading scan: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showAttachOrCreateCaseDialog(
+    String patientId,
+    Map<String, String> uploadResult,
+    dynamic imagePayload,
+  ) async {
+    final caseProvider = Provider.of<CaseProvider>(context, listen: false);
+    final patientProvider = Provider.of<PatientProvider>(
+      context,
+      listen: false,
+    );
+    final patient = patientProvider.getPatientById(patientId);
+
+    final choice = await showDialog<String?>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Attach Scan'),
+        content: const Text(
+          'Would you like to attach this scan to an existing case or create a new case?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'skip'),
+            child: const Text('Skip'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, 'attach'),
+            child: const Text('Attach'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, 'create'),
+            child: const Text('Create Case'),
+          ),
+        ],
+      ),
+    );
+
+    if (choice == 'create') {
+      // Create new case using imagePayload
+      try {
+        final newCaseId = await caseProvider.createCase(
+          patientId: patientId,
+          patientName: patient?.name ?? '',
+          toothNumber: '',
+          imageFiles: [imagePayload],
+          notes: _notesController.text.trim(),
+        );
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                newCaseId != null ? 'Case created' : 'Failed to create case',
+              ),
+              backgroundColor: newCaseId != null ? Colors.green : Colors.red,
+            ),
+          );
+        }
+        // If a scan document was created for this upload, link it to the new case
+        try {
+          final scanId = uploadResult['scanId'];
+          if (newCaseId != null && scanId != null && scanId.isNotEmpty) {
+            await FirebaseFirestore.instance
+                .collection('scans')
+                .doc(scanId)
+                .update({
+                  'caseId': newCaseId,
+                  'updatedAt': FieldValue.serverTimestamp(),
+                });
+          }
+        } catch (e) {
+          debugPrint('Failed to link scan to case: $e');
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error creating case: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } else if (choice == 'attach') {
+      // Let user pick an existing case
+      final cases = await caseProvider.fetchCasesForPatient(patientId);
+      final selected = await showDialog<String?>(
+        context: context,
+        builder: (context) => SimpleDialog(
+          title: const Text('Select Case'),
+          children: cases.isEmpty
+              ? [
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Text('No existing cases'),
+                  ),
+                ]
+              : cases
+                    .map(
+                      (c) => SimpleDialogOption(
+                        onPressed: () => Navigator.pop(context, c.id),
+                        child: Text(
+                          '${c.toothNumber.isNotEmpty ? c.toothNumber + ' • ' : ''}${c.caseDate.toLocal().toIso8601String().split('T').first}',
+                        ),
+                      ),
+                    )
+                    .toList(),
+        ),
+      );
+
+      if (selected != null) {
+        try {
+          // Append the uploaded image URL to the selected case
+          final imageUrl = uploadResult['imageUrl'];
+          if (imageUrl != null) {
+            await caseProvider.updateCase(selected, {
+              'imageUrls': FieldValue.arrayUnion([imageUrl]),
+            });
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Attached to case'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Failed to attach to case: $e'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
       }
     }
   }
@@ -155,35 +326,44 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
                         },
                       ),
                       const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _toothNumberController,
-                        decoration: const InputDecoration(
-                          labelText: 'Tooth Number',
-                          prefixIcon: Icon(Icons.medical_services),
-                          hintText: 'e.g., 11, 14, 36',
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Please enter tooth number';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
                       // Image Upload Area
                       InkWell(
-                        onTap: () {
-                          // Simulate image picker
-                          setState(() {
-                            _imagePath =
-                                'dental_scan_${DateTime.now().millisecondsSinceEpoch}.jpg';
-                          });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Image selected (simulated)'),
-                              duration: Duration(seconds: 1),
-                            ),
-                          );
+                        onTap: () async {
+                          try {
+                            final result = await FilePicker.platform.pickFiles(
+                              type: FileType.image,
+                              withData: kIsWeb,
+                            );
+                            if (result == null) return;
+
+                            final file = result.files.single;
+                            setState(() {
+                              _imagePath = file.name;
+                              if (kIsWeb) {
+                                _pickedBytes = file.bytes;
+                                _pickedFile = null;
+                              } else {
+                                if (file.path != null) {
+                                  _pickedFile = File(file.path!);
+                                }
+                                _pickedBytes = null;
+                              }
+                            });
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Image selected'),
+                                duration: Duration(seconds: 1),
+                              ),
+                            );
+                          } catch (e) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Failed to pick image: $e'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
                         },
                         child: Container(
                           height: 200,

@@ -635,11 +635,6 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
     );
   }
 
-  Color _getTypeColor(NoteType type) {
-    // For simplified UI, all use the same accent color
-    return const Color(0xFF4A90E2);
-  }
-
   IconData _getTypeIcon(NoteType type) {
     switch (type) {
       case NoteType.pdf:

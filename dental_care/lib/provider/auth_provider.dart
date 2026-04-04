@@ -94,22 +94,45 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> register(Map<String, String> form, String password) async {
+    // Basic input validation before calling controller
+    final email = form['email']?.trim() ?? '';
+    final firstName = form['firstName']?.trim() ?? '';
+    final lastName = form['lastName']?.trim() ?? '';
+    final userId = form['userId']?.trim() ?? '';
+    final cnic = form['cnic']?.trim() ?? '';
+    final address = form['address']?.trim() ?? '';
+    final highestEducation = form['highestEducation']?.trim() ?? '';
+    final role = form['role'] ?? 'Dentist';
+
+    if (userId.isEmpty) throw Exception('Professional ID is required');
+    if (firstName.isEmpty) throw Exception('First name is required');
+    if (lastName.isEmpty) throw Exception('Last name is required');
+    if (cnic.isEmpty) throw Exception('License / CNIC is required');
+    if (address.isEmpty) throw Exception('Practice address is required');
+    if (highestEducation.isEmpty)
+      throw Exception('Highest education is required');
+    if (email.isEmpty) throw Exception('Email is required');
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailRegex.hasMatch(email)) throw Exception('Enter a valid email');
+    if (password.trim().length < 8)
+      throw Exception('Password must be at least 8 characters');
+
     _loading = true;
     notifyListeners();
     try {
       final id = await _controller.register(
-        email: form['email']!,
+        email: email,
         password: password,
-        userId: form['userId']!,
-        firstName: form['firstName']!,
-        lastName: form['lastName']!,
-        cnic: form['cnic']!,
-        address: form['address']!,
-        highestEducation: form['highestEducation']!,
-        role: form['role'] ?? 'Dentist',
+        userId: userId,
+        firstName: firstName,
+        lastName: lastName,
+        cnic: cnic,
+        address: address,
+        highestEducation: highestEducation,
+        role: role,
       );
       uid = id;
-      _role = form['role'] ?? 'Dentist';
+      _role = role;
     } finally {
       _loading = false;
       notifyListeners();
@@ -117,12 +140,21 @@ class AuthProvider extends ChangeNotifier {
   }
 
   Future<void> login(String email, String password) async {
+    // Basic validation
+    final e = email.trim();
+    final p = password;
+    if (e.isEmpty) throw Exception('Email is required');
+    final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+    if (!emailRegex.hasMatch(e)) throw Exception('Enter a valid email');
+    if (p.isEmpty) throw Exception('Password is required');
+    if (p.length < 8) throw Exception('Password must be at least 8 characters');
+
     _loading = true;
     notifyListeners();
     try {
-      final id = await _controller.login(email: email, password: password);
+      final id = await _controller.login(email: e, password: p);
       uid = id;
-      _userEmail = email;
+      _userEmail = e;
       await _fetchUserData(id);
     } finally {
       _loading = false;

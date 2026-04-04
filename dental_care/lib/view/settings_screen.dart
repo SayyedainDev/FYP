@@ -1,3 +1,5 @@
+// ignore_for_file: unused_field, unused_element
+
 import 'dart:convert';
 import 'dart:typed_data';
 
@@ -18,13 +20,8 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   static const Map<String, dynamic> _defaultSettings = {
-    'notifications': {
-      'caseAlerts': true,
-      'productUpdates': false,
-    },
-    'privacy': {
-      'loginAlerts': true,
-    },
+    'notifications': {'caseAlerts': true, 'productUpdates': false},
+    'privacy': {'loginAlerts': true},
   };
 
   final _nameController = TextEditingController();
@@ -255,10 +252,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildPracticeCard() {
-    return SizedBox.shrink();
-  }
-
   Widget _buildNotificationCard() {
     return Container(
       decoration: _prominentCardDecoration,
@@ -284,10 +277,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           SwitchListTile.adaptive(
             title: const Text('App updates'),
             subtitle: const Text('Occasional releases and improvements'),
-            value: _readBool(
-              ['notifications', 'productUpdates'],
-              fallback: false,
-            ),
+            value: _readBool([
+              'notifications',
+              'productUpdates',
+            ], fallback: false),
             onChanged: (v) =>
                 _updateSetting(['notifications', 'productUpdates'], v),
           ),
@@ -320,10 +313,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ],
       ),
     );
-  }
-
-  Widget _buildConnectivityCard() {
-    return SizedBox.shrink();
   }
 
   Widget _buildDeveloperCard() {
@@ -723,73 +712,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
-  Widget _statusChip(String label, String status, String message) {
-    Color bg;
-    Color fg;
-    IconData icon;
-    switch (status) {
-      case 'pass':
-        bg = Colors.green.shade50;
-        fg = Colors.green.shade800;
-        icon = Icons.check_circle;
-        break;
-      case 'fail':
-        bg = Colors.red.shade50;
-        fg = Colors.red.shade800;
-        icon = Icons.error;
-        break;
-      default:
-        bg = Colors.grey.shade100;
-        fg = Colors.grey.shade800;
-        icon = Icons.hourglass_empty;
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: fg.withOpacity(0.25)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, color: fg, size: 18),
-          const SizedBox(width: 8),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(fontWeight: FontWeight.w700, color: fg),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                message,
-                style: TextStyle(fontSize: 12, color: fg.withOpacity(0.9)),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   bool _readBool(List<String> path, {bool fallback = false}) {
     final value = _readSetting(path, fallback: fallback);
     return value is bool ? value : fallback;
-  }
-
-  num _readNum(List<String> path, {num fallback = 0}) {
-    final value = _readSetting(path, fallback: fallback);
-    if (value is num) return value;
-    return fallback;
-  }
-
-  String _readString(List<String> path, {String fallback = ''}) {
-    final value = _readSetting(path, fallback: fallback);
-    if (value is String) return value;
-    return fallback;
   }
 
   dynamic _readSetting(List<String> path, {dynamic fallback}) {

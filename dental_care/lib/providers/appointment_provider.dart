@@ -119,15 +119,22 @@ class AppointmentProvider extends ChangeNotifier {
   }
 
   Stream<List<Appointment>> getAppointmentsStream(String dentistUid) {
-    return _firestore
-        .collection('appointments')
-        .where('dentistUid', isEqualTo: dentistUid)
-        .orderBy('appointmentDate', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) => snapshot.docs
-              .map((doc) => Appointment.fromFirestore(doc))
-              .toList(),
-        );
+    if (dentistUid.trim().isEmpty) return Stream.value(<Appointment>[]);
+
+    try {
+      return _firestore
+          .collection('appointments')
+          .where('dentistUid', isEqualTo: dentistUid)
+          .orderBy('appointmentDate', descending: true)
+          .snapshots()
+          .map(
+            (snapshot) => snapshot.docs
+                .map((doc) => Appointment.fromFirestore(doc))
+                .toList(),
+          );
+    } catch (e) {
+      debugPrint('Failed to create appointments stream: $e');
+      return Stream.value(<Appointment>[]);
+    }
   }
 }

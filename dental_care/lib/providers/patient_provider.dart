@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/patient.dart';
 
 class PatientProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   List<Patient> _patients = [];
   bool _loading = false;
   String? _error;
@@ -12,6 +14,19 @@ class PatientProvider extends ChangeNotifier {
   bool get loading => _loading;
   String? get error => _error;
   int get totalPatients => _patients.length;
+
+  PatientProvider() {
+    // Listen for auth state and fetch/listen when user logs in
+    _auth.authStateChanges().listen((user) {
+      if (user != null) {
+        fetchPatients(user.uid);
+        listenToPatients(user.uid);
+      } else {
+        _patients = [];
+        notifyListeners();
+      }
+    });
+  }
 
   // Fetch patients from Firestore for a specific dentist
   Future<void> fetchPatients(String dentistUid) async {
@@ -53,24 +68,30 @@ class PatientProvider extends ChangeNotifier {
 
   // Listen to real-time updates from Firestore for a specific dentist
   void listenToPatients(String dentistUid) {
-    _firestore
-        .collection('patients')
-        .where('dentistUid', isEqualTo: dentistUid)
-        .snapshots()
-        .listen(
-          (snapshot) {
-            _patients = snapshot.docs
-                .map((doc) => Patient.fromFirestore(doc))
-                .toList();
-            _patients.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-            notifyListeners();
-          },
-          onError: (e) {
-            _error = 'Error listening to patients: $e';
-            notifyListeners();
-            debugPrint('Error listening to patients: $e');
-          },
-        );
+    try {
+      _firestore
+          .collection('patients')
+          .where('dentistUid', isEqualTo: dentistUid)
+          .snapshots()
+          .listen(
+            (snapshot) {
+              _patients = snapshot.docs
+                  .map((doc) => Patient.fromFirestore(doc))
+                  .toList();
+              _patients.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+              notifyListeners();
+            },
+            onError: (e) {
+              _error = 'Error listening to patients: $e';
+              notifyListeners();
+              debugPrint('Error listening to patients: $e');
+            },
+          );
+    } catch (e) {
+      _error = 'Failed to initialize patient listener: $e';
+      notifyListeners();
+      debugPrint('Failed to initialize patient listener: $e');
+    }
   }
 
   // Add a new patient to Firestore and update user's patient list
@@ -97,7 +118,7 @@ class PatientProvider extends ChangeNotifier {
 
       // Refresh the list
       await fetchPatients(dentistUid);
-      
+
       return patientId;
     } catch (e) {
       _error = 'Failed to add patient: $e';

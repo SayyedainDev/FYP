@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import '../providers/case_provider.dart';
+import 'widgets/create_case_dialog.dart';
 import '../providers/patient_provider.dart';
 
 class HistoryScreen extends StatelessWidget {
@@ -24,6 +25,21 @@ class HistoryScreen extends StatelessWidget {
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 16),
+          Align(
+            alignment: Alignment.centerRight,
+            child: ElevatedButton.icon(
+              onPressed: () async {
+                // Open create case dialog
+                await showDialog(
+                  context: context,
+                  builder: (context) => const CreateCaseDialog(),
+                );
+              },
+              icon: const Icon(Icons.add),
+              label: const Text('New Case'),
+            ),
           ),
           const SizedBox(height: 16),
           _FilterRow(

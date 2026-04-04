@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import '../models/scan.dart';
@@ -68,27 +70,34 @@ class ScanProvider extends ChangeNotifier {
 
   // Listen to real-time updates from Firestore
   void listenToScans() {
-    _firestore
-        .collection('scans')
-        .orderBy('scanDate', descending: true)
-        .snapshots()
-        .listen(
-          (snapshot) {
-            _scans = snapshot.docs
-                .map((doc) => Scan.fromFirestore(doc))
-                .toList();
-            notifyListeners();
-          },
-          onError: (e) {
-            _error = 'Error listening to scans: $e';
-            notifyListeners();
-            debugPrint('Error listening to scans: $e');
-          },
-        );
+    try {
+      _firestore
+          .collection('scans')
+          .orderBy('scanDate', descending: true)
+          .snapshots()
+          .listen(
+            (snapshot) {
+              _scans = snapshot.docs
+                  .map((doc) => Scan.fromFirestore(doc))
+                  .toList();
+              notifyListeners();
+            },
+            onError: (e) {
+              _error = 'Error listening to scans: $e';
+              notifyListeners();
+              debugPrint('Error listening to scans: $e');
+            },
+          );
+    } catch (e) {
+      _error = 'Failed to initialize scan listener: $e';
+      notifyListeners();
+      debugPrint('Failed to initialize scan listener: $e');
+    }
   }
 
   // Upload scan image to Firebase Storage and save scan data to Firestore
-  Future<void> uploadScan({
+  // Returns a map with 'scanId' and 'imageUrl' on success
+  Future<Map<String, String>?> uploadScan({
     required String patientId,
     required String patientName,
     required String toothNumber,
@@ -105,10 +114,32 @@ class ScanProvider extends ChangeNotifier {
       // Upload image to Firebase Storage if provided
       if (imageFile != null) {
         final fileName = 'scan_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final storageRef = _storage.ref().child('scans/$fileName');
+        final storageRef = _storage.ref().child('scans/$patientId/$fileName');
 
-        // Upload the file (imageFile should be Uint8List for web)
-        await storageRef.putData(imageFile);
+        // Handle both web (Uint8List) and mobile/desktop (File)
+        if (imageFile is Uint8List) {
+          await storageRef.putData(
+            imageFile,
+            SettableMetadata(contentType: 'image/jpeg'),
+          );
+        } else if (imageFile is File) {
+          await storageRef.putFile(imageFile);
+        } else if (imageFile is String) {
+          // treat as file path
+          final file = File(imageFile);
+          if (await file.exists()) {
+            await storageRef.putFile(file);
+          }
+        } else {
+          // Attempt to convert to Uint8List if possible
+          try {
+            final bytes = imageFile as Uint8List;
+            await storageRef.putData(bytes);
+          } catch (_) {
+            throw Exception('Unsupported image type for upload');
+          }
+        }
+
         imageUrl = await storageRef.getDownloadURL();
       }
 
@@ -129,13 +160,17 @@ class ScanProvider extends ChangeNotifier {
         notes: notes,
       );
 
-      await _firestore.collection('scans').add(newScan.toFirestore());
+      final docRef = await _firestore
+          .collection('scans')
+          .add(newScan.toFirestore());
 
       _loading = false;
       notifyListeners();
 
       // Refresh the list
       await fetchScans();
+
+      return {'scanId': docRef.id, 'imageUrl': imageUrl};
     } catch (e) {
       _error = 'Failed to upload scan: $e';
       _loading = false;

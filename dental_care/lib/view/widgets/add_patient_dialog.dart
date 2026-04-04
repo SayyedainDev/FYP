@@ -42,7 +42,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: const Color(0xFF4CAF50),
+              primary: const Color(0xFF4A90E2),
               onPrimary: Colors.white,
               surface: Colors.white,
               onSurface: Colors.black87,
@@ -179,7 +179,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [const Color(0xFF4CAF50), const Color(0xFF45A049)],
+                  colors: [const Color(0xFF4A90E2), const Color(0xFF357ABD)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -297,7 +297,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                                         Icon(
                                           Icons.calendar_today,
                                           size: 20,
-                                          color: const Color(0xFF4CAF50),
+                                          color: const Color(0xFF4A90E2),
                                         ),
                                         const SizedBox(width: 12),
                                         Text(
@@ -349,7 +349,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                                       isExpanded: true,
                                       icon: Icon(
                                         Icons.arrow_drop_down,
-                                        color: const Color(0xFF4CAF50),
+                                        color: const Color(0xFF4A90E2),
                                       ),
                                       items: ['Male', 'Female', 'Other']
                                           .map(
@@ -361,7 +361,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                                                     Icons.person_outline,
                                                     size: 20,
                                                     color: const Color(
-                                                      0xFF4CAF50,
+                                                      0xFF4A90E2,
                                                     ),
                                                   ),
                                                   const SizedBox(width: 12),
@@ -460,7 +460,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                       return ElevatedButton(
                         onPressed: provider.loading ? null : _submit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4CAF50),
+                          backgroundColor: const Color(0xFF4A90E2),
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 32,
@@ -514,7 +514,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
       style: const TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.bold,
-        color: Color(0xFF4CAF50),
+        color: Color(0xFF4A90E2),
       ),
     );
   }
@@ -538,7 +538,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
           : TextCapitalization.sentences,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: const Color(0xFF4CAF50)),
+        prefixIcon: Icon(icon, color: const Color(0xFF4A90E2)),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey.shade300),
@@ -549,7 +549,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF4CAF50), width: 2),
+          borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),

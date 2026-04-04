@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -46,7 +48,17 @@ class CaseProvider extends ChangeNotifier {
   String get searchQuery => _searchQuery;
 
   CaseProvider() {
+    // Fetch cases if user already logged in and listen for auth changes
     fetchCases();
+    FirebaseAuth.instance.authStateChanges().listen((user) {
+      if (user != null) {
+        fetchCases();
+        listenToCases();
+      } else {
+        _cases = [];
+        notifyListeners();
+      }
+    });
   }
 
   String? get _uid => _auth.currentUser?.uid;
@@ -89,24 +101,30 @@ class CaseProvider extends ChangeNotifier {
     final uid = _uid;
     if (uid == null) return;
 
-    _firestore
-        .collection('cases')
-        .where('dentistUid', isEqualTo: uid)
-        .orderBy('caseDate', descending: true)
-        .snapshots()
-        .listen(
-          (snapshot) {
-            _cases = snapshot.docs
-                .map((doc) => Case.fromFirestore(doc))
-                .toList();
-            notifyListeners();
-          },
-          onError: (e) {
-            _error = 'Error listening to cases: $e';
-            notifyListeners();
-            debugPrint('Error listening to cases: $e');
-          },
-        );
+    try {
+      _firestore
+          .collection('cases')
+          .where('dentistUid', isEqualTo: uid)
+          .orderBy('caseDate', descending: true)
+          .snapshots()
+          .listen(
+            (snapshot) {
+              _cases = snapshot.docs
+                  .map((doc) => Case.fromFirestore(doc))
+                  .toList();
+              notifyListeners();
+            },
+            onError: (e) {
+              _error = 'Error listening to cases: $e';
+              notifyListeners();
+              debugPrint('Error listening to cases: $e');
+            },
+          );
+    } catch (e) {
+      _error = 'Failed to initialize cases listener: $e';
+      notifyListeners();
+      debugPrint('Failed to initialize cases listener: $e');
+    }
   }
 
   // Create a new case with image uploads
@@ -121,7 +139,7 @@ class CaseProvider extends ChangeNotifier {
     required String patientName,
     required String toothNumber,
     required List<dynamic>
-    imageFiles, // List of image bytes (Uint8List for web)
+    imageFiles, // List of image bytes (Uint8List for web) or File
     String notes = '',
   }) async {
     try {
@@ -138,14 +156,40 @@ class CaseProvider extends ChangeNotifier {
 
       List<String> imageUrls = [];
 
+      // Reserve a case id so uploads can include patientId/caseId path
+      final caseId = _firestore.collection('cases').doc().id;
+
       // Upload each image to Firebase Storage
       for (int i = 0; i < imageFiles.length; i++) {
         final imageFile = imageFiles[i];
         final fileName = 'case_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
-        final storageRef = _storage.ref().child('cases/$fileName');
+        final storageRef = _storage.ref().child(
+          'cases/$patientId/$caseId/$fileName',
+        );
 
-        // Upload the file (imageFile should be Uint8List for web)
-        await storageRef.putData(imageFile);
+        if (imageFile is Uint8List) {
+          await storageRef.putData(
+            imageFile,
+            SettableMetadata(contentType: 'image/jpeg'),
+          );
+        } else if (imageFile is String) {
+          // treat as file path
+          final file = File(imageFile);
+          if (await file.exists()) {
+            await storageRef.putFile(file);
+          }
+        } else if (imageFile is File) {
+          await storageRef.putFile(imageFile);
+        } else {
+          // attempt to cast to bytes
+          try {
+            final bytes = imageFile as Uint8List;
+            await storageRef.putData(bytes);
+          } catch (_) {
+            throw Exception('Unsupported image type for case upload');
+          }
+        }
+
         final downloadUrl = await storageRef.getDownloadURL();
         imageUrls.add(downloadUrl);
       }
@@ -173,7 +217,8 @@ class CaseProvider extends ChangeNotifier {
       final caseData = newCase.toFirestore();
       caseData['dentistUid'] = uid;
 
-      final docRef = await _firestore.collection('cases').add(caseData);
+      // Use reserved caseId so document path is deterministic
+      await _firestore.collection('cases').doc(caseId).set(caseData);
 
       _loading = false;
       notifyListeners();
@@ -181,7 +226,7 @@ class CaseProvider extends ChangeNotifier {
       // Refresh the list
       await fetchCases();
 
-      return docRef.id;
+      return caseId;
     } catch (e) {
       _error = 'Failed to create case: $e';
       _loading = false;

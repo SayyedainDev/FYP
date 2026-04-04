@@ -56,7 +56,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [const Color(0xFF6366F1), const Color(0xFF4F46E5)],
+          colors: [const Color(0xFF4A90E2), const Color(0xFF357ABD)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -110,7 +110,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
             ),
             ElevatedButton.icon(
               onPressed: () {
-                context.read<NavigationProvider>().setPage('AI Quiz');
+                context.read<NavigationProvider>().setPage('Create Quiz');
               },
               icon: const Icon(Icons.add, size: 18),
               label: const Text('New Quiz'),
@@ -205,7 +205,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
             const SizedBox(height: 24),
             ElevatedButton.icon(
               onPressed: () {
-                context.read<NavigationProvider>().setPage('AI Quiz');
+                context.read<NavigationProvider>().setPage('Create Quiz');
               },
               icon: const Icon(Icons.add),
               label: const Text('Create Your First Quiz'),
@@ -226,13 +226,13 @@ class _QuizListScreenState extends State<QuizListScreen> {
     return RefreshIndicator(
       onRefresh: _loadQuizzes,
       child: GridView.builder(
-        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
         physics: const AlwaysScrollableScrollPhysics(),
         gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: 2,
           mainAxisSpacing: 20,
           crossAxisSpacing: 20,
-          childAspectRatio: 1.3,
+          childAspectRatio: 4.0,
         ),
         itemCount: quizProvider.quizzes.length,
         itemBuilder: (context, index) {
@@ -274,7 +274,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
           );
         },
         child: Padding(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(10),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -282,7 +282,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: difficultyColor.withOpacity(0.12),
                       borderRadius: BorderRadius.circular(14),
@@ -290,7 +290,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                     child: Icon(
                       Icons.quiz_outlined,
                       color: difficultyColor,
-                      size: 26,
+                      size: 20,
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -301,29 +301,29 @@ class _QuizListScreenState extends State<QuizListScreen> {
                         Text(
                           quiz.title,
                           style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
                             color: Color(0xFF111827),
                           ),
-                          maxLines: 2,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 4),
                         Text(
                           quiz.description.isNotEmpty
                               ? quiz.description
                               : 'No description added',
                           style: const TextStyle(
-                            fontSize: 13,
+                            fontSize: 12,
                             color: Color(0xFF6B7280),
                           ),
-                          maxLines: 2,
+                          maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
                       horizontal: 12,
@@ -341,13 +341,13 @@ class _QuizListScreenState extends State<QuizListScreen> {
                       style: TextStyle(
                         color: difficultyColor,
                         fontWeight: FontWeight.w700,
-                        fontSize: 12,
+                        fontSize: 11,
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   _buildInfoChip(
@@ -355,13 +355,13 @@ class _QuizListScreenState extends State<QuizListScreen> {
                     '${quiz.questions.length} Questions',
                     Colors.indigo,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   _buildInfoChip(
                     Icons.grade_outlined,
                     '${quiz.totalMarks} Marks',
                     Colors.orange,
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 8),
                   _buildInfoChip(Icons.schedule, quiz.timeText, Colors.green),
                   const Spacer(),
                   IconButton(
@@ -397,7 +397,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
               Row(
                 children: [
                   Icon(

@@ -53,8 +53,8 @@ class _MainLayoutState extends State<MainLayout>
         return const PatientsScreen(key: ValueKey('Patients'));
       case 'Scan History':
         return const HistoryScreen(key: ValueKey('Scan History'));
-      case 'AI Quiz':
-        return const AIQuizScreen(key: ValueKey('AI Quiz'));
+      case 'Create Quiz':
+        return const AIQuizScreen(key: ValueKey('Create Quiz'));
       case 'My Quizzes':
         return const QuizListScreen(key: ValueKey('My Quizzes'));
       case 'Lecture Notes':

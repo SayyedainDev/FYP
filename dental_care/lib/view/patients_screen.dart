@@ -3,8 +3,11 @@ import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/patient.dart';
 import '../providers/patient_provider.dart';
+import '../providers/scan_provider.dart';
 import '../provider/auth_provider.dart';
 import 'widgets/add_patient_dialog.dart';
+import 'widgets/edit_patient_dialog.dart';
+import 'widgets/create_case_dialog.dart';
 
 class PatientsScreen extends StatefulWidget {
   const PatientsScreen({super.key});
@@ -267,6 +270,29 @@ class _PatientsScreenState extends State<PatientsScreen> {
     );
   }
 
+  Future<void> _showEditPatientDialog(
+    BuildContext context,
+    Patient patient,
+  ) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final uid = authProvider.currentUserId ?? authProvider.uid;
+
+    final result = await showDialog<bool>(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.5),
+      builder: (context) => EditPatientDialog(patient: patient),
+    );
+
+    if (result == true && uid != null) {
+      // Refresh patient list after successful edit
+      final patientProvider = Provider.of<PatientProvider>(
+        context,
+        listen: false,
+      );
+      await patientProvider.fetchPatients(uid);
+    }
+  }
+
   void _showPatientDetails(BuildContext context, Patient patient) {
     showDialog(
       context: context,
@@ -405,7 +431,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                     children: [
                       // Personal Information Section
                       _SectionHeader('Personal Information'),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       _DetailBox(
                         icon: Icons.calendar_today,
                         label: 'Date of Birth',
@@ -413,56 +439,151 @@ class _PatientsScreenState extends State<PatientsScreen> {
                             '${patient.dob.day.toString().padLeft(2, '0')}/${patient.dob.month.toString().padLeft(2, '0')}/${patient.dob.year}',
                       ),
                       const SizedBox(height: 12),
-                      // Contact Information Section
-                      if (patient.contactPhone.isNotEmpty ||
-                          patient.contactEmail.isNotEmpty) ...[
-                        const SizedBox(height: 24),
-                        _SectionHeader('Contact Information'),
-                        const SizedBox(height: 16),
-                        if (patient.contactPhone.isNotEmpty) ...[
-                          _DetailBox(
-                            icon: Icons.phone,
-                            label: 'Phone',
-                            value: patient.contactPhone,
-                          ),
-                          const SizedBox(height: 12),
+
+                      // Contact Information
+                      Row(
+                        children: [
+                          if (patient.contactPhone.isNotEmpty)
+                            Expanded(
+                              child: _DetailBox(
+                                icon: Icons.phone,
+                                label: 'Phone',
+                                value: patient.contactPhone,
+                              ),
+                            ),
+                          if (patient.contactPhone.isNotEmpty &&
+                              patient.contactEmail.isNotEmpty)
+                            const SizedBox(width: 12),
+                          if (patient.contactEmail.isNotEmpty)
+                            Expanded(
+                              child: _DetailBox(
+                                icon: Icons.email,
+                                label: 'Email',
+                                value: patient.contactEmail,
+                              ),
+                            ),
                         ],
-                        if (patient.contactEmail.isNotEmpty)
-                          _DetailBox(
-                            icon: Icons.email,
-                            label: 'Email',
-                            value: patient.contactEmail,
-                          ),
-                      ],
+                      ),
+
                       // Notes Section
                       if (patient.notes.isNotEmpty) ...[
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 20),
                         _SectionHeader('Medical Notes'),
-                        const SizedBox(height: 16),
+                        const SizedBox(height: 10),
                         Container(
+                          width: double.infinity,
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF5F7FA),
+                            color: const Color(0xFFF7F9FB),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color(0xFFE0E6ED),
+                              color: const Color(0xFFE9EEF3),
                               width: 1,
                             ),
                           ),
                           child: Text(
                             patient.notes,
                             style: TextStyle(
-                              color: Colors.grey[700],
+                              color: Colors.grey[800],
                               fontSize: 13,
                               height: 1.5,
                             ),
                           ),
                         ),
                       ],
+
+                      // Recent scans preview
+                      const SizedBox(height: 20),
+                      _SectionHeader('Recent Scans'),
+                      const SizedBox(height: 12),
+                      FutureBuilder<List<Scan>>(
+                        future: Provider.of<ScanProvider>(
+                          context,
+                          listen: false,
+                        ).fetchScansForPatient(patient.id),
+                        builder: (context, snap) {
+                          if (snap.connectionState == ConnectionState.waiting) {
+                            return const SizedBox(
+                              height: 80,
+                              child: Center(child: CircularProgressIndicator()),
+                            );
+                          }
+                          final scans = snap.data ?? [];
+                          if (scans.isEmpty) {
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF7F9FB),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFFEDEFF1),
+                                ),
+                              ),
+                              child: Text(
+                                'No scans yet for this patient',
+                                style: TextStyle(color: Colors.grey[700]),
+                              ),
+                            );
+                          }
+
+                          return SizedBox(
+                            height: 92,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemBuilder: (c, i) {
+                                final s = scans[i];
+                                return InkWell(
+                                  onTap: () {},
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: s.imageUrl.isNotEmpty
+                                            ? Image.network(
+                                                s.imageUrl,
+                                                width: 120,
+                                                height: 64,
+                                                fit: BoxFit.cover,
+                                              )
+                                            : Container(
+                                                width: 120,
+                                                height: 64,
+                                                color: Colors.grey.shade100,
+                                                child: const Icon(
+                                                  Icons.broken_image,
+                                                ),
+                                              ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      SizedBox(
+                                        width: 120,
+                                        child: Text(
+                                          s.timeAgo,
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey[700],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                              separatorBuilder: (_, __) =>
+                                  const SizedBox(width: 12),
+                              itemCount: scans.length,
+                            ),
+                          );
+                        },
+                      ),
+
                       // Metadata
-                      const SizedBox(height: 24),
+                      const SizedBox(height: 20),
                       Divider(color: Colors.grey[200]),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
@@ -521,9 +642,35 @@ class _PatientsScreenState extends State<PatientsScreen> {
                     ),
                     const SizedBox(width: 12),
                     ElevatedButton.icon(
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.pop(context);
-                        _showEditPatientDialog(context, patient);
+                        // Open create case dialog with this patient preselected
+                        await showDialog(
+                          context: context,
+                          builder: (context) =>
+                              CreateCaseDialog(initialPatientId: patient.id),
+                        );
+                      },
+                      icon: const Icon(Icons.add_box, size: 18),
+                      label: const Text('New Case'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2EA44F),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        Navigator.pop(context);
+                        await _showEditPatientDialog(context, patient);
                       },
                       icon: const Icon(Icons.edit, size: 18),
                       label: const Text('Edit Patient'),
@@ -547,13 +694,6 @@ class _PatientsScreenState extends State<PatientsScreen> {
           ),
         ),
       ),
-    );
-  }
-
-  void _showEditPatientDialog(BuildContext context, Patient patient) {
-    showDialog(
-      context: context,
-      builder: (context) => EditPatientDialog(patient: patient),
     );
   }
 }
@@ -606,7 +746,7 @@ class _DetailBox extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF5F7FA),
+        color: const Color(0xFFF7FAFC),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: const Color(0xFFE0E6ED), width: 1),
       ),
@@ -640,44 +780,12 @@ class _DetailBox extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF212121),
+                    color: Color(0xFF0F2A5F),
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _DetailRow(this.label, this.value);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(value, style: TextStyle(color: Colors.grey[800])),
           ),
         ],
       ),

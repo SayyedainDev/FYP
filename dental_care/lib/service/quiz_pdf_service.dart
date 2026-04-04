@@ -1,10 +1,9 @@
-import 'dart:io';
 import 'dart:typed_data';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 import 'package:share_plus/share_plus.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:flutter/foundation.dart';
 import '../models/quiz.dart';
 
 class QuizPdfService {
@@ -430,14 +429,26 @@ class QuizPdfService {
   static Future<void> shareQuiz(Quiz quiz) async {
     try {
       final pdfBytes = await generateQuizPdf(quiz);
-      final tempDir = await getTemporaryDirectory();
       final fileName =
           '${quiz.title.replaceAll(' ', '_')}_${DateTime.now().millisecondsSinceEpoch}.pdf';
-      final file = File('${tempDir.path}/$fileName');
-      await file.writeAsBytes(pdfBytes);
+
+      // Use web-friendly sharing via `printing` package since `dart:io` file
+      // access and `path_provider` temporary directories are not available on web.
+      if (kIsWeb) {
+        await Printing.sharePdf(bytes: pdfBytes, filename: fileName);
+        return;
+      }
+
+      // Create an in-memory XFile from bytes so sharing works across
+      // platforms (including web and mobile) without needing local file IO.
+      final xfile = XFile.fromData(
+        pdfBytes,
+        name: fileName,
+        mimeType: 'application/pdf',
+      );
 
       await Share.shareXFiles(
-        [XFile(file.path)],
+        [xfile],
         subject: quiz.title,
         text: 'Quiz: ${quiz.title}\n${quiz.description}',
       );

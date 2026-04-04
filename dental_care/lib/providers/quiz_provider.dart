@@ -36,15 +36,24 @@ class QuizProvider with ChangeNotifier {
 
   // Stream of quizzes for a specific dentist
   Stream<List<Quiz>> getQuizzesStream(String dentistUid) {
-    return _firestore
-        .collection('quizzes')
-        .where('dentistUid', isEqualTo: dentistUid)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map(
-          (snapshot) =>
-              snapshot.docs.map((doc) => Quiz.fromFirestore(doc)).toList(),
-        );
+    if (dentistUid.trim().isEmpty) {
+      return Stream.value(<Quiz>[]);
+    }
+
+    try {
+      return _firestore
+          .collection('quizzes')
+          .where('dentistUid', isEqualTo: dentistUid)
+          .orderBy('createdAt', descending: true)
+          .snapshots()
+          .map(
+            (snapshot) =>
+                snapshot.docs.map((doc) => Quiz.fromFirestore(doc)).toList(),
+          );
+    } catch (e) {
+      debugPrint('Failed to create quizzes stream: $e');
+      return Stream.value(<Quiz>[]);
+    }
   }
 
   // Set uploaded file

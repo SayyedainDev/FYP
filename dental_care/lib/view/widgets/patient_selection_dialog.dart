@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../models/patient.dart';
 import '../../providers/patient_provider.dart';
-import '../../provider/auth_provider.dart';
 import 'add_patient_dialog.dart';
 
 class PatientSelectionDialog extends StatefulWidget {
@@ -43,10 +42,7 @@ class _PatientSelectionDialogState extends State<PatientSelectionDialog> {
               padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [
-                    const Color(0xFF4A90E2),
-                    const Color(0xFF357ABD),
-                  ],
+                  colors: [const Color(0xFF4A90E2), const Color(0xFF357ABD)],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -229,15 +225,13 @@ class _PatientSelectionDialogState extends State<PatientSelectionDialog> {
                     onPressed: _isNewPatient
                         ? () => _createNewPatient(context)
                         : (_selectedPatientId != null
-                            ? () => Navigator.pop(context, _selectedPatientId)
-                            : null),
+                              ? () => Navigator.pop(context, _selectedPatientId)
+                              : null),
                     icon: Icon(
                       _isNewPatient ? Icons.add : Icons.check,
                       size: 18,
                     ),
-                    label: Text(
-                      _isNewPatient ? 'Create Patient' : 'Continue',
-                    ),
+                    label: Text(_isNewPatient ? 'Create Patient' : 'Continue'),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF4A90E2),
                       foregroundColor: Colors.white,
@@ -345,18 +339,11 @@ class _ExistingPatientSelector extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xFFF5F7FA),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: const Color(0xFFE0E6ED),
-                width: 1,
-              ),
+              border: Border.all(color: const Color(0xFFE0E6ED), width: 1),
             ),
             child: Column(
               children: [
-                Icon(
-                  Icons.people_outline,
-                  size: 40,
-                  color: Colors.grey[400],
-                ),
+                Icon(Icons.people_outline, size: 40, color: Colors.grey[400]),
                 const SizedBox(height: 12),
                 Text(
                   'No Patients Found',
@@ -370,10 +357,7 @@ class _ExistingPatientSelector extends StatelessWidget {
                 Text(
                   'Please create a patient first',
                   textAlign: TextAlign.center,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                  ),
+                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
                 ),
               ],
             ),
@@ -382,10 +366,7 @@ class _ExistingPatientSelector extends StatelessWidget {
 
         return Container(
           decoration: BoxDecoration(
-            border: Border.all(
-              color: const Color(0xFFE0E6ED),
-              width: 1,
-            ),
+            border: Border.all(color: const Color(0xFFE0E6ED), width: 1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -429,17 +410,11 @@ class _PatientOption extends StatelessWidget {
                 ? const Color(0xFF4A90E2).withOpacity(0.05)
                 : Colors.transparent,
             border: Border(
-              bottom: BorderSide(
-                color: const Color(0xFFE0E6ED),
-                width: 0.5,
-              ),
+              bottom: BorderSide(color: const Color(0xFFE0E6ED), width: 0.5),
+              left: isSelected
+                  ? BorderSide(color: const Color(0xFF4A90E2), width: 3)
+                  : BorderSide.none,
             ),
-            left: isSelected
-                ? BorderSide(
-                    color: const Color(0xFF4A90E2),
-                    width: 3,
-                  )
-                : BorderSide.none,
           ),
           child: Row(
             children: [
