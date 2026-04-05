@@ -2,14 +2,14 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/quiz.dart';
 import '../service/file_parser_service.dart';
 
 class QuizProvider with ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final supabase = Supabase.instance.client;
 
   List<Quiz> _quizzes = [];
   bool _isLoading = false;
@@ -128,21 +128,13 @@ class QuizProvider with ChangeNotifier {
       _isLoading = true;
       _uploadProgress = 0.0;
       notifyListeners();
-
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final path = 'quizzes/$dentistUid/notes/${timestamp}_$fileName';
-      final ref = _storage.ref().child(path);
+      final bucket = 'quizzes';
+      final path = '$dentistUid/notes/${timestamp}_$fileName';
+      final bytes = await file.readAsBytes();
 
-      final uploadTask = ref.putFile(file);
-
-      // Listen to upload progress
-      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-        _uploadProgress = snapshot.bytesTransferred / snapshot.totalBytes;
-        notifyListeners();
-      });
-
-      await uploadTask;
-      final downloadUrl = await ref.getDownloadURL();
+      await supabase.storage.from(bucket).uploadBinary(path, bytes);
+      final downloadUrl = supabase.storage.from(bucket).getPublicUrl(path);
 
       _isLoading = false;
       _uploadProgress = 1.0;
@@ -167,35 +159,12 @@ class QuizProvider with ChangeNotifier {
       _isLoading = true;
       _uploadProgress = 0.0;
       notifyListeners();
-
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final path = 'quizzes/$dentistUid/notes/${timestamp}_$fileName';
-      final ref = _storage.ref().child(path);
+      final bucket = 'quizzes';
+      final path = '$dentistUid/notes/${timestamp}_$fileName';
 
-      // Basic contentType guess by extension for better previews
-      String? contentType;
-      final ext = fileName.toLowerCase();
-      if (ext.endsWith('.pdf')) {
-        contentType = 'application/pdf';
-      } else if (ext.endsWith('.docx')) {
-        contentType =
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
-      } else if (ext.endsWith('.txt')) {
-        contentType = 'text/plain';
-      }
-
-      final uploadTask = ref.putData(
-        bytes,
-        contentType != null ? SettableMetadata(contentType: contentType) : null,
-      );
-
-      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-        _uploadProgress = snapshot.bytesTransferred / snapshot.totalBytes;
-        notifyListeners();
-      });
-
-      await uploadTask;
-      final downloadUrl = await ref.getDownloadURL();
+      await supabase.storage.from(bucket).uploadBinary(path, bytes);
+      final downloadUrl = supabase.storage.from(bucket).getPublicUrl(path);
 
       _isLoading = false;
       _uploadProgress = 1.0;

@@ -4,6 +4,7 @@ import 'package:dental_care/view/main_layout.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:dental_care/service/firebase_service.dart';
 import 'package:dental_care/provider/auth_provider.dart';
 import 'package:dental_care/providers/app_provider.dart';
@@ -25,7 +26,14 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // Initialize Firebase
+    // Initialize Supabase (storage)
+    await Supabase.initialize(
+      url: 'https://trectmuwolzkdalsrmud.supabase.co',
+      anonKey: 'sb_publishable_ogLajv5OEo4WrjV_Pyaoug_hnVaXpyB',
+    );
+    debugPrint('✅ Supabase Initialized Successfully');
+
+    // Initialize Firebase (auth, firestore)
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );

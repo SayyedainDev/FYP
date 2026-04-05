@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/patient.dart';
+import '../models/scan.dart';
 import '../providers/patient_provider.dart';
 import '../providers/scan_provider.dart';
 import '../provider/auth_provider.dart';

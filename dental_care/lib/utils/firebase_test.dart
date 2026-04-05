@@ -1,6 +1,6 @@
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 
 /// Firebase Connection Test Utility
@@ -8,7 +8,7 @@ import 'package:flutter/foundation.dart';
 class FirebaseTest {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  static final FirebaseStorage _storage = FirebaseStorage.instance;
+  // Firebase Storage removed in favor of Supabase storage
 
   /// Test Firebase Authentication Connection
   static Future<bool> testAuthConnection() async {
@@ -56,18 +56,7 @@ class FirebaseTest {
   }
 
   /// Test Firebase Storage Connection
-  static Future<bool> testStorageConnection() async {
-    try {
-      // Get storage reference
-      final storageRef = _storage.ref();
-      debugPrint('✅ Firebase Storage Connected');
-      debugPrint('Storage Bucket: ${storageRef.bucket}');
-      return true;
-    } catch (e) {
-      debugPrint('❌ Firebase Storage Error: $e');
-      return false;
-    }
-  }
+  // Storage testing removed; Supabase will be used for storage operations.
 
   /// Run all Firebase tests
   static Future<Map<String, bool>> runAllTests() async {
@@ -77,7 +66,6 @@ class FirebaseTest {
 
     results['auth'] = await testAuthConnection();
     results['firestore'] = await testFirestoreConnection();
-    results['storage'] = await testStorageConnection();
 
     debugPrint('\n📊 Firebase Test Results:');
     results.forEach((key, value) {

@@ -2,19 +2,19 @@
 // Assumes firebase_core initialized in main.dart.
 import 'dart:typed_data';
 
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class FirebaseService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final fb.FirebaseAuth _auth = fb.FirebaseAuth.instance;
   final FirebaseFirestore _fire = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final supabase = Supabase.instance.client;
 
-  Future<UserCredential> signUpWithEmail(String email, String password) =>
+  Future<fb.UserCredential> signUpWithEmail(String email, String password) =>
       _auth.createUserWithEmailAndPassword(email: email, password: password);
 
-  Future<UserCredential> signInWithEmail(String email, String password) =>
+  Future<fb.UserCredential> signInWithEmail(String email, String password) =>
       _auth.signInWithEmailAndPassword(email: email, password: password);
 
   Future<void> saveUserProfile(String uid, Map<String, dynamic> data) =>
@@ -25,11 +25,14 @@ class FirebaseService {
     String fileName,
     List<int> bytes,
   ) async {
-    final ref = _storage.ref().child('uploads/$uid/$fileName');
-    final task = await ref.putData(Uint8List.fromList(bytes));
-    return task.ref.getDownloadURL();
+    final bucket = 'uploads';
+    final path = '$uid/$fileName';
+    await supabase.storage
+        .from(bucket)
+        .uploadBinary(path, Uint8List.fromList(bytes));
+    return supabase.storage.from(bucket).getPublicUrl(path);
   }
 
-  User? get currentUser => _auth.currentUser;
+  fb.User? get currentUser => _auth.currentUser;
   Future<void> signOut() => _auth.signOut();
 }

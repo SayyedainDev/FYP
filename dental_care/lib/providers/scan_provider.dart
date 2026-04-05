@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/scan.dart';
 
 class ScanProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final supabase = Supabase.instance.client;
 
   List<Scan> _scans = [];
   bool _loading = false;
@@ -96,7 +96,8 @@ class ScanProvider extends ChangeNotifier {
   }
 
   // Upload scan image to Firebase Storage and save scan data to Firestore
-  Future<void> uploadScan({
+  // Returns a map with 'scanId' and 'imageUrl' on success
+  Future<Map<String, String>?> uploadScan({
     required String patientId,
     required String patientName,
     required String toothNumber,
@@ -112,36 +113,34 @@ class ScanProvider extends ChangeNotifier {
 
       String imageUrl = '';
 
-      // Upload image to Firebase Storage if provided
+      // Upload image to Supabase Storage if provided
       if (imageFile != null) {
         final fileName = 'scan_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final storageRef = _storage.ref().child('scans/$patientId/$fileName');
+        final bucket = 'scans';
+        final path = '$patientId/$fileName';
 
-        // Handle both web (Uint8List) and mobile/desktop (File)
+        Uint8List bytes;
         if (imageFile is Uint8List) {
-          await storageRef.putData(
-            imageFile,
-            SettableMetadata(contentType: 'image/jpeg'),
-          );
+          bytes = imageFile as Uint8List;
         } else if (imageFile is File) {
-          await storageRef.putFile(imageFile);
+          bytes = await imageFile.readAsBytes();
         } else if (imageFile is String) {
-          // treat as file path
           final file = File(imageFile);
           if (await file.exists()) {
-            await storageRef.putFile(file);
+            bytes = await file.readAsBytes();
+          } else {
+            throw Exception('File path does not exist');
           }
         } else {
-          // Attempt to convert to Uint8List if possible
           try {
-            final bytes = imageFile as Uint8List;
-            await storageRef.putData(bytes);
+            bytes = imageFile as Uint8List;
           } catch (_) {
             throw Exception('Unsupported image type for upload');
           }
         }
 
-        imageUrl = await storageRef.getDownloadURL();
+        await supabase.storage.from(bucket).uploadBinary(path, bytes);
+        imageUrl = supabase.storage.from(bucket).getPublicUrl(path);
       }
 
       // Use real detection results when provided; otherwise mark as pending

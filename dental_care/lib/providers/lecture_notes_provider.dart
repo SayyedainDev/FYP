@@ -1,12 +1,12 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/lecture_note.dart';
 
 class LectureNotesProvider with ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final supabase = Supabase.instance.client;
 
   List<LectureNote> _lectureNotes = [];
   bool _isLoading = false;
@@ -77,23 +77,15 @@ class LectureNotesProvider with ChangeNotifier {
     try {
       _uploadProgress = 0.0;
       notifyListeners();
+      final bucket = 'lecture-notes';
+      final path = '$dentistUid/$noteId/$fileName';
+      final bytes = await file.readAsBytes();
 
-      final ref = _storage.ref().child(
-        'lecture_notes/$dentistUid/$noteId/$fileName',
-      );
+      await supabase.storage.from(bucket).uploadBinary(path, bytes);
+      final downloadUrl = supabase.storage.from(bucket).getPublicUrl(path);
 
-      final uploadTask = ref.putFile(file);
-
-      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-        _uploadProgress = snapshot.bytesTransferred / snapshot.totalBytes;
-        notifyListeners();
-      });
-
-      await uploadTask;
-      final downloadUrl = await ref.getDownloadURL();
       _uploadProgress = 0.0;
       notifyListeners();
-
       return downloadUrl;
     } catch (e) {
       _errorMessage = 'Failed to upload file: $e';
@@ -113,20 +105,12 @@ class LectureNotesProvider with ChangeNotifier {
     try {
       _uploadProgress = 0.0;
       notifyListeners();
+      final bucket = 'lecture-notes';
+      final path = '$dentistUid/$noteId/$fileName';
 
-      final ref = _storage.ref().child(
-        'lecture_notes/$dentistUid/$noteId/$fileName',
-      );
+      await supabase.storage.from(bucket).uploadBinary(path, bytes);
+      final downloadUrl = supabase.storage.from(bucket).getPublicUrl(path);
 
-      final uploadTask = ref.putData(bytes);
-
-      uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-        _uploadProgress = snapshot.bytesTransferred / snapshot.totalBytes;
-        notifyListeners();
-      });
-
-      await uploadTask;
-      final downloadUrl = await ref.getDownloadURL();
       _uploadProgress = 0.0;
       notifyListeners();
 
@@ -365,13 +349,12 @@ class LectureNotesProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Delete file from storage if it exists
+      // Delete file from Supabase storage if it exists
       if (fileName != null) {
         try {
-          await _storage
-              .ref()
-              .child('lecture_notes/$dentistUid/$noteId/$fileName')
-              .delete();
+          final bucket = 'lecture-notes';
+          final path = '$dentistUid/$noteId/$fileName';
+          await supabase.storage.from(bucket).remove([path]);
         } catch (e) {
           // File might not exist, continue anyway
         }

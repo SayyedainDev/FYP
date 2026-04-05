@@ -52,7 +52,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '1073333582888',
     projectId: 'dental-care-6daf8',
     authDomain: 'dental-care-6daf8.firebaseapp.com',
-    storageBucket: 'dental-care-6daf8.firebasestorage.app',
+    storageBucket: 'dental-care-6daf8.appspot.com',
     measurementId: 'G-04DZKJFC3B',
   );
 
@@ -61,7 +61,7 @@ class DefaultFirebaseOptions {
     appId: '1:1073333582888:android:747ed956a0b24d9e43491d',
     messagingSenderId: '1073333582888',
     projectId: 'dental-care-6daf8',
-    storageBucket: 'dental-care-6daf8.firebasestorage.app',
+    storageBucket: 'dental-care-6daf8.appspot.com',
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
@@ -69,7 +69,7 @@ class DefaultFirebaseOptions {
     appId: '1:1073333582888:ios:0a8ce7f6aa97fb5043491d',
     messagingSenderId: '1073333582888',
     projectId: 'dental-care-6daf8',
-    storageBucket: 'dental-care-6daf8.firebasestorage.app',
+    storageBucket: 'dental-care-6daf8.appspot.com',
     iosBundleId: 'com.example.dentalCare',
   );
 }

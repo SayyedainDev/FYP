@@ -29,7 +29,8 @@ class Case {
     required this.analysisResults,
     required this.notes,
     this.reviewNotes = '',
-  }) : updatedAt = updatedAt ?? caseDate;
+  }) : scanIds = scanIds ?? const [],
+       updatedAt = updatedAt ?? caseDate;
 
   // Convert Case to Firestore Map
   Map<String, dynamic> toFirestore() {
@@ -130,6 +131,7 @@ class Case {
     String? caseTitle,
     String? caseStatus,
     List<String>? imageUrls,
+    List<String>? scanIds,
     Map<String, dynamic>? analysisResults,
     String? notes,
     String? reviewNotes,

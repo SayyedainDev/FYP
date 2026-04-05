@@ -5,7 +5,7 @@ import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -668,13 +668,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
 
       try {
-        final ref = FirebaseStorage.instance.ref().child(
-          'health_checks/${user.uid}_ping.txt',
-        );
-        await ref.putData(Uint8List.fromList('ok'.codeUnits));
-        await ref.delete();
+        final supabase = Supabase.instance.client;
+        final bucket = 'uploads';
+        final path = 'health_checks/${user.uid}_ping.txt';
+        await supabase.storage
+            .from(bucket)
+            .uploadBinary(path, Uint8List.fromList('ok'.codeUnits));
+        await supabase.storage.from(bucket).remove([path]);
         storageOk = true;
-        storageMsg = 'Storage write/delete OK';
+        storageMsg = 'Supabase storage write/delete OK';
       } catch (e) {
         storageMsg = 'Storage failed: $e';
       }

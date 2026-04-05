@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/case.dart';
 
 class CaseProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  final supabase = Supabase.instance.client;
 
   List<Case> _cases = [];
   bool _loading = false;
@@ -159,38 +159,35 @@ class CaseProvider extends ChangeNotifier {
       // Reserve a case id so uploads can include patientId/caseId path
       final caseId = _firestore.collection('cases').doc().id;
 
-      // Upload each image to Firebase Storage
+      // Upload each image to Supabase Storage
       for (int i = 0; i < imageFiles.length; i++) {
         final imageFile = imageFiles[i];
         final fileName = 'case_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
-        final storageRef = _storage.ref().child(
-          'cases/$patientId/$caseId/$fileName',
-        );
+        final bucket = 'cases';
+        final path = '$patientId/$caseId/$fileName';
 
+        Uint8List bytes;
         if (imageFile is Uint8List) {
-          await storageRef.putData(
-            imageFile,
-            SettableMetadata(contentType: 'image/jpeg'),
-          );
+          bytes = imageFile;
         } else if (imageFile is String) {
-          // treat as file path
           final file = File(imageFile);
           if (await file.exists()) {
-            await storageRef.putFile(file);
+            bytes = await file.readAsBytes();
+          } else {
+            throw Exception('File path does not exist');
           }
         } else if (imageFile is File) {
-          await storageRef.putFile(imageFile);
+          bytes = await imageFile.readAsBytes();
         } else {
-          // attempt to cast to bytes
           try {
-            final bytes = imageFile as Uint8List;
-            await storageRef.putData(bytes);
+            bytes = imageFile as Uint8List;
           } catch (_) {
             throw Exception('Unsupported image type for case upload');
           }
         }
 
-        final downloadUrl = await storageRef.getDownloadURL();
+        await supabase.storage.from(bucket).uploadBinary(path, bytes);
+        final downloadUrl = supabase.storage.from(bucket).getPublicUrl(path);
         imageUrls.add(downloadUrl);
       }
 
@@ -390,11 +387,30 @@ class CaseProvider extends ChangeNotifier {
       // Find the case to get image URLs
       final caseToDelete = _cases.firstWhere((c) => c.id == caseId);
 
-      // Delete images from Firebase Storage
+      // Delete images from Supabase Storage (extract path from public URL)
       for (String imageUrl in caseToDelete.imageUrls) {
         try {
-          final ref = _storage.refFromURL(imageUrl);
-          await ref.delete();
+          final uri = Uri.parse(imageUrl);
+          final segments = uri.pathSegments;
+          // Supabase public URL structure: /storage/v1/object/public/{bucket}/{path...}
+          final publicIndex = segments.indexOf('public');
+          if (publicIndex != -1 && publicIndex + 1 < segments.length) {
+            final bucket = segments[publicIndex + 1];
+            final pathSegments = segments.sublist(publicIndex + 2);
+            final path = pathSegments.join('/');
+            await supabase.storage.from(bucket).remove([path]);
+          } else {
+            // Fallback: try to extract after '/object/public/'
+            final marker = '/storage/v1/object/public/';
+            final idx = imageUrl.indexOf(marker);
+            if (idx != -1) {
+              final remaining = imageUrl.substring(idx + marker.length);
+              final parts = remaining.split('/');
+              final bucket = parts.first;
+              final path = parts.sublist(1).join('/');
+              await supabase.storage.from(bucket).remove([path]);
+            }
+          }
         } catch (e) {
           debugPrint('Error deleting image: $e');
         }

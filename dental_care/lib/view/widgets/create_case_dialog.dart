@@ -7,7 +7,6 @@ import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/rendering.dart';
 
-import '../../models/patient.dart';
 import '../../providers/case_provider.dart';
 import '../../providers/patient_provider.dart';
 import '../../provider/auth_provider.dart';

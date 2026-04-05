@@ -57,7 +57,6 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
       backgroundColor: const Color(0xFFF8F9FA),
       body: Column(
         children: [
-          _buildModernHeader(notesProvider),
           _buildModernTabBar(),
           Expanded(
             child: TabBarView(
@@ -74,30 +73,7 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
   }
 
   Widget _buildModernHeader(LectureNotesProvider notesProvider) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: Colors.grey[200]!, width: 1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Lecture Notes',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF212121),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Upload and organize your study materials',
-            style: TextStyle(color: Colors.grey[600], fontSize: 13),
-          ),
-        ],
-      ),
-    );
+    return const SizedBox.shrink();
   }
 
   Widget _buildModernTabBar() {

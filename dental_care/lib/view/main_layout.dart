@@ -142,11 +142,6 @@ class _MainLayoutState extends State<MainLayout>
                     Expanded(
                       child: AnimatedSwitcher(
                         duration: const Duration(milliseconds: 300),
-
-                        // <-- THIS IS THE FIX FOR "THE GAP"
-                        // This tells the AnimatedSwitcher to align
-                        // its children (your screens) to the TOP,
-                        // not the center.
                         layoutBuilder:
                             (
                               Widget? currentChild,

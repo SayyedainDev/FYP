@@ -6,7 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:provider/provider.dart';
@@ -256,16 +256,17 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
           ? 'Completed'
           : _caseStatus;
 
+      final supabase = Supabase.instance.client;
       for (int i = 0; i < _selectedFiles.length; i++) {
         final file = _selectedFiles[i];
         final fileName = '${timestamp}_image_$i.${file.extension ?? 'jpg'}';
-        final storageRef = FirebaseStorage.instance.ref().child(
-          'cases/${currentUser.uid}/$caseId/$fileName',
-        );
+        final bucket = 'cases';
+        final path = '${currentUser.uid}/$caseId/$fileName';
 
         try {
-          final uploadTask = await storageRef.putData(file.bytes!);
-          final downloadUrl = await uploadTask.ref.getDownloadURL();
+          final bytes = file.bytes!;
+          await supabase.storage.from(bucket).uploadBinary(path, bytes);
+          final downloadUrl = supabase.storage.from(bucket).getPublicUrl(path);
           imageUrls.add(downloadUrl);
         } catch (e) {
           debugPrint('Error uploading image: $e');

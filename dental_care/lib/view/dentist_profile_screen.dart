@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:image_picker/image_picker.dart';
 import '../provider/auth_provider.dart';
 
@@ -102,20 +102,19 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) return;
 
-      // Upload to Firebase Storage
-      final storageRef = FirebaseStorage.instance
-          .ref()
-          .child('profile_photos')
-          .child('${currentUser.uid}.jpg');
+      // Upload to Supabase Storage
+      final supabase = Supabase.instance.client;
+      final bucket = 'profile_photos';
+      final path = '${currentUser.uid}.jpg';
 
       if (kIsWeb) {
         final bytes = await image.readAsBytes();
-        await storageRef.putData(bytes);
+        await supabase.storage.from(bucket).uploadBinary(path, bytes);
       } else {
-        await storageRef.putFile(File(image.path));
+        await supabase.storage.from(bucket).upload(path, File(image.path));
       }
 
-      final downloadUrl = await storageRef.getDownloadURL();
+      final downloadUrl = supabase.storage.from(bucket).getPublicUrl(path);
 
       // Update Firestore
       await FirebaseFirestore.instance

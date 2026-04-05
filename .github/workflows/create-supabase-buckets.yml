@@ -1,0 +1,50 @@
+name: Create Supabase Buckets
+
+on:
+  workflow_dispatch:
+
+env:
+  SUPABASE_URL: https://trectmuwolzkdalsrmud.supabase.co
+
+jobs:
+  create-buckets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install tools
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y curl jq
+
+      - name: Create or ensure buckets
+        env:
+          SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_URL: ${{ env.SUPABASE_URL }}
+        run: |
+          set -euo pipefail
+          buckets=("lecture-notes" "scans" "cases" "quizzes" "uploads" "profile_photos" "health_checks")
+          for b in "${buckets[@]}"; do
+            echo "Checking bucket: $b"
+            exists=$(curl -s -H "Authorization: Bearer $SERVICE_ROLE_KEY" "$SUPABASE_URL/storage/v1/buckets" | jq -r --arg name "$b" '.[] | select(.name==$name) | .name' || true)
+            if [ "$exists" = "$b" ]; then
+              echo "Bucket $b already exists"
+            else
+              echo "Creating bucket $b"
+              status=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$SUPABASE_URL/storage/v1/buckets" \
+                -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
+                -H "Content-Type: application/json" \
+                -d "{\"name\":\"$b\",\"public\":true}")
+              if [ "$status" = "200" ] || [ "$status" = "201" ]; then
+                echo "Created $b"
+              else
+                echo "Failed to create $b (HTTP $status)"
+              fi
+            fi
+          done
+
+      - name: Verify buckets
+        env:
+          SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          SUPABASE_URL: ${{ env.SUPABASE_URL }}
+        run: |
+          echo "Listing buckets from Supabase:" 
+          curl -s -H "Authorization: Bearer $SERVICE_ROLE_KEY" "$SUPABASE_URL/storage/v1/buckets" | jq
