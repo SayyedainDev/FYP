@@ -22,6 +22,11 @@ jobs:
           which flutter || where flutter || true
           dart --version || true
 
+      - name: Precache Flutter SDK
+        run: |
+          flutter precache
+          flutter doctor -v || true
+
       - name: Build Flutter Web
         run: |
           cd dental_care
