@@ -11,6 +11,17 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.13.6'
+
+      - name: Build Flutter Web
+        run: |
+          cd dental_care
+          flutter pub get
+          flutter build web --release
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -27,4 +38,5 @@ jobs:
           if [ -z "$FIREBASE_TOKEN" ]; then
             echo "FIREBASE_TOKEN secret is missing. Add it in repo Settings → Secrets." && exit 1
           fi
+          cd dental_care
           firebase deploy --only hosting --token "$FIREBASE_TOKEN"
