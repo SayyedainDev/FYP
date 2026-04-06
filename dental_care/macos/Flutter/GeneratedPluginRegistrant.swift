@@ -12,7 +12,7 @@ import firebase_auth
 import firebase_core
 import path_provider_foundation
 import printing
-import share_plus_macos
+import share_plus
 import shared_preferences_foundation
 import url_launcher_macos
 
