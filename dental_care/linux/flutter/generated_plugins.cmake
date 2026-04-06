@@ -4,8 +4,8 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   file_selector_linux
-  gtk
   printing
+  share_plus_linux
   url_launcher_linux
 )
 
