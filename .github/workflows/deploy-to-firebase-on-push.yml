@@ -11,9 +11,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Install Flutter 3.13.6 (manual)
+      - name: Install & Build Flutter Web (single step)
+        shell: bash
         run: |
-          set -e
+          set -euo pipefail
           FLUTTER_VERSION=3.13.6
           TAR=flutter_linux_${FLUTTER_VERSION}-stable.tar.xz
           URL="https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/${TAR}"
@@ -21,21 +22,18 @@ jobs:
           wget -q "${URL}" -O ${TAR}
           tar xf ${TAR}
           mv flutter /home/runner/flutter_sdk
-          echo "/home/runner/flutter_sdk/bin" >> $GITHUB_PATH
-          echo "FLUTTER_ROOT=/home/runner/flutter_sdk" >> $GITHUB_ENV
           export PATH="/home/runner/flutter_sdk/bin:$PATH"
+          export FLUTTER_ROOT="/home/runner/flutter_sdk"
+          echo "Flutter and Dart versions:" 
           /home/runner/flutter_sdk/bin/flutter --version
           /home/runner/flutter_sdk/bin/cache/dart-sdk/bin/dart --version || true
-      - name: Precache Flutter SDK
-        run: |
-          flutter precache
-          flutter doctor -v || true
-
-      - name: Build Flutter Web
-        run: |
+          echo "Precaching Flutter artifacts"
+          /home/runner/flutter_sdk/bin/flutter precache
+          /home/runner/flutter_sdk/bin/flutter doctor -v || true
+          echo "Building web app"
           cd dental_care
-          flutter pub get
-          flutter build web --release
+          /home/runner/flutter_sdk/bin/flutter pub get
+          /home/runner/flutter_sdk/bin/flutter build web --release
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
