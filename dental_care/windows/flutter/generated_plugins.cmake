@@ -9,7 +9,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   firebase_auth
   firebase_core
   printing
-  share_plus_windows
+  share_plus
   url_launcher_windows
 )
 
