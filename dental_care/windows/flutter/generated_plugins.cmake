@@ -4,12 +4,9 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   app_links
-  cloud_firestore
   file_selector_windows
-  firebase_auth
-  firebase_core
   printing
-  share_plus
+  share_plus_windows
   url_launcher_windows
 )
 

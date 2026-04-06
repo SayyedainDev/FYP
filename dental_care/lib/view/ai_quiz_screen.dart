@@ -1198,7 +1198,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
     AuthProvider authProvider,
   ) async {
     try {
-      FilePickerResult? result = await FilePicker().pickFiles(
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
         type: FileType.any,
         withData: true, // Important for web
         allowMultiple: false,

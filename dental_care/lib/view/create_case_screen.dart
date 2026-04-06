@@ -160,7 +160,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
       return;
     }
     try {
-      final result = await FilePicker().pickFiles(
+      final result = await FilePicker.platform.pickFiles(
         type: FileType.image,
         allowMultiple: true,
         withData: true, // Important for web

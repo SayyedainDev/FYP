@@ -330,7 +330,7 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
                       InkWell(
                         onTap: () async {
                           try {
-                            final result = await FilePicker().pickFiles(
+                            final result = await FilePicker.platform.pickFiles(
                               type: FileType.image,
                               withData: kIsWeb,
                             );
