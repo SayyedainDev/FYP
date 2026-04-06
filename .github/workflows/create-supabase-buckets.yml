@@ -24,19 +24,31 @@ jobs:
           buckets=("lecture-notes" "scans" "cases" "quizzes" "uploads" "profile_photos" "health_checks")
           for b in "${buckets[@]}"; do
             echo "Checking bucket: $b"
-            exists=$(curl -s -H "Authorization: Bearer $SERVICE_ROLE_KEY" "$SUPABASE_URL/storage/v1/buckets" | jq -r --arg name "$b" '.[] | select(.name==$name) | .name' || true)
+            # Query buckets (return body and status)
+            resp=$(curl -s -w "\n%{http_code}" -H "Authorization: Bearer $SERVICE_ROLE_KEY" -H "apikey: $SERVICE_ROLE_KEY" "$SUPABASE_URL/storage/v1/buckets" ) || true
+            body=$(echo "$resp" | sed '$d')
+            status=$(echo "$resp" | tail -n1)
+            echo "GET /storage/v1/buckets -> HTTP $status"
+            echo "$body" | head -c 2000
+            exists=$(echo "$body" | jq -r --arg name "$b" '.[] | select(.name==$name) | .name' 2>/dev/null || true)
             if [ "$exists" = "$b" ]; then
               echo "Bucket $b already exists"
             else
               echo "Creating bucket $b"
-              status=$(curl -s -o /dev/null -w "%{http_code}" -X POST "$SUPABASE_URL/storage/v1/buckets" \
+              # POST with both Authorization and apikey headers for compatibility
+              resp_create=$(curl -s -w "\n%{http_code}" -X POST "$SUPABASE_URL/storage/v1/buckets" \
                 -H "Authorization: Bearer $SERVICE_ROLE_KEY" \
+                -H "apikey: $SERVICE_ROLE_KEY" \
                 -H "Content-Type: application/json" \
-                -d "{\"name\":\"$b\",\"public\":true}")
+                -d "{\"name\":\"$b\",\"public\":true}") || true
+              body_create=$(echo "$resp_create" | sed '$d')
+              status_create=$(echo "$resp_create" | tail -n1)
+              echo "POST /storage/v1/buckets -> HTTP $status_create"
+              echo "$body_create"
               if [ "$status" = "200" ] || [ "$status" = "201" ]; then
                 echo "Created $b"
               else
-                echo "Failed to create $b (HTTP $status)"
+                echo "Failed to create $b (HTTP $status_create)"
               fi
             fi
           done
@@ -47,4 +59,4 @@ jobs:
           SUPABASE_URL: ${{ env.SUPABASE_URL }}
         run: |
           echo "Listing buckets from Supabase:" 
-          curl -s -H "Authorization: Bearer $SERVICE_ROLE_KEY" "$SUPABASE_URL/storage/v1/buckets" | jq
+          curl -s -H "Authorization: Bearer $SERVICE_ROLE_KEY" -H "apikey: $SERVICE_ROLE_KEY" "$SUPABASE_URL/storage/v1/buckets" | jq || echo "raw:" && curl -s -H "Authorization: Bearer $SERVICE_ROLE_KEY" -H "apikey: $SERVICE_ROLE_KEY" "$SUPABASE_URL/storage/v1/buckets"
