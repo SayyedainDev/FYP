@@ -23,8 +23,9 @@ jobs:
           mv flutter /home/runner/flutter_sdk
           echo "/home/runner/flutter_sdk/bin" >> $GITHUB_PATH
           echo "FLUTTER_ROOT=/home/runner/flutter_sdk" >> $GITHUB_ENV
-          flutter --version
-          dart --version || true
+          export PATH="/home/runner/flutter_sdk/bin:$PATH"
+          /home/runner/flutter_sdk/bin/flutter --version
+          /home/runner/flutter_sdk/bin/cache/dart-sdk/bin/dart --version || true
       - name: Precache Flutter SDK
         run: |
           flutter precache
