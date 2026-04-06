@@ -16,6 +16,12 @@ jobs:
         with:
           flutter-version: '3.13.6'
 
+      - name: Verify Flutter
+        run: |
+          flutter --version
+          which flutter || where flutter || true
+          dart --version || true
+
       - name: Build Flutter Web
         run: |
           cd dental_care
