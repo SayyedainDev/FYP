@@ -11,17 +11,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          flutter-version: '3.13.6'
-
-      - name: Verify Flutter
+      - name: Install Flutter 3.13.6 (manual)
         run: |
+          set -e
+          FLUTTER_VERSION=3.13.6
+          TAR=flutter_linux_${FLUTTER_VERSION}-stable.tar.xz
+          URL="https://storage.googleapis.com/flutter_infra_release/releases/stable/linux/${TAR}"
+          echo "Downloading Flutter ${FLUTTER_VERSION} from ${URL}"
+          wget -q "${URL}" -O ${TAR}
+          tar xf ${TAR}
+          mv flutter /home/runner/flutter_sdk
+          echo "/home/runner/flutter_sdk/bin" >> $GITHUB_PATH
+          echo "FLUTTER_ROOT=/home/runner/flutter_sdk" >> $GITHUB_ENV
           flutter --version
-          which flutter || where flutter || true
           dart --version || true
-
       - name: Precache Flutter SDK
         run: |
           flutter precache
