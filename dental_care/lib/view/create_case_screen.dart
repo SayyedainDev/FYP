@@ -421,13 +421,12 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                 ? null
                 : _pickImages,
             child: DottedBorder(
-              options: RoundedRectDottedBorderOptions(
-                radius: const Radius.circular(8),
-                color: const Color(0xFFD1D5DB),
-                strokeWidth: 2,
-                dashPattern: const [6, 4],
-                padding: EdgeInsets.zero,
-              ),
+              borderType: BorderType.RRect,
+              radius: const Radius.circular(8),
+              color: const Color(0xFFD1D5DB),
+              strokeWidth: 2,
+              dashPattern: const [6, 4],
+              padding: EdgeInsets.zero,
               child: KeyboardListener(
                 focusNode: _keyboardFocus,
                 autofocus: true,

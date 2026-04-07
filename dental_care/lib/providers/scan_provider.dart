@@ -121,7 +121,7 @@ class ScanProvider extends ChangeNotifier {
 
         Uint8List bytes;
         if (imageFile is Uint8List) {
-          bytes = imageFile as Uint8List;
+          bytes = imageFile;
         } else if (imageFile is File) {
           bytes = await imageFile.readAsBytes();
         } else if (imageFile is String) {

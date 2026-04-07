@@ -72,10 +72,6 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
     );
   }
 
-  Widget _buildModernHeader(LectureNotesProvider notesProvider) {
-    return const SizedBox.shrink();
-  }
-
   Widget _buildModernTabBar() {
     return Container(
       color: Colors.white,
