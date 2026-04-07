@@ -1,0 +1,70 @@
+# Deploy to Firebase Hosting on push to main
+name: Deploy to Firebase Hosting on Push
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'dental_care/lib/**'
+      - 'dental_care/pubspec.yaml'
+      - 'dental_care/pubspec.lock'
+      - 'dental_care/web/**'
+      - '.github/workflows/firebase-hosting-deploy.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  deployments: write
+
+jobs:
+  build_and_deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: dental_care
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.38.9'
+          cache: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Verify Flutter setup
+        run: |
+          flutter --version
+          dart --version
+          node --version
+          npm --version
+          pwd
+          ls -la
+      
+      - name: Build web
+        run: flutter build web --release --no-wasm-dry-run
+      
+      - name: Install Firebase CLI (local)
+        run: npm install firebase-tools
+
+      - name: Validate Firebase token exists
+        run: |
+          if [ -z "${{ secrets.FIREBASE_TOKEN }}" ]; then
+            echo "FIREBASE_TOKEN is missing in repository secrets"
+            exit 1
+          fi
+      
+      - name: Deploy to Firebase Hosting
+        run: npx firebase deploy --only hosting --project dental-care-6daf8
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
