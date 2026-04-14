@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/medical_history.dart';
+import '../utils/provider_error_utils.dart';
 
 class MedicalHistoryProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -25,7 +26,8 @@ class MedicalHistoryProvider extends ChangeNotifier {
       final doc = await _firestore
           .collection('medical_history')
           .doc(patientId)
-          .get();
+          .get()
+          .timeout(ProviderErrorUtils.requestTimeout);
 
       if (doc.exists) {
         _histories[patientId] = MedicalHistory.fromFirestore(doc);
@@ -34,7 +36,10 @@ class MedicalHistoryProvider extends ChangeNotifier {
       _loading = false;
       notifyListeners();
     } catch (e) {
-      _error = 'Failed to fetch medical history: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to fetch medical history. Please try again.',
+      );
       _loading = false;
       notifyListeners();
       debugPrint('Error fetching medical history: $e');
@@ -49,13 +54,17 @@ class MedicalHistoryProvider extends ChangeNotifier {
       await _firestore
           .collection('medical_history')
           .doc(history.patientId)
-          .set(history.toFirestore(), SetOptions(merge: true));
+          .set(history.toFirestore(), SetOptions(merge: true))
+          .timeout(ProviderErrorUtils.requestTimeout);
 
       _histories[history.patientId] = history;
       _loading = false;
       notifyListeners();
     } catch (e) {
-      _error = 'Failed to save medical history: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to save medical history. Please try again.',
+      );
       _loading = false;
       notifyListeners();
     }
@@ -65,7 +74,7 @@ class MedicalHistoryProvider extends ChangeNotifier {
     try {
       await _firestore.collection('medical_history').doc(patientId).update({
         'allergies': FieldValue.arrayUnion([allergy]),
-      });
+      }).timeout(ProviderErrorUtils.requestTimeout);
 
       final history = _histories[patientId];
       if (history != null) {
@@ -86,7 +95,10 @@ class MedicalHistoryProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      _error = 'Failed to add allergy: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to add allergy. Please try again.',
+      );
       notifyListeners();
     }
   }
@@ -95,7 +107,7 @@ class MedicalHistoryProvider extends ChangeNotifier {
     try {
       await _firestore.collection('medical_history').doc(patientId).update({
         'allergies': FieldValue.arrayRemove([allergy]),
-      });
+      }).timeout(ProviderErrorUtils.requestTimeout);
 
       final history = _histories[patientId];
       if (history != null) {
@@ -116,7 +128,10 @@ class MedicalHistoryProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      _error = 'Failed to remove allergy: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to remove allergy. Please try again.',
+      );
       notifyListeners();
     }
   }

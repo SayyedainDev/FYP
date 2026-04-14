@@ -26,6 +26,13 @@ class FirebaseTest {
   /// Test Firestore Connection and Write/Read
   static Future<bool> testFirestoreConnection() async {
     try {
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        debugPrint(
+            '⚠️ Skipping Firestore write test (no logged-in user). Rule requires isAuth().');
+        return false;
+      }
+
       // Test write operation
       final testDoc = _firestore.collection('_test').doc('connection_test');
       await testDoc.set({

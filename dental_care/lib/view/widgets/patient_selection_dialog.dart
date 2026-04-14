@@ -17,6 +17,7 @@ class _PatientSelectionDialogState extends State<PatientSelectionDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       elevation: 0,
@@ -24,11 +25,11 @@ class _PatientSelectionDialogState extends State<PatientSelectionDialog> {
       child: Container(
         width: 600,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.15),
+              color: colorScheme.shadow.withValues(alpha: 0.15),
               blurRadius: 40,
               spreadRadius: 10,
             ),
@@ -42,7 +43,7 @@ class _PatientSelectionDialogState extends State<PatientSelectionDialog> {
               padding: const EdgeInsets.all(28),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [const Color(0xFF4A90E2), const Color(0xFF357ABD)],
+                  colors: [colorScheme.primary, colorScheme.secondary],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -56,12 +57,12 @@ class _PatientSelectionDialogState extends State<PatientSelectionDialog> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: colorScheme.onPrimary.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.person_search,
-                      color: Colors.white,
+                      color: colorScheme.onPrimary,
                       size: 28,
                     ),
                   ),
@@ -70,10 +71,10 @@ class _PatientSelectionDialogState extends State<PatientSelectionDialog> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Select Patient',
                           style: TextStyle(
-                            color: Colors.white,
+                            color: colorScheme.onPrimary,
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                           ),
@@ -82,7 +83,7 @@ class _PatientSelectionDialogState extends State<PatientSelectionDialog> {
                         Text(
                           'Choose a patient for this scan',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
+                            color: colorScheme.onPrimary.withValues(alpha: 0.9),
                             fontSize: 14,
                           ),
                         ),
@@ -104,7 +105,7 @@ class _PatientSelectionDialogState extends State<PatientSelectionDialog> {
                     Container(
                       decoration: BoxDecoration(
                         border: Border.all(
-                          color: const Color(0xFFE0E6ED),
+                          color: colorScheme.outlineVariant,
                           width: 1,
                         ),
                         borderRadius: BorderRadius.circular(12),
@@ -148,10 +149,10 @@ class _PatientSelectionDialogState extends State<PatientSelectionDialog> {
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFF5F7FA),
+                          color: colorScheme.surfaceContainerLowest,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: const Color(0xFFE0E6ED),
+                            color: colorScheme.outlineVariant,
                             width: 1,
                           ),
                         ),
@@ -160,7 +161,7 @@ class _PatientSelectionDialogState extends State<PatientSelectionDialog> {
                             Icon(
                               Icons.person_add_alt,
                               size: 40,
-                              color: const Color(0xFF4A90E2),
+                              color: colorScheme.primary,
                             ),
                             const SizedBox(height: 12),
                             const Text(
@@ -168,7 +169,6 @@ class _PatientSelectionDialogState extends State<PatientSelectionDialog> {
                               style: TextStyle(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
-                                color: Color(0xFF212121),
                               ),
                             ),
                             const SizedBox(height: 8),
@@ -177,7 +177,7 @@ class _PatientSelectionDialogState extends State<PatientSelectionDialog> {
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Colors.grey[600],
+                                color: colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -192,13 +192,13 @@ class _PatientSelectionDialogState extends State<PatientSelectionDialog> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.grey[50],
+                color: colorScheme.surfaceContainerLowest,
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(20),
                   bottomRight: Radius.circular(20),
                 ),
                 border: Border(
-                  top: BorderSide(color: Colors.grey[200]!, width: 1),
+                  top: BorderSide(color: colorScheme.outlineVariant, width: 1),
                 ),
               ),
               child: Row(
@@ -215,7 +215,7 @@ class _PatientSelectionDialogState extends State<PatientSelectionDialog> {
                     child: Text(
                       'Cancel',
                       style: TextStyle(
-                        color: Colors.grey[600],
+                        color: colorScheme.onSurfaceVariant,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -225,16 +225,16 @@ class _PatientSelectionDialogState extends State<PatientSelectionDialog> {
                     onPressed: _isNewPatient
                         ? () => _createNewPatient(context)
                         : (_selectedPatientId != null
-                              ? () => Navigator.pop(context, _selectedPatientId)
-                              : null),
+                            ? () => Navigator.pop(context, _selectedPatientId)
+                            : null),
                     icon: Icon(
                       _isNewPatient ? Icons.add : Icons.check,
                       size: 18,
                     ),
                     label: Text(_isNewPatient ? 'Create Patient' : 'Continue'),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4A90E2),
-                      foregroundColor: Colors.white,
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
                         vertical: 12,
@@ -282,6 +282,7 @@ class _ToggleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -290,7 +291,7 @@ class _ToggleButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 12),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF4A90E2) : Colors.transparent,
+            color: isSelected ? colorScheme.primary : Colors.transparent,
             borderRadius: BorderRadius.circular(10),
           ),
           child: Row(
@@ -299,7 +300,9 @@ class _ToggleButton extends StatelessWidget {
               Icon(
                 icon,
                 size: 16,
-                color: isSelected ? Colors.white : Colors.grey[600],
+                color: isSelected
+                    ? colorScheme.onPrimary
+                    : colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 6),
               Text(
@@ -307,7 +310,9 @@ class _ToggleButton extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
-                  color: isSelected ? Colors.white : Colors.grey[600],
+                  color: isSelected
+                      ? colorScheme.onPrimary
+                      : colorScheme.onSurfaceVariant,
                 ),
               ),
             ],
@@ -329,6 +334,7 @@ class _ExistingPatientSelector extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Consumer<PatientProvider>(
       builder: (context, patientProvider, child) {
         final patients = patientProvider.patients;
@@ -337,27 +343,31 @@ class _ExistingPatientSelector extends StatelessWidget {
           return Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5F7FA),
+              color: colorScheme.surfaceContainerLowest,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE0E6ED), width: 1),
+              border: Border.all(color: colorScheme.outlineVariant, width: 1),
             ),
             child: Column(
               children: [
-                Icon(Icons.people_outline, size: 40, color: Colors.grey[400]),
+                Icon(Icons.people_outline,
+                    size: 40, color: colorScheme.outline),
                 const SizedBox(height: 12),
                 Text(
                   'No Patients Found',
                   style: TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey[700],
+                    color: colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Please create a patient first',
                   textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -366,7 +376,7 @@ class _ExistingPatientSelector extends StatelessWidget {
 
         return Container(
           decoration: BoxDecoration(
-            border: Border.all(color: const Color(0xFFE0E6ED), width: 1),
+            border: Border.all(color: colorScheme.outlineVariant, width: 1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -399,6 +409,7 @@ class _PatientOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -407,12 +418,12 @@ class _PatientOption extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: isSelected
-                ? const Color(0xFF4A90E2).withOpacity(0.05)
+                ? colorScheme.primary.withValues(alpha: 0.05)
                 : Colors.transparent,
             border: Border(
-              bottom: BorderSide(color: const Color(0xFFE0E6ED), width: 0.5),
+              bottom: BorderSide(color: colorScheme.outlineVariant, width: 0.5),
               left: isSelected
-                  ? BorderSide(color: const Color(0xFF4A90E2), width: 3)
+                  ? BorderSide(color: colorScheme.primary, width: 3)
                   : BorderSide.none,
             ),
           ),
@@ -422,7 +433,7 @@ class _PatientOption extends StatelessWidget {
                 value: true,
                 groupValue: isSelected,
                 onChanged: (_) => onSelected(),
-                activeColor: const Color(0xFF4A90E2),
+                activeColor: colorScheme.primary,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -431,10 +442,10 @@ class _PatientOption extends StatelessWidget {
                   children: [
                     Text(
                       patient.name,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: Color(0xFF212121),
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
@@ -446,19 +457,19 @@ class _PatientOption extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF5F7FA),
+                            color: colorScheme.surfaceContainerLowest,
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: const Color(0xFFE0E6ED),
+                              color: colorScheme.outlineVariant,
                               width: 0.5,
                             ),
                           ),
                           child: Text(
                             '${patient.age}y',
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF4A90E2),
+                              color: colorScheme.primary,
                             ),
                           ),
                         ),
@@ -469,19 +480,19 @@ class _PatientOption extends StatelessWidget {
                             vertical: 3,
                           ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF5F7FA),
+                            color: colorScheme.surfaceContainerLowest,
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                              color: const Color(0xFFE0E6ED),
+                              color: colorScheme.outlineVariant,
                               width: 0.5,
                             ),
                           ),
                           child: Text(
                             patient.gender,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
-                              color: Color(0xFF4A90E2),
+                              color: colorScheme.primary,
                             ),
                           ),
                         ),

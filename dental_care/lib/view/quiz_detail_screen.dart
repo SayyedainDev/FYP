@@ -1,20 +1,23 @@
 import 'package:flutter/material.dart';
 import '../models/quiz.dart';
+import '../core/theme/app_semantic_colors.dart';
 import '../service/quiz_pdf_service.dart';
 
 class QuizDetailScreen extends StatelessWidget {
   final Quiz quiz;
 
-  const QuizDetailScreen({Key? key, required this.quiz}) : super(key: key);
+  const QuizDetailScreen({super.key, required this.quiz});
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: colorScheme.surface,
       appBar: AppBar(
         title: const Text('Quiz Details'),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
+        backgroundColor: colorScheme.surface,
+        foregroundColor: colorScheme.onSurface,
         elevation: 0,
         actions: [
           IconButton(
@@ -26,8 +29,9 @@ class QuizDetailScreen extends StatelessWidget {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Print failed: $e'),
-                      backgroundColor: Colors.red,
+                      content: const Text('Print failed. Please try again.'),
+                      backgroundColor:
+                          semanticColors?.danger ?? colorScheme.error,
                     ),
                   );
                 }
@@ -44,8 +48,9 @@ class QuizDetailScreen extends StatelessWidget {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                      content: Text('Share failed: $e'),
-                      backgroundColor: Colors.red,
+                      content: const Text('Share failed. Please try again.'),
+                      backgroundColor:
+                          semanticColors?.danger ?? colorScheme.error,
                     ),
                   );
                 }
@@ -69,22 +74,30 @@ class QuizDetailScreen extends StatelessWidget {
   }
 
   Widget _buildHeader(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
-      decoration: const BoxDecoration(color: Colors.white),
+      decoration: BoxDecoration(color: colorScheme.surface),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(12),
+              Hero(
+                tag: 'quiz-${quiz.id}',
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colorScheme.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.quiz_outlined,
+                    color: colorScheme.primary,
+                    size: 32,
+                  ),
                 ),
-                child: Icon(Icons.quiz, color: Colors.blue.shade700, size: 32),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -93,17 +106,20 @@ class QuizDetailScreen extends StatelessWidget {
                   children: [
                     Text(
                       quiz.title,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
-                        color: Color(0xFF212121),
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     if (quiz.description.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
                         quiz.description,
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ],
@@ -117,20 +133,31 @@ class QuizDetailScreen extends StatelessWidget {
             runSpacing: 12,
             children: [
               _buildStatChip(
+                context,
                 Icons.quiz_outlined,
                 '${quiz.questions.length} Questions',
-                Colors.blue,
+                Theme.of(context).extension<AppSemanticColors>()?.info ??
+                    Theme.of(context).colorScheme.primary,
               ),
               _buildStatChip(
+                context,
                 Icons.star_outline,
                 '${quiz.totalMarks} Marks',
-                Colors.orange,
+                Theme.of(context).extension<AppSemanticColors>()?.warning ??
+                    Theme.of(context).colorScheme.tertiary,
               ),
-              _buildStatChip(Icons.access_time, quiz.timeText, Colors.green),
               _buildStatChip(
+                context,
+                Icons.access_time,
+                quiz.timeText,
+                Theme.of(context).extension<AppSemanticColors>()?.success ??
+                    Theme.of(context).colorScheme.secondary,
+              ),
+              _buildStatChip(
+                context,
                 Icons.speed,
                 quiz.difficultyText,
-                _getDifficultyColor(quiz.config.difficulty),
+                _getDifficultyColor(context, quiz.config.difficulty),
               ),
             ],
           ),
@@ -140,15 +167,16 @@ class QuizDetailScreen extends StatelessWidget {
   }
 
   Widget _buildQuizInfo(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.all(24),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: colorScheme.shadow.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -157,32 +185,39 @@ class QuizDetailScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Quiz Information',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF212121),
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),
-          _buildInfoRow('Cognitive Level', _getCognitiveLevelText()),
-          _buildInfoRow('Question Types', _getQuestionTypesText()),
-          _buildInfoRow('Sections', '${quiz.config.numberOfSections}'),
-          _buildInfoRow('Marks Distribution', quiz.config.marksDistribution),
+          _buildInfoRow(context, 'Cognitive Level', _getCognitiveLevelText()),
+          _buildInfoRow(context, 'Question Types', _getQuestionTypesText()),
+          _buildInfoRow(context, 'Sections', '${quiz.config.numberOfSections}'),
           _buildInfoRow(
+            context,
+            'Marks Distribution',
+            quiz.config.marksDistribution,
+          ),
+          _buildInfoRow(
+            context,
             'Answer Key',
             quiz.config.includeAnswerKey ? 'Included' : 'Not included',
           ),
           _buildInfoRow(
+            context,
             'Explanations',
             quiz.config.explanationLevel.toUpperCase(),
           ),
           if (quiz.config.specialMode != null)
-            _buildInfoRow('Quiz Mode', _getQuizModeText()),
+            _buildInfoRow(context, 'Quiz Mode', _getQuizModeText()),
           if (quiz.noteFileName != null)
-            _buildInfoRow('Source File', quiz.noteFileName!),
+            _buildInfoRow(context, 'Source File', quiz.noteFileName!),
           _buildInfoRow(
+            context,
             'Created',
             '${quiz.createdAt.day}/${quiz.createdAt.month}/${quiz.createdAt.year} at ${quiz.createdAt.hour}:${quiz.createdAt.minute.toString().padLeft(2, '0')}',
           ),
@@ -192,6 +227,7 @@ class QuizDetailScreen extends StatelessWidget {
   }
 
   Widget _buildQuestionsSection(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.fromLTRB(24, 0, 24, 24),
       child: Column(
@@ -199,12 +235,12 @@ class QuizDetailScreen extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Text(
+              Text(
                 'Questions',
                 style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF212121),
+                  color: colorScheme.onSurface,
                 ),
               ),
               const SizedBox(width: 12),
@@ -214,13 +250,13 @@ class QuizDetailScreen extends StatelessWidget {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade100,
+                  color: colorScheme.primary.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   '${quiz.questions.length} Total',
                   style: TextStyle(
-                    color: Colors.blue.shade700,
+                    color: colorScheme.primary,
                     fontWeight: FontWeight.bold,
                     fontSize: 12,
                   ),
@@ -230,24 +266,26 @@ class QuizDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           ...quiz.questions.asMap().entries.map((entry) {
-            return _buildQuestionCard(entry.key + 1, entry.value);
-          }).toList(),
+              return _buildQuestionCard(context, entry.key + 1, entry.value);
+            }),
         ],
       ),
     );
   }
 
-  Widget _buildQuestionCard(int number, Question question) {
+  Widget _buildQuestionCard(
+      BuildContext context, int number, Question question) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: colorScheme.outlineVariant),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.03),
+            color: colorScheme.shadow.withValues(alpha: 0.06),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -266,13 +304,13 @@ class QuizDetailScreen extends StatelessWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.blue.shade700,
+                  color: colorScheme.primary,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   'Q$number',
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: colorScheme.onPrimary,
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
@@ -292,11 +330,13 @@ class QuizDetailScreen extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: _getQuestionTypeColor(
+                              context,
                               question.type,
-                            ).withOpacity(0.1),
+                            ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(4),
                             border: Border.all(
-                              color: _getQuestionTypeColor(question.type),
+                              color:
+                                  _getQuestionTypeColor(context, question.type),
                               width: 1,
                             ),
                           ),
@@ -304,7 +344,8 @@ class QuizDetailScreen extends StatelessWidget {
                             _getQuestionTypeLabel(question.type),
                             style: TextStyle(
                               fontSize: 11,
-                              color: _getQuestionTypeColor(question.type),
+                              color:
+                                  _getQuestionTypeColor(context, question.type),
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -316,14 +357,21 @@ class QuizDetailScreen extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.orange.shade100,
+                            color: (Theme.of(context)
+                                        .extension<AppSemanticColors>()
+                                        ?.warning ??
+                                    Theme.of(context).colorScheme.tertiary)
+                                .withValues(alpha: 0.2),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: Text(
                             '${question.marks} mark${question.marks > 1 ? 's' : ''}',
                             style: TextStyle(
                               fontSize: 11,
-                              color: Colors.orange.shade700,
+                              color: Theme.of(context)
+                                      .extension<AppSemanticColors>()
+                                      ?.warning ??
+                                  Theme.of(context).colorScheme.tertiary,
                               fontWeight: FontWeight.bold,
                             ),
                           ),
@@ -336,14 +384,18 @@ class QuizDetailScreen extends StatelessWidget {
                               vertical: 4,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.purple.shade100,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .secondaryContainer,
                               borderRadius: BorderRadius.circular(4),
                             ),
                             child: Text(
                               question.section!,
                               style: TextStyle(
                                 fontSize: 11,
-                                color: Colors.purple.shade700,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSecondaryContainer,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -361,10 +413,10 @@ class QuizDetailScreen extends StatelessWidget {
           // Question Text
           Text(
             question.questionText,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF212121),
+              color: colorScheme.onSurface,
               height: 1.5,
             ),
           ),
@@ -383,13 +435,21 @@ class QuizDetailScreen extends StatelessWidget {
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: isCorrect && quiz.config.includeAnswerKey
-                      ? Colors.green.shade50
-                      : Colors.grey.shade50,
+                      ? (Theme.of(context)
+                                  .extension<AppSemanticColors>()
+                                  ?.success ??
+                              Theme.of(context).colorScheme.secondary)
+                          .withValues(alpha: 0.12)
+                      : Theme.of(context).colorScheme.surfaceContainerLowest,
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(
                     color: isCorrect && quiz.config.includeAnswerKey
-                        ? Colors.green.shade300
-                        : Colors.grey.shade200,
+                        ? (Theme.of(context)
+                                    .extension<AppSemanticColors>()
+                                    ?.success ??
+                                Theme.of(context).colorScheme.secondary)
+                            .withValues(alpha: 0.5)
+                        : Theme.of(context).colorScheme.outlineVariant,
                     width: 1.5,
                   ),
                 ),
@@ -400,8 +460,11 @@ class QuizDetailScreen extends StatelessWidget {
                       height: 28,
                       decoration: BoxDecoration(
                         color: isCorrect && quiz.config.includeAnswerKey
-                            ? Colors.green.shade700
-                            : Colors.grey.shade300,
+                            ? Theme.of(context)
+                                    .extension<AppSemanticColors>()
+                                    ?.success ??
+                                Theme.of(context).colorScheme.secondary
+                            : Theme.of(context).colorScheme.outlineVariant,
                         shape: BoxShape.circle,
                       ),
                       child: Center(
@@ -409,8 +472,10 @@ class QuizDetailScreen extends StatelessWidget {
                           optionLetter,
                           style: TextStyle(
                             color: isCorrect && quiz.config.includeAnswerKey
-                                ? Colors.white
-                                : Colors.grey.shade700,
+                                ? Theme.of(context).colorScheme.onSecondary
+                                : Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
                             fontWeight: FontWeight.bold,
                             fontSize: 14,
                           ),
@@ -423,20 +488,23 @@ class QuizDetailScreen extends StatelessWidget {
                         option,
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.grey.shade800,
+                          color: Theme.of(context).colorScheme.onSurface,
                         ),
                       ),
                     ),
                     if (isCorrect && quiz.config.includeAnswerKey)
                       Icon(
                         Icons.check_circle,
-                        color: Colors.green.shade700,
+                        color: Theme.of(context)
+                                .extension<AppSemanticColors>()
+                                ?.success ??
+                            Theme.of(context).colorScheme.secondary,
                         size: 20,
                       ),
                   ],
                 ),
               );
-            }).toList(),
+            }),
             const SizedBox(height: 8),
           ],
 
@@ -446,16 +514,29 @@ class QuizDetailScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.green.shade50,
+                color: (Theme.of(context)
+                            .extension<AppSemanticColors>()
+                            ?.success ??
+                        Theme.of(context).colorScheme.secondary)
+                    .withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green.shade300),
+                border: Border.all(
+                  color: (Theme.of(context)
+                              .extension<AppSemanticColors>()
+                              ?.success ??
+                          Theme.of(context).colorScheme.secondary)
+                      .withValues(alpha: 0.5),
+                ),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
                     Icons.check_circle,
-                    color: Colors.green.shade700,
+                    color: Theme.of(context)
+                            .extension<AppSemanticColors>()
+                            ?.success ??
+                        Theme.of(context).colorScheme.secondary,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -467,16 +548,19 @@ class QuizDetailScreen extends StatelessWidget {
                           'Answer:',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.green.shade700,
+                            color: Theme.of(context)
+                                    .extension<AppSemanticColors>()
+                                    ?.success ??
+                                Theme.of(context).colorScheme.secondary,
                             fontSize: 13,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
-                          question.correctAnswer,
-                          style: const TextStyle(
+                          question.correctAnswerText,
+                          style: TextStyle(
                             fontSize: 14,
-                            color: Color(0xFF212121),
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ],
@@ -495,16 +579,24 @@ class QuizDetailScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.shade50,
+                color: Theme.of(context)
+                    .colorScheme
+                    .primary
+                    .withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade200),
+                border: Border.all(
+                  color: Theme.of(context)
+                      .colorScheme
+                      .primary
+                      .withValues(alpha: 0.35),
+                ),
               ),
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Icon(
                     Icons.info_outline,
-                    color: Colors.blue.shade700,
+                    color: Theme.of(context).colorScheme.primary,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
@@ -516,16 +608,16 @@ class QuizDetailScreen extends StatelessWidget {
                           'Explanation:',
                           style: TextStyle(
                             fontWeight: FontWeight.bold,
-                            color: Colors.blue.shade700,
+                            color: Theme.of(context).colorScheme.primary,
                             fontSize: 13,
                           ),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           question.explanation!,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 14,
-                            color: Color(0xFF212121),
+                            color: Theme.of(context).colorScheme.onSurface,
                           ),
                         ),
                       ],
@@ -540,13 +632,18 @@ class QuizDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatChip(IconData icon, String label, Color color) {
+  Widget _buildStatChip(
+    BuildContext context,
+    IconData icon,
+    String label,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -566,7 +663,8 @@ class QuizDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
+  Widget _buildInfoRow(BuildContext context, String label, String value) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: Row(
@@ -576,9 +674,9 @@ class QuizDetailScreen extends StatelessWidget {
             width: 140,
             child: Text(
               '$label:',
-              style: const TextStyle(
+              style: TextStyle(
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF666666),
+                color: colorScheme.onSurfaceVariant,
                 fontSize: 14,
               ),
             ),
@@ -586,7 +684,7 @@ class QuizDetailScreen extends StatelessWidget {
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(color: Color(0xFF212121), fontSize: 14),
+              style: TextStyle(color: colorScheme.onSurface, fontSize: 14),
             ),
           ),
         ],
@@ -594,33 +692,37 @@ class QuizDetailScreen extends StatelessWidget {
     );
   }
 
-  Color _getDifficultyColor(DifficultyLevel difficulty) {
+  Color _getDifficultyColor(BuildContext context, DifficultyLevel difficulty) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
     switch (difficulty) {
       case DifficultyLevel.easy:
-        return Colors.green;
+        return semanticColors?.success ?? colorScheme.secondary;
       case DifficultyLevel.medium:
-        return Colors.orange;
+        return semanticColors?.warning ?? colorScheme.tertiary;
       case DifficultyLevel.hard:
-        return Colors.red;
+        return semanticColors?.danger ?? colorScheme.error;
       case DifficultyLevel.mixed:
-        return Colors.purple;
+        return colorScheme.secondary;
     }
   }
 
-  Color _getQuestionTypeColor(QuestionType type) {
+  Color _getQuestionTypeColor(BuildContext context, QuestionType type) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
     switch (type) {
       case QuestionType.mcq:
-        return Colors.blue;
+        return semanticColors?.info ?? colorScheme.primary;
       case QuestionType.trueFalse:
-        return Colors.green;
+        return semanticColors?.success ?? colorScheme.secondary;
       case QuestionType.shortAnswer:
-        return Colors.orange;
+        return semanticColors?.warning ?? colorScheme.tertiary;
       case QuestionType.longAnswer:
-        return Colors.red;
+        return semanticColors?.danger ?? colorScheme.error;
       case QuestionType.fillInTheBlanks:
-        return Colors.purple;
+        return colorScheme.secondary;
       case QuestionType.scenarioBased:
-        return Colors.teal;
+        return colorScheme.tertiary;
     }
   }
 

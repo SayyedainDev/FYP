@@ -16,14 +16,16 @@ class StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final effectiveValueColor = valueColor ?? colorScheme.primary;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: colorScheme.shadow.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -37,7 +39,7 @@ class StatCard extends StatelessWidget {
             title,
             style: TextStyle(
               fontSize: 13,
-              color: const Color.fromARGB(255, 54, 54, 54),
+              color: colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -50,17 +52,17 @@ class StatCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: valueColor ?? Colors.black87,
+                  color: effectiveValueColor,
                 ),
               ),
               if (icon != null)
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: (valueColor ?? Colors.blue).withOpacity(0.1),
+                    color: effectiveValueColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(icon, color: valueColor ?? Colors.blue, size: 20),
+                  child: Icon(icon, color: effectiveValueColor, size: 20),
                 ),
             ],
           ),

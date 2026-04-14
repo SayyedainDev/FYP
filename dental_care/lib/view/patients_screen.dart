@@ -1,13 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'dart:async';
+import 'dart:io';
+
 import '../models/patient.dart';
 import '../models/scan.dart';
 import '../providers/patient_provider.dart';
 import '../providers/scan_provider.dart';
 import '../provider/auth_provider.dart';
+import '../core/animation_constants.dart';
+import '../core/theme/app_semantic_colors.dart';
+import '../utils/app_dialogs.dart';
+import '../utils/global_error_handler.dart';
 import 'widgets/add_patient_dialog.dart';
 import 'widgets/edit_patient_dialog.dart';
+import '../widgets/loaders/app_loader.dart';
 import 'widgets/create_case_dialog.dart';
 
 class PatientsScreen extends StatefulWidget {
@@ -39,37 +47,50 @@ class _PatientsScreenState extends State<PatientsScreen> {
     // Fallback to authProvider.uid if needed
     uid ??= authProvider.uid;
 
-    print('Loading patients for UID: $uid'); // Debug log
+    debugPrint('Loading patients for UID: $uid');
 
     if (uid != null) {
       try {
-        await patientProvider.fetchPatients(uid);
+        await patientProvider
+            .fetchPatients(uid)
+            .timeout(const Duration(seconds: 30));
         patientProvider.listenToPatients(uid);
-      } catch (e) {
-        print('Error loading patients: $e'); // Debug log
+      } on TimeoutException catch (_) {
+        if (mounted) {
+          AppDialogs.showErrorDialog(context,
+              message: "The request timed out. Check your connection.");
+        }
+      } on SocketException catch (_) {
+        if (mounted) AppDialogs.showNoInternetDialog(context);
+      } catch (e, stack) {
+        if (mounted) GlobalErrorHandler.instance.handleError(e, stack);
       }
     } else {
-      print('No UID found - user may not be logged in'); // Debug log
+      debugPrint('No UID found - user may not be logged in');
     }
   }
 
   // Prominent card decoration matching your specification
-  BoxDecoration get _prominentCardDecoration => BoxDecoration(
-    color: Colors.white,
-    borderRadius: BorderRadius.circular(12),
-    border: Border.all(color: Colors.grey.shade300, width: 1),
-    boxShadow: [
-      BoxShadow(
-        color: Colors.black.withOpacity(0.08),
-        blurRadius: 20,
-        spreadRadius: 1,
-        offset: const Offset(0, 6),
-      ),
-    ],
-  );
+  BoxDecoration get _prominentCardDecoration {
+    final colorScheme = Theme.of(context).colorScheme;
+    return BoxDecoration(
+      color: colorScheme.surface,
+      borderRadius: BorderRadius.circular(12),
+      border: Border.all(color: colorScheme.outlineVariant, width: 1),
+      boxShadow: [
+        BoxShadow(
+          color: colorScheme.shadow.withValues(alpha: 0.08),
+          blurRadius: 20,
+          spreadRadius: 1,
+          offset: const Offset(0, 6),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return SingleChildScrollView(
       child: Align(
         alignment: Alignment.topCenter,
@@ -86,19 +107,19 @@ class _PatientsScreenState extends State<PatientsScreen> {
                   children: [
                     Text(
                       'Patients',
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF212121),
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurface,
+                              ),
                     ),
                     ElevatedButton.icon(
                       onPressed: () => _showAddPatientDialog(context),
                       icon: const Icon(Icons.add),
                       label: const Text('Add New Patient'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4A90E2),
-                        foregroundColor: Colors.white,
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20,
                           vertical: 12,
@@ -127,14 +148,14 @@ class _PatientsScreenState extends State<PatientsScreen> {
                               Icon(
                                 Icons.error_outline,
                                 size: 48,
-                                color: Colors.grey[400],
+                                color: colorScheme.outline,
                               ),
                               const SizedBox(height: 16),
                               Text(
                                 'User not authenticated',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: Colors.grey[600],
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ],
@@ -154,9 +175,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                           return const Center(
                             child: Padding(
                               padding: EdgeInsets.all(64.0),
-                              child: CircularProgressIndicator(
-                                color: Color(0xFF4A90E2),
-                              ),
+                              child: AppLoader(message: 'Loading patients...'),
                             ),
                           );
                         }
@@ -170,14 +189,14 @@ class _PatientsScreenState extends State<PatientsScreen> {
                                   Icon(
                                     Icons.error_outline,
                                     size: 48,
-                                    color: Colors.grey[400],
+                                    color: colorScheme.outline,
                                   ),
                                   const SizedBox(height: 16),
                                   Text(
                                     'Error loading patients: ${snapshot.error}',
                                     style: TextStyle(
                                       fontSize: 16,
-                                      color: Colors.grey[600],
+                                      color: colorScheme.onSurfaceVariant,
                                     ),
                                     textAlign: TextAlign.center,
                                   ),
@@ -187,14 +206,13 @@ class _PatientsScreenState extends State<PatientsScreen> {
                           );
                         }
 
-                        final patients =
-                            (snapshot.data?.docs
-                                      .map((doc) => Patient.fromFirestore(doc))
-                                      .toList() ??
-                                  [])
-                              ..sort(
-                                (a, b) => b.createdAt.compareTo(a.createdAt),
-                              );
+                        final patients = (snapshot.data?.docs
+                                .map((doc) => Patient.fromFirestore(doc))
+                                .toList() ??
+                            [])
+                          ..sort(
+                            (a, b) => b.createdAt.compareTo(a.createdAt),
+                          );
 
                         if (patients.isEmpty) {
                           return Container(
@@ -206,7 +224,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                                   Icon(
                                     Icons.people_outline,
                                     size: 64,
-                                    color: Colors.grey[300],
+                                    color: colorScheme.outline,
                                   ),
                                   const SizedBox(height: 24),
                                   Text(
@@ -214,7 +232,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                                     style: TextStyle(
                                       fontSize: 20,
                                       fontWeight: FontWeight.w600,
-                                      color: Colors.grey[700],
+                                      color: colorScheme.onSurface,
                                     ),
                                   ),
                                   const SizedBox(height: 8),
@@ -222,7 +240,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                                     'Click "Add New Patient" to get started',
                                     style: TextStyle(
                                       fontSize: 14,
-                                      color: Colors.grey[500],
+                                      color: colorScheme.onSurfaceVariant,
                                     ),
                                   ),
                                 ],
@@ -236,11 +254,11 @@ class _PatientsScreenState extends State<PatientsScreen> {
                           physics: const NeverScrollableScrollPhysics(),
                           gridDelegate:
                               const SliverGridDelegateWithFixedCrossAxisCount(
-                                crossAxisCount: 3,
-                                crossAxisSpacing: 24,
-                                mainAxisSpacing: 24,
-                                childAspectRatio: 1.2,
-                              ),
+                            crossAxisCount: 3,
+                            crossAxisSpacing: 24,
+                            mainAxisSpacing: 24,
+                            childAspectRatio: 1.2,
+                          ),
                           itemCount: patients.length,
                           itemBuilder: (context, index) {
                             final patient = patients[index];
@@ -280,14 +298,16 @@ class _PatientsScreenState extends State<PatientsScreen> {
 
     final result = await showDialog<bool>(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.5),
+      barrierColor: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.5),
       builder: (context) => EditPatientDialog(patient: patient),
     );
+
+    if (!mounted) return;
 
     if (result == true && uid != null) {
       // Refresh patient list after successful edit
       final patientProvider = Provider.of<PatientProvider>(
-        context,
+        this.context,
         listen: false,
       );
       await patientProvider.fetchPatients(uid);
@@ -295,9 +315,12 @@ class _PatientsScreenState extends State<PatientsScreen> {
   }
 
   void _showPatientDetails(BuildContext context, Patient patient) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semantic = Theme.of(context).extension<AppSemanticColors>();
+    final success = semantic?.success ?? colorScheme.primary;
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.5),
+      barrierColor: colorScheme.shadow.withValues(alpha: 0.5),
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         elevation: 0,
@@ -305,11 +328,11 @@ class _PatientsScreenState extends State<PatientsScreen> {
         child: Container(
           width: 650,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colorScheme.surface,
             borderRadius: BorderRadius.circular(20),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.15),
+                color: colorScheme.shadow.withValues(alpha: 0.15),
                 blurRadius: 40,
                 spreadRadius: 10,
               ),
@@ -323,7 +346,10 @@ class _PatientsScreenState extends State<PatientsScreen> {
                 padding: const EdgeInsets.all(28),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [const Color(0xFF4A90E2), const Color(0xFF357ABD)],
+                    colors: [
+                      colorScheme.primary,
+                      colorScheme.primary.withValues(alpha: 0.85),
+                    ],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -338,18 +364,18 @@ class _PatientsScreenState extends State<PatientsScreen> {
                       width: 70,
                       height: 70,
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.25),
+                        color: colorScheme.onPrimary.withValues(alpha: 0.25),
                         shape: BoxShape.circle,
                         border: Border.all(
-                          color: Colors.white.withOpacity(0.5),
+                          color: colorScheme.onPrimary.withValues(alpha: 0.5),
                           width: 2,
                         ),
                       ),
                       child: Center(
                         child: Text(
                           patient.initials,
-                          style: const TextStyle(
-                            color: Colors.white,
+                          style: TextStyle(
+                            color: colorScheme.onPrimary,
                             fontSize: 24,
                             fontWeight: FontWeight.bold,
                           ),
@@ -363,8 +389,8 @@ class _PatientsScreenState extends State<PatientsScreen> {
                         children: [
                           Text(
                             patient.name,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: colorScheme.onPrimary,
                               fontSize: 24,
                               fontWeight: FontWeight.bold,
                             ),
@@ -378,16 +404,18 @@ class _PatientsScreenState extends State<PatientsScreen> {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: colorScheme.onPrimary
+                                      .withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
-                                    color: Colors.white.withOpacity(0.3),
+                                    color: colorScheme.onPrimary
+                                        .withValues(alpha: 0.3),
                                   ),
                                 ),
                                 child: Text(
                                   '${patient.age} years',
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: colorScheme.onPrimary,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -400,16 +428,18 @@ class _PatientsScreenState extends State<PatientsScreen> {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
+                                  color: colorScheme.onPrimary
+                                      .withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(20),
                                   border: Border.all(
-                                    color: Colors.white.withOpacity(0.3),
+                                    color: colorScheme.onPrimary
+                                        .withValues(alpha: 0.3),
                                   ),
                                 ),
                                 child: Text(
                                   patient.gender,
-                                  style: const TextStyle(
-                                    color: Colors.white,
+                                  style: TextStyle(
+                                    color: colorScheme.onPrimary,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
                                   ),
@@ -431,7 +461,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       // Personal Information Section
-                      _SectionHeader('Personal Information'),
+                      const _SectionHeader('Personal Information'),
                       const SizedBox(height: 12),
                       _DetailBox(
                         icon: Icons.calendar_today,
@@ -469,23 +499,23 @@ class _PatientsScreenState extends State<PatientsScreen> {
                       // Notes Section
                       if (patient.notes.isNotEmpty) ...[
                         const SizedBox(height: 20),
-                        _SectionHeader('Medical Notes'),
+                        const _SectionHeader('Medical Notes'),
                         const SizedBox(height: 10),
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFF7F9FB),
+                            color: colorScheme.surfaceContainerLowest,
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: const Color(0xFFE9EEF3),
+                              color: colorScheme.outlineVariant,
                               width: 1,
                             ),
                           ),
                           child: Text(
                             patient.notes,
                             style: TextStyle(
-                              color: Colors.grey[800],
+                              color: colorScheme.onSurface,
                               fontSize: 13,
                               height: 1.5,
                             ),
@@ -495,7 +525,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
 
                       // Recent scans preview
                       const SizedBox(height: 20),
-                      _SectionHeader('Recent Scans'),
+                      const _SectionHeader('Recent Scans'),
                       const SizedBox(height: 12),
                       FutureBuilder<List<Scan>>(
                         future: Provider.of<ScanProvider>(
@@ -506,7 +536,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                           if (snap.connectionState == ConnectionState.waiting) {
                             return const SizedBox(
                               height: 80,
-                              child: Center(child: CircularProgressIndicator()),
+                              child: Center(child: AppLoader(size: 36)),
                             );
                           }
                           final scans = snap.data ?? [];
@@ -515,15 +545,16 @@ class _PatientsScreenState extends State<PatientsScreen> {
                               width: double.infinity,
                               padding: const EdgeInsets.all(16),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF7F9FB),
+                                color: colorScheme.surfaceContainerLowest,
                                 borderRadius: BorderRadius.circular(12),
                                 border: Border.all(
-                                  color: const Color(0xFFEDEFF1),
+                                  color: colorScheme.outlineVariant,
                                 ),
                               ),
                               child: Text(
                                 'No scans yet for this patient',
-                                style: TextStyle(color: Colors.grey[700]),
+                                style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant),
                               ),
                             );
                           }
@@ -552,7 +583,8 @@ class _PatientsScreenState extends State<PatientsScreen> {
                                             : Container(
                                                 width: 120,
                                                 height: 64,
-                                                color: Colors.grey.shade100,
+                                                color: colorScheme
+                                                    .surfaceContainerLowest,
                                                 child: const Icon(
                                                   Icons.broken_image,
                                                 ),
@@ -565,7 +597,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                                           s.timeAgo,
                                           style: TextStyle(
                                             fontSize: 12,
-                                            color: Colors.grey[700],
+                                            color: colorScheme.onSurfaceVariant,
                                           ),
                                         ),
                                       ),
@@ -583,7 +615,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
 
                       // Metadata
                       const SizedBox(height: 20),
-                      Divider(color: Colors.grey[200]),
+                      Divider(color: colorScheme.outlineVariant),
                       const SizedBox(height: 12),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -591,7 +623,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                           Text(
                             'Record Created',
                             style: TextStyle(
-                              color: Colors.grey[600],
+                              color: colorScheme.onSurfaceVariant,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -599,7 +631,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                           Text(
                             '${patient.createdAt.day.toString().padLeft(2, '0')}/${patient.createdAt.month.toString().padLeft(2, '0')}/${patient.createdAt.year}',
                             style: TextStyle(
-                              color: Colors.grey[700],
+                              color: colorScheme.onSurface,
                               fontSize: 12,
                             ),
                           ),
@@ -613,13 +645,14 @@ class _PatientsScreenState extends State<PatientsScreen> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
+                  color: colorScheme.surfaceContainerLowest,
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(20),
                     bottomRight: Radius.circular(20),
                   ),
                   border: Border(
-                    top: BorderSide(color: Colors.grey[200]!, width: 1),
+                    top:
+                        BorderSide(color: colorScheme.outlineVariant, width: 1),
                   ),
                 ),
                 child: Row(
@@ -636,7 +669,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                       child: Text(
                         'Close',
                         style: TextStyle(
-                          color: Colors.grey[600],
+                          color: colorScheme.onSurfaceVariant,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -655,8 +688,8 @@ class _PatientsScreenState extends State<PatientsScreen> {
                       icon: const Icon(Icons.add_box, size: 18),
                       label: const Text('New Case'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2EA44F),
-                        foregroundColor: Colors.white,
+                        backgroundColor: success,
+                        foregroundColor: colorScheme.onPrimary,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20,
                           vertical: 12,
@@ -676,8 +709,8 @@ class _PatientsScreenState extends State<PatientsScreen> {
                       icon: const Icon(Icons.edit, size: 18),
                       label: const Text('Edit Patient'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF4A90E2),
-                        foregroundColor: Colors.white,
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 24,
                           vertical: 12,
@@ -706,23 +739,24 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Row(
       children: [
         Container(
           width: 4,
           height: 24,
           decoration: BoxDecoration(
-            color: const Color(0xFF4A90E2),
+            color: colorScheme.primary,
             borderRadius: BorderRadius.circular(2),
           ),
         ),
         const SizedBox(width: 12),
         Text(
           title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF212121),
+            color: colorScheme.onSurface,
             letterSpacing: 0.5,
           ),
         ),
@@ -744,22 +778,26 @@ class _DetailBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7FAFC),
+        color: colorScheme.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE0E6ED), width: 1),
+        border: Border.all(color: colorScheme.outlineVariant, width: 1),
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: const Color(0xFF4A90E2).withOpacity(0.1),
+              color: colorScheme.primary.withValues(alpha: 0.16),
               borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: colorScheme.primary.withValues(alpha: 0.35),
+              ),
             ),
-            child: Icon(icon, size: 18, color: const Color(0xFF4A90E2)),
+            child: Icon(icon, size: 18, color: colorScheme.primary),
           ),
           const SizedBox(width: 16),
           Expanded(
@@ -771,17 +809,17 @@ class _DetailBox extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
-                    color: Colors.grey[600],
+                    color: colorScheme.onSurfaceVariant,
                     letterSpacing: 0.3,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF0F2A5F),
+                    color: colorScheme.onSurface,
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -814,265 +852,270 @@ class _PatientCardState extends State<_PatientCard> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        transform: Matrix4.identity()..translate(0, _isHovered ? -8 : 0, 0),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: _isHovered
-                ? const Color(0xFF4A90E2).withOpacity(0.3)
-                : Colors.grey[200]!,
-            width: _isHovered ? 2 : 1,
-          ),
-          boxShadow: _isHovered
-              ? [
-                  BoxShadow(
-                    color: const Color(0xFF4A90E2).withOpacity(0.15),
-                    blurRadius: 24,
-                    spreadRadius: 2,
-                    offset: const Offset(0, 12),
-                  ),
-                ]
-              : [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.08),
-                    blurRadius: 16,
-                    spreadRadius: 0,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-        ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            onTap: widget.onTap,
+      child: RepaintBoundary(
+        child: AnimatedContainer(
+          duration: AppDurations.fast,
+          curve: AppCurves.smooth,
+          transform: Matrix4.identity()..translate(0, _isHovered ? -8 : 0, 0),
+          decoration: BoxDecoration(
+            color: colorScheme.surface,
             borderRadius: BorderRadius.circular(16),
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Patient avatar and name
-                  Row(
-                    children: [
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              const Color(0xFF4A90E2),
-                              const Color(0xFF357ABD),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(12),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFF4A90E2).withOpacity(0.3),
-                              blurRadius: 12,
-                              spreadRadius: 0,
-                            ),
-                          ],
-                        ),
-                        child: Center(
-                          child: Text(
-                            widget.patient.initials,
-                            style: const TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              widget.patient.name,
-                              style: const TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFF212121),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF5F7FA),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: const Color(0xFFE0E6ED),
-                                      width: 0.5,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    '${widget.patient.age}y',
-                                    style: const TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: Color(0xFF4A90E2),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 8,
-                                    vertical: 4,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF5F7FA),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: const Color(0xFFE0E6ED),
-                                      width: 0.5,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Icon(
-                                        widget.patient.gender == 'Female'
-                                            ? Icons.female
-                                            : Icons.male,
-                                        size: 12,
-                                        color: const Color(0xFF4A90E2),
-                                      ),
-                                      const SizedBox(width: 3),
-                                      Text(
-                                        widget.patient.gender,
-                                        style: const TextStyle(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF4A90E2),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
+            border: Border.all(
+              color: _isHovered
+                  ? colorScheme.primary.withValues(alpha: 0.3)
+                  : colorScheme.outlineVariant,
+              width: _isHovered ? 2 : 1,
+            ),
+            boxShadow: _isHovered
+                ? [
+                    BoxShadow(
+                      color: colorScheme.primary.withValues(alpha: 0.15),
+                      blurRadius: 24,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 12),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: colorScheme.shadow.withValues(alpha: 0.08),
+                      blurRadius: 16,
+                      spreadRadius: 0,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: widget.onTap,
+              borderRadius: BorderRadius.circular(16),
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Patient avatar and name
+                    Row(
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                colorScheme.primary,
+                                colorScheme.primary.withValues(alpha: 0.85),
                               ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color:
+                                    colorScheme.primary.withValues(alpha: 0.3),
+                                blurRadius: 12,
+                                spreadRadius: 0,
+                              ),
+                            ],
+                          ),
+                          child: Center(
+                            child: Text(
+                              widget.patient.initials,
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onPrimary,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                widget.patient.name,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: colorScheme.onSurface,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 6),
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.surfaceContainerLowest,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: colorScheme.outlineVariant,
+                                        width: 0.5,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      '${widget.patient.age}y',
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: colorScheme.primary,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.surfaceContainerLowest,
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: colorScheme.outlineVariant,
+                                        width: 0.5,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          widget.patient.gender == 'Female'
+                                              ? Icons.female
+                                              : Icons.male,
+                                          size: 12,
+                                          color: colorScheme.primary,
+                                        ),
+                                        const SizedBox(width: 3),
+                                        Text(
+                                          widget.patient.gender,
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: colorScheme.primary,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Spacer(),
+
+                    // Contact info
+                    if (widget.patient.contactPhone.isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerLowest,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.phone,
+                              size: 14,
+                              color: colorScheme.primary,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                widget.patient.contactPhone,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ),
                           ],
                         ),
                       ),
                     ],
-                  ),
-                  const Spacer(),
 
-                  // Contact info
-                  if (widget.patient.contactPhone.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF5F7FA),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.phone,
-                            size: 14,
-                            color: const Color(0xFF4A90E2),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              widget.patient.contactPhone,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.grey[700],
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                    if (widget.patient.contactEmail.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: colorScheme.surfaceContainerLowest,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.email,
+                              size: 14,
+                              color: colorScheme.primary,
                             ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                widget.patient.contactEmail,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    // View details indicator
+                    if (_isHovered) ...[
+                      const SizedBox(height: 16),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          Text(
+                            'View Details',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: colorScheme.primary,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Icon(
+                            Icons.arrow_forward,
+                            size: 14,
+                            color: colorScheme.primary,
                           ),
                         ],
                       ),
-                    ),
+                    ],
                   ],
-
-                  if (widget.patient.contactEmail.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF5F7FA),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(
-                            Icons.email,
-                            size: 14,
-                            color: const Color(0xFF4A90E2),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: Text(
-                              widget.patient.contactEmail,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.grey[700],
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-
-                  // View details indicator
-                  if (_isHovered) ...[
-                    const SizedBox(height: 16),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Text(
-                          'View Details',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF4A90E2),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Icon(
-                          Icons.arrow_forward,
-                          size: 14,
-                          color: const Color(0xFF4A90E2),
-                        ),
-                      ],
-                    ),
-                  ],
-                ],
+                ),
               ),
             ),
           ),

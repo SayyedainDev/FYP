@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/theme/app_semantic_colors.dart';
 import '../models/treatment_plan.dart';
 import '../providers/treatment_plan_provider.dart';
+import '../widgets/loaders/app_loader.dart';
 
 class TreatmentPlanScreen extends StatefulWidget {
-  const TreatmentPlanScreen({Key? key}) : super(key: key);
+  const TreatmentPlanScreen({super.key});
 
   @override
   State<TreatmentPlanScreen> createState() => _TreatmentPlanScreenState();
@@ -13,8 +15,9 @@ class TreatmentPlanScreen extends StatefulWidget {
 class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: colorScheme.surface,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
@@ -29,16 +32,19 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
                   children: [
                     Text(
                       'Treatment Plans',
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF212121),
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurface,
+                              ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Manage patient treatment plans and progress',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -47,8 +53,8 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
                   icon: const Icon(Icons.add),
                   label: const Text('New Plan'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A90E2),
-                    foregroundColor: Colors.white,
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 14,
@@ -70,7 +76,7 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(64.0),
-                      child: CircularProgressIndicator(),
+                      child: AppLoader(message: 'Loading treatment plans...'),
                     ),
                   );
                 }
@@ -81,11 +87,11 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
                   return Container(
                     padding: const EdgeInsets.all(64),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: colorScheme.shadow.withValues(alpha: 0.08),
                           blurRadius: 10,
                           offset: const Offset(0, 2),
                         ),
@@ -97,7 +103,7 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
                           Icon(
                             Icons.medical_information_outlined,
                             size: 64,
-                            color: Colors.grey[300],
+                            color: colorScheme.outlineVariant,
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -105,13 +111,14 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: Colors.grey[700],
+                              color: colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Create a new treatment plan to get started',
-                            style: TextStyle(color: Colors.grey[500]),
+                            style:
+                                TextStyle(color: colorScheme.onSurfaceVariant),
                           ),
                         ],
                       ),
@@ -137,23 +144,26 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
 
   Widget _buildTreatmentPlanCard(TreatmentPlan plan) {
     final priorityColor = _getPriorityColor(plan.priority);
+    final colorScheme = Theme.of(context).colorScheme;
+    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: colorScheme.outlineVariant),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: colorScheme.shadow.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Theme(
-        data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+        data: Theme.of(context)
+            .copyWith(dividerColor: colorScheme.surface.withValues(alpha: 0)),
         child: ExpansionTile(
           tilePadding: const EdgeInsets.all(20),
           childrenPadding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
@@ -163,8 +173,8 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  priorityColor.withOpacity(0.2),
-                  priorityColor.withOpacity(0.1),
+                  priorityColor.withValues(alpha: 0.2),
+                  priorityColor.withValues(alpha: 0.1),
                 ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -184,10 +194,10 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
           ),
           title: Text(
             plan.title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF212121),
+              color: colorScheme.onSurface,
             ),
           ),
           subtitle: Padding(
@@ -196,11 +206,18 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
               children: [
                 _buildStatusBadge(plan.status, priorityColor),
                 const SizedBox(width: 12),
-                Icon(Icons.calendar_today, size: 14, color: Colors.grey[500]),
+                Icon(
+                  Icons.calendar_today,
+                  size: 14,
+                  color: colorScheme.onSurfaceVariant,
+                ),
                 const SizedBox(width: 4),
                 Text(
                   plan.startDate.toString().split(' ')[0],
-                  style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
@@ -214,7 +231,7 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
               'Estimated Cost',
               '\$${plan.estimatedCost.toStringAsFixed(2)}',
               Icons.attach_money,
-              Colors.green,
+              semanticColors?.success ?? colorScheme.secondary,
             ),
             const SizedBox(height: 20),
 
@@ -225,12 +242,12 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Overall Progress',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: 14,
-                        color: Color(0xFF212121),
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     Text(
@@ -249,7 +266,7 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
                   child: LinearProgressIndicator(
                     value: plan.progressPercentage / 100,
                     minHeight: 10,
-                    backgroundColor: Colors.grey[200],
+                    backgroundColor: colorScheme.outlineVariant,
                     valueColor: AlwaysStoppedAnimation<Color>(priorityColor),
                   ),
                 ),
@@ -260,12 +277,12 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
 
             // Phases
             if (plan.phases.isNotEmpty) ...[
-              const Text(
+              Text(
                 'Treatment Phases',
                 style: TextStyle(
                   fontWeight: FontWeight.w600,
                   fontSize: 14,
-                  color: Color(0xFF212121),
+                  color: colorScheme.onSurface,
                 ),
               ),
               const SizedBox(height: 12),
@@ -280,13 +297,15 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: phase.isCompleted
-                          ? Colors.green.shade50
-                          : Colors.grey.shade50,
+                          ? (semanticColors?.success ?? colorScheme.secondary)
+                              .withValues(alpha: 0.12)
+                          : colorScheme.surfaceContainerLowest,
                       borderRadius: BorderRadius.circular(10),
                       border: Border.all(
                         color: phase.isCompleted
-                            ? Colors.green.shade200
-                            : Colors.grey.shade200,
+                            ? (semanticColors?.success ?? colorScheme.secondary)
+                                .withValues(alpha: 0.35)
+                            : colorScheme.outlineVariant,
                       ),
                     ),
                     child: Row(
@@ -295,7 +314,10 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
                           phase.isCompleted
                               ? Icons.check_circle
                               : Icons.radio_button_unchecked,
-                          color: phase.isCompleted ? Colors.green : Colors.grey,
+                          color: phase.isCompleted
+                              ? (semanticColors?.success ??
+                                  colorScheme.secondary)
+                              : colorScheme.onSurfaceVariant,
                           size: 22,
                         ),
                         const SizedBox(width: 12),
@@ -309,8 +331,10 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
                                   color: phase.isCompleted
-                                      ? Colors.green.shade900
-                                      : const Color(0xFF212121),
+                                      ? (semanticColors?.success ??
+                                              colorScheme.secondary)
+                                          .withValues(alpha: 0.9)
+                                      : colorScheme.onSurface,
                                 ),
                               ),
                               if (phase.description.isNotEmpty) ...[
@@ -319,7 +343,7 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
                                   phase.description,
                                   style: TextStyle(
                                     fontSize: 12,
-                                    color: Colors.grey[600],
+                                    color: colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                               ],
@@ -343,7 +367,7 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
                 label: const Text('Update Progress'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: priorityColor,
-                  foregroundColor: Colors.white,
+                  foregroundColor: colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -362,7 +386,7 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(
@@ -377,6 +401,7 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
   }
 
   Widget _buildInfoRow(String label, String value, IconData icon, Color color) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Row(
       children: [
         Icon(icon, size: 18, color: color),
@@ -386,27 +411,29 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
           style: TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 13,
-            color: Colors.grey[700],
+            color: colorScheme.onSurfaceVariant,
           ),
         ),
         Text(
           value,
-          style: const TextStyle(fontSize: 13, color: Color(0xFF212121)),
+          style: TextStyle(fontSize: 13, color: colorScheme.onSurface),
         ),
       ],
     );
   }
 
   Color _getPriorityColor(String priority) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
     switch (priority) {
       case 'urgent':
-        return Colors.red;
+        return semanticColors?.danger ?? colorScheme.error;
       case 'high':
-        return Colors.orange;
+        return semanticColors?.warning ?? colorScheme.tertiary;
       case 'medium':
-        return Colors.blue;
+        return semanticColors?.info ?? colorScheme.primary;
       default:
-        return Colors.green;
+        return semanticColors?.success ?? colorScheme.secondary;
     }
   }
 
@@ -466,9 +493,9 @@ class _TreatmentPlanScreenState extends State<TreatmentPlanScreen> {
           ElevatedButton(
             onPressed: () {
               context.read<TreatmentPlanProvider>().updateProgress(
-                plan.id,
-                plan.progressPercentage + 10,
-              );
+                    plan.id,
+                    plan.progressPercentage + 10,
+                  );
               Navigator.pop(context);
             },
             child: const Text('Update'),

@@ -1,5 +1,6 @@
 // ignore_for_file: unused_field, unused_element
 
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -13,9 +14,11 @@ import '../models/quiz.dart';
 import '../models/lecture_note.dart';
 import '../service/quiz_pdf_service.dart';
 import '../service/file_parser_service.dart';
+import '../core/theme/app_semantic_colors.dart';
+import '../widgets/loaders/app_loader.dart';
 
 class AIQuizScreen extends StatefulWidget {
-  const AIQuizScreen({Key? key}) : super(key: key);
+  const AIQuizScreen({super.key});
 
   @override
   State<AIQuizScreen> createState() => _AIQuizScreenState();
@@ -23,15 +26,18 @@ class AIQuizScreen extends StatefulWidget {
 
 class _AIQuizScreenState extends State<AIQuizScreen> {
   int _currentStep = 0;
+  List<Question> _generatedQuestions = [];
+  String _generationStatusText = 'Analyzing your PDF content...';
+  Timer? _statusTimer;
 
   // Quiz configuration
   DifficultyLevel _selectedDifficulty = DifficultyLevel.medium;
   int _totalQuestions = 10;
   final Set<QuestionType> _selectedQuestionTypes = {QuestionType.mcq};
-  int _numberOfSections = 1;
-  String _marksDistribution = 'equal';
+  final int _numberOfSections = 1;
+  final String _marksDistribution = 'equal';
   CognitiveLevel _cognitiveLevel = CognitiveLevel.mixed;
-  String _contentCoverage = 'entire';
+  final String _contentCoverage = 'entire';
   int? _timeLimitMinutes = 30;
   bool _includeAnswerKey = true;
   String _explanationLevel = 'brief';
@@ -54,6 +60,10 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
     text: '30',
   );
 
+  ColorScheme get _cs => Theme.of(context).colorScheme;
+  AppSemanticColors? get _sem =>
+      Theme.of(context).extension<AppSemanticColors>();
+
   @override
   void dispose() {
     _titleController.dispose();
@@ -61,6 +71,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
     _questionsController.dispose();
     _sectionsController.dispose();
     _timeLimitController.dispose();
+    _statusTimer?.cancel();
     super.dispose();
   }
 
@@ -70,7 +81,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
     final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
+      backgroundColor: _cs.surface,
       body: Column(
         children: [
           const SizedBox(height: 8),
@@ -104,15 +115,17 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
             height: 48,
             decoration: BoxDecoration(
               color: isActive
-                  ? const Color(0xFF4A90E2)
-                  : (isCompleted ? Colors.grey[400] : Colors.grey[200]),
+                  ? _cs.primary
+                  : (isCompleted ? _cs.outline : _cs.surfaceContainerHighest),
               shape: BoxShape.circle,
             ),
             child: Icon(
               isCompleted
                   ? Icons.check
                   : (isActive ? icon : Icons.circle_outlined),
-              color: isActive || isCompleted ? Colors.white : Colors.grey[600],
+              color: isActive || isCompleted
+                  ? _cs.onPrimary
+                  : _cs.onSurfaceVariant,
               size: 20,
             ),
           ),
@@ -122,7 +135,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
             style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: isActive ? const Color(0xFF4A90E2) : Colors.grey[600],
+              color: isActive ? _cs.primary : _cs.onSurfaceVariant,
             ),
             textAlign: TextAlign.center,
           ),
@@ -137,7 +150,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
       child: Container(
         height: 2,
         margin: const EdgeInsets.only(bottom: 40),
-        color: isCompleted ? const Color(0xFF4A90E2) : Colors.grey[300],
+        color: isCompleted ? _cs.primary : _cs.outlineVariant,
       ),
     );
   }
@@ -152,7 +165,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
       case 1:
         return _buildConfigurationStep();
       case 2:
-        return _buildGenerateStep(quizProvider, authProvider);
+        return _buildGenerationStep(quizProvider, authProvider);
+      case 3:
+        return _buildReviewStep(quizProvider, authProvider);
       default:
         return const SizedBox();
     }
@@ -167,9 +182,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _cs.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!, width: 1),
+        border: Border.all(color: _cs.outlineVariant, width: 1),
       ),
       child: SingleChildScrollView(
         child: Column(
@@ -178,24 +193,24 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
             Text(
               'Select Your Lecture Notes',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF212121),
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: _cs.onSurface,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(
               'Choose existing notes or upload new ones to generate a quiz',
-              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+              style: TextStyle(color: _cs.onSurfaceVariant, fontSize: 13),
             ),
             const SizedBox(height: 24),
 
             // === SELECT EXISTING LECTURE NOTES ===
             Text(
               'Available Lecture Notes',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF212121),
+                color: _cs.onSurface,
               ),
             ),
             const SizedBox(height: 12),
@@ -205,7 +220,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
               ),
               builder: (context, snapshot) {
                 if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
+                  return const Center(child: AppLoader(size: 48));
                 }
 
                 final notes = snapshot.data ?? [];
@@ -214,14 +229,17 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                   return Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      color: Colors.grey[50],
+                      color: _cs.surfaceContainerLowest,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey[200]!, width: 1),
+                      border: Border.all(color: _cs.outlineVariant, width: 1),
                     ),
                     child: Center(
                       child: Text(
                         'No lecture notes yet. Upload notes to get started.',
-                        style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                        style: TextStyle(
+                          color: _cs.onSurfaceVariant,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
                   );
@@ -229,7 +247,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
 
                 return Container(
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey[200]!, width: 1),
+                    border: Border.all(color: _cs.outlineVariant, width: 1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Wrap(
@@ -256,15 +274,15 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                             ),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? const Color(0xFF4A90E2).withOpacity(0.1)
+                                  ? _cs.primary.withValues(alpha: 0.1)
                                   : Colors.transparent,
                               border: Border(
                                 right: BorderSide(
-                                  color: Colors.grey[200]!,
+                                  color: _cs.outlineVariant,
                                   width: 1,
                                 ),
                                 bottom: BorderSide(
-                                  color: Colors.grey[200]!,
+                                  color: _cs.outlineVariant,
                                   width: 1,
                                 ),
                               ),
@@ -279,18 +297,18 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                                     shape: BoxShape.circle,
                                     border: Border.all(
                                       color: isSelected
-                                          ? const Color(0xFF4A90E2)
-                                          : Colors.grey[400]!,
+                                          ? _cs.primary
+                                          : _cs.outline,
                                       width: 2,
                                     ),
                                     color: isSelected
-                                        ? const Color(0xFF4A90E2)
+                                        ? _cs.primary
                                         : Colors.transparent,
                                   ),
                                   child: isSelected
-                                      ? const Icon(
+                                      ? Icon(
                                           Icons.check,
-                                          color: Colors.white,
+                                          color: _cs.onPrimary,
                                           size: 12,
                                         )
                                       : null,
@@ -304,8 +322,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                                         ? FontWeight.w600
                                         : FontWeight.w500,
                                     color: isSelected
-                                        ? const Color(0xFF4A90E2)
-                                        : const Color(0xFF212121),
+                                        ? _cs.primary
+                                        : _cs.onSurface,
                                   ),
                                 ),
                               ],
@@ -324,10 +342,10 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
             // === UPLOAD NEW NOTES ===
             Text(
               'Upload New Notes',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF212121),
+                color: _cs.onSurface,
               ),
             ),
             const SizedBox(height: 12),
@@ -340,12 +358,12 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: quizProvider.uploadedFileName != null
-                        ? const Color(0xFF4A90E2)
-                        : Colors.grey[300]!,
+                        ? _cs.primary
+                        : _cs.outlineVariant,
                     width: 2,
                   ),
                   borderRadius: BorderRadius.circular(8),
-                  color: Colors.grey[50],
+                  color: _cs.surfaceContainerLowest,
                 ),
                 child: Column(
                   children: [
@@ -353,8 +371,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                       Icons.upload_file,
                       size: 48,
                       color: quizProvider.uploadedFileName != null
-                          ? const Color(0xFF4A90E2)
-                          : Colors.grey[400],
+                          ? _cs.primary
+                          : _cs.outline,
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -363,30 +381,36 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: quizProvider.uploadedFileName != null
-                            ? const Color(0xFF4A90E2)
-                            : const Color(0xFF212121),
+                            ? _cs.primary
+                            : _cs.onSurface,
                       ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'PDF, DOCX, PPTX, Images (Max 25MB)',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _cs.onSurfaceVariant,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     if (quizProvider.isLoading) ...[
                       const SizedBox(height: 16),
                       LinearProgressIndicator(
                         value: quizProvider.uploadProgress,
-                        backgroundColor: Colors.grey[300],
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          Color(0xFF4A90E2),
+                        backgroundColor: _cs.outlineVariant,
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          _cs.primary,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Uploading... ${(quizProvider.uploadProgress * 100).toInt()}%',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _cs.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ],
@@ -399,10 +423,10 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
             // === QUIZ DETAILS ===
             Text(
               'Quiz Information',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF212121),
+                color: _cs.onSurface,
               ),
             ),
             const SizedBox(height: 12),
@@ -415,7 +439,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 filled: true,
-                fillColor: Colors.grey[50],
+                fillColor: _cs.surfaceContainerLowest,
               ),
             ),
             const SizedBox(height: 12),
@@ -429,7 +453,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
                 filled: true,
-                fillColor: Colors.grey[50],
+                fillColor: _cs.surfaceContainerLowest,
               ),
             ),
 
@@ -440,8 +464,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
               children: [
                 ElevatedButton.icon(
                   onPressed: () {
-                    final hasUpload =
-                        quizProvider.uploadedFile != null ||
+                    final hasUpload = quizProvider.uploadedFile != null ||
                         quizProvider.uploadedBytes != null;
                     final hasLectureNotes =
                         _selectedLectureNoteIds.isNotEmpty || hasUpload;
@@ -460,8 +483,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                   icon: const Icon(Icons.arrow_forward),
                   label: const Text('Next'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A90E2),
-                    foregroundColor: Colors.white,
+                    backgroundColor: _cs.primary,
+                    foregroundColor: _cs.onPrimary,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 24,
                       vertical: 14,
@@ -484,9 +507,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _cs.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!, width: 1),
+        border: Border.all(color: _cs.outlineVariant, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -494,14 +517,14 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
           Text(
             'Configure Your Quiz',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF212121),
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: _cs.onSurface,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
             'Customize the quiz settings to match your needs',
-            style: TextStyle(color: Colors.grey[600], fontSize: 13),
+            style: TextStyle(color: _cs.onSurfaceVariant, fontSize: 13),
           ),
           const SizedBox(height: 32),
 
@@ -557,7 +580,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                       }
                     });
                   },
-                  activeColor: const Color(0xFF4A90E2),
+                  activeColor: _cs.primary,
                   dense: true,
                 );
               }).toList(),
@@ -612,7 +635,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                   value: _includeAnswerKey,
                   onChanged: (value) =>
                       setState(() => _includeAnswerKey = value),
-                  activeColor: const Color(0xFF4A90E2),
+                  activeColor: _cs.primary,
                   dense: true,
                 ),
                 DropdownButtonFormField<String>(
@@ -655,7 +678,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                     value: mode,
                     child: Text(_getQuizModeLabel(mode)),
                   );
-                }).toList(),
+                }),
               ],
               onChanged: (value) => setState(() => _specialMode = value),
             ),
@@ -670,15 +693,17 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                 onPressed: () => setState(() => _currentStep = 0),
                 icon: const Icon(Icons.arrow_back),
                 label: const Text('Back'),
-                style: TextButton.styleFrom(foregroundColor: Colors.grey[700]),
+                style: TextButton.styleFrom(
+                  foregroundColor: _cs.onSurfaceVariant,
+                ),
               ),
               ElevatedButton.icon(
                 onPressed: () => setState(() => _currentStep = 2),
                 icon: const Icon(Icons.check),
                 label: const Text('Next'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A90E2),
-                  foregroundColor: Colors.white,
+                  backgroundColor: _cs.primary,
+                  foregroundColor: _cs.onPrimary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 24,
                     vertical: 14,
@@ -696,88 +721,656 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
     );
   }
 
-  Widget _buildGenerateStep(
+  // ─── Step 2: AI Generation (animated progress) ─────────────────────
+
+  Widget _buildGenerationStep(
+    QuizProvider quizProvider,
+    AuthProvider authProvider,
+  ) {
+    final isGenerating = quizProvider.isGeneratingWithAI;
+    final hasError = quizProvider.groqError != null;
+
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: _cs.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _cs.outlineVariant, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'AI Generation',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: _cs.onSurface,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'AI is generating your quiz questions',
+            style: TextStyle(color: _cs.onSurfaceVariant, fontSize: 13),
+          ),
+          const SizedBox(height: 32),
+
+          // Summary card
+          _buildSummaryCard(quizProvider),
+
+          const SizedBox(height: 32),
+
+          // Generation state
+          if (isGenerating) ...[
+            // Animated generation progress
+            Container(
+              padding: const EdgeInsets.all(32),
+              decoration: BoxDecoration(
+                color: _cs.primary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _cs.primary.withValues(alpha: 0.2),
+                ),
+              ),
+              child: Column(
+                children: [
+                  const AppLoader(size: 52),
+                  const SizedBox(height: 20),
+                  Text(
+                    'AI is generating your questions...',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: _cs.onSurface,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 500),
+                    child: Text(
+                      _generationStatusText,
+                      key: ValueKey(_generationStatusText),
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: _cs.onSurfaceVariant,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else if (hasError) ...[
+            // Error state
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: (_sem?.danger ?? _cs.error).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: (_sem?.danger ?? _cs.error).withValues(alpha: 0.3),
+                ),
+              ),
+              child: Column(
+                children: [
+                  Icon(
+                    Icons.error_outline,
+                    size: 48,
+                    color: _sem?.danger ?? _cs.error,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'Generation Failed',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: _sem?.danger ?? _cs.error,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    quizProvider.groqError!,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: _sem?.danger ?? _cs.error,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () {
+                      quizProvider.clearGroqError();
+                      _generateQuiz(quizProvider, authProvider);
+                    },
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text('Retry Generation'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _cs.primary,
+                      foregroundColor: _cs.onPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            // Ready to generate
+            Center(
+              child: ElevatedButton.icon(
+                onPressed: () => _generateQuiz(quizProvider, authProvider),
+                icon: const Icon(Icons.auto_awesome, size: 20),
+                label: const Text('Generate Questions with AI'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _cs.primary,
+                  foregroundColor: _cs.onPrimary,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 24),
+
+          if (!isGenerating)
+            TextButton.icon(
+              onPressed: () => setState(() => _currentStep = 1),
+              icon: const Icon(Icons.arrow_back),
+              label: const Text('Back to Settings'),
+              style: TextButton.styleFrom(
+                foregroundColor: _cs.onSurfaceVariant,
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  void _startStatusTextCycling() {
+    _statusTimer?.cancel();
+    final statuses = [
+      'Analyzing your PDF content...',
+      'Identifying key concepts...',
+      'Generating MCQ questions...',
+      'Creating answer explanations...',
+      'Validating answers...',
+    ];
+    int idx = 0;
+    _statusTimer = Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      idx = (idx + 1) % statuses.length;
+      setState(() => _generationStatusText = statuses[idx]);
+    });
+  }
+
+  // ─── Step 3: Review & Edit ─────────────────────────────────────────
+
+  Widget _buildReviewStep(
     QuizProvider quizProvider,
     AuthProvider authProvider,
   ) {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _cs.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!, width: 1),
+        border: Border.all(color: _cs.outlineVariant, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Review & Generate',
-            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF212121),
+          Row(
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Review & Edit Questions',
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: _cs.onSurface,
+                              ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '${_generatedQuestions.length} questions generated',
+                      style: TextStyle(
+                        color: _cs.onSurfaceVariant,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              // Add question button
+              OutlinedButton.icon(
+                onPressed: _addManualQuestion,
+                icon: const Icon(Icons.add, size: 18),
+                label: const Text('Add Question'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: _cs.primary,
+                  side: BorderSide(color: _cs.primary),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Editable question cards
+          ..._generatedQuestions.asMap().entries.map((entry) {
+            final idx = entry.key;
+            final question = entry.value;
+            return _buildEditableQuestionCard(idx, question);
+          }),
+
+          const SizedBox(height: 24),
+
+          // Validation warning
+          if (_generatedQuestions.length < 3)
+            Container(
+              padding: const EdgeInsets.all(12),
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(
+                color: (_sem?.warning ?? _cs.tertiary).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(
+                  color:
+                      (_sem?.warning ?? _cs.tertiary).withValues(alpha: 0.35),
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.warning_amber,
+                    color: _sem?.warning ?? _cs.tertiary,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Minimum 3 questions required to publish.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: _sem?.warning ?? _cs.tertiary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Review your settings and generate the quiz',
-            style: TextStyle(color: Colors.grey[600], fontSize: 13),
-          ),
-          const SizedBox(height: 32),
 
-          // Configuration Summary
-          _buildSummaryCard(quizProvider),
-
-          const SizedBox(height: 32),
-
-          // Generated Quiz Output
-          if (quizProvider.currentQuiz != null)
-            _buildGeneratedQuizOutput(quizProvider.currentQuiz!),
-          if (quizProvider.currentQuiz != null) const SizedBox(height: 32),
-
+          // Action buttons
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               TextButton.icon(
-                onPressed: () => setState(() => _currentStep = 1),
+                onPressed: () => setState(() => _currentStep = 2),
                 icon: const Icon(Icons.arrow_back),
-                label: const Text('Back'),
-                style: TextButton.styleFrom(foregroundColor: Colors.grey[700]),
+                label: const Text('Regenerate'),
+                style: TextButton.styleFrom(
+                  foregroundColor: _cs.onSurfaceVariant,
+                ),
               ),
-              ElevatedButton.icon(
-                onPressed: quizProvider.isLoading
-                    ? null
-                    : () => _generateQuiz(quizProvider, authProvider),
-                icon: quizProvider.isLoading
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.check),
-                label: Text(
-                  quizProvider.isLoading ? 'Generating...' : 'Generate',
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A90E2),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 14,
+              Row(
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: _generatedQuestions.isEmpty
+                        ? null
+                        : () => _saveQuiz(quizProvider, authProvider,
+                            asDraft: true),
+                    icon: const Icon(Icons.save_outlined, size: 18),
+                    label: const Text('Save as Draft'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: _cs.primary,
+                      side: BorderSide(color: _cs.primary),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
+                      ),
+                    ),
                   ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                  const SizedBox(width: 12),
+                  ElevatedButton.icon(
+                    onPressed: _generatedQuestions.length < 3
+                        ? null
+                        : () => _saveQuiz(quizProvider, authProvider,
+                            asDraft: false),
+                    icon: const Icon(Icons.publish, size: 18),
+                    label: const Text('Publish Now'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _sem?.success ?? _cs.secondary,
+                      foregroundColor: _cs.onSecondary,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 14,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      elevation: 0,
+                    ),
                   ),
-                  elevation: 0,
-                ),
+                ],
               ),
             ],
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildEditableQuestionCard(int index, Question question) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: _cs.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _cs.outlineVariant),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: _cs.primary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  'Q${index + 1}',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13,
+                    color: _cs.primary,
+                  ),
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                onPressed: () => _deleteQuestion(index),
+                icon: Icon(
+                  Icons.delete_outline,
+                  color: _sem?.danger ?? _cs.error,
+                  size: 20,
+                ),
+                tooltip: 'Delete question',
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Question text
+          TextFormField(
+            initialValue: question.questionText,
+            maxLines: 3,
+            decoration: InputDecoration(
+              labelText: 'Question',
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              filled: true,
+              fillColor: _cs.surface,
+            ),
+            onChanged: (val) {
+              _generatedQuestions[index] = question.copyWith(questionText: val);
+            },
+          ),
+          const SizedBox(height: 16),
+
+          // Options
+          if (question.options != null)
+            ...question.options!.asMap().entries.map((entry) {
+              final optIdx = entry.key;
+              final option = entry.value;
+              final letter = String.fromCharCode(65 + optIdx);
+              final isCorrect = question.correctIndex == optIdx;
+
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Row(
+                  children: [
+                    // Radio button for correct answer
+                    Radio<int>(
+                      value: optIdx,
+                      groupValue: question.correctIndex,
+                      onChanged: (val) {
+                        setState(() {
+                          _generatedQuestions[index] = question.copyWith(
+                            correctIndex: val!,
+                          );
+                        });
+                      },
+                      activeColor: _sem?.success ?? _cs.secondary,
+                    ),
+                    // Letter badge
+                    Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: isCorrect
+                            ? (_sem?.success ?? _cs.secondary)
+                            : _cs.outlineVariant,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Center(
+                        child: Text(
+                          letter,
+                          style: TextStyle(
+                            color: isCorrect
+                                ? _cs.onSecondary
+                                : _cs.onSurfaceVariant,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // Option text field
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: option,
+                        decoration: InputDecoration(
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          filled: true,
+                          fillColor: isCorrect
+                              ? (_sem?.success ?? _cs.secondary)
+                                  .withValues(alpha: 0.1)
+                              : _cs.surface,
+                        ),
+                        onChanged: (val) {
+                          final newOptions = List<String>.from(
+                            question.options!,
+                          );
+                          newOptions[optIdx] = val;
+                          _generatedQuestions[index] = question.copyWith(
+                            options: newOptions,
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+
+          // Explanation
+          if (question.explanation != null &&
+              question.explanation!.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: _cs.primary.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.lightbulb_outline, size: 16, color: _cs.primary),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      question.explanation!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _cs.onSurfaceVariant,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  void _addManualQuestion() {
+    setState(() {
+      _generatedQuestions.add(Question(
+        id: 'q_manual_${DateTime.now().millisecondsSinceEpoch}',
+        questionText: '',
+        type: QuestionType.mcq,
+        options: ['', '', '', ''],
+        correctIndex: 0,
+        explanation: '',
+        marks: 1,
+        difficulty: _selectedDifficulty,
+      ));
+    });
+  }
+
+  void _deleteQuestion(int index) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Question?'),
+        content: Text('Remove question ${index + 1}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              setState(() => _generatedQuestions.removeAt(index));
+              Navigator.pop(ctx);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: _sem?.danger ?? _cs.error,
+              foregroundColor: _cs.onError,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _saveQuiz(
+    QuizProvider quizProvider,
+    AuthProvider authProvider, {
+    required bool asDraft,
+  }) async {
+    final user = authProvider.user;
+    if (user == null) return;
+
+    // Upload note file
+    String? noteUrl;
+    const uploadTimeout = Duration(seconds: 8);
+    if (quizProvider.uploadedBytes != null &&
+        quizProvider.uploadedFileName != null) {
+      noteUrl = await quizProvider
+          .uploadNoteBytes(
+            user.uid,
+            quizProvider.uploadedBytes!,
+            quizProvider.uploadedFileName!,
+          )
+          .timeout(uploadTimeout, onTimeout: () => null);
+    } else if (quizProvider.uploadedFile != null &&
+        quizProvider.uploadedFileName != null) {
+      noteUrl = await quizProvider
+          .uploadNoteFile(
+            user.uid,
+            quizProvider.uploadedFile!,
+            quizProvider.uploadedFileName!,
+          )
+          .timeout(uploadTimeout, onTimeout: () => null);
+    }
+
+    final config = QuizConfig(
+      difficulty: _selectedDifficulty,
+      totalQuestions: _generatedQuestions.length,
+      questionTypes: _selectedQuestionTypes.toList(),
+      numberOfSections: _numberOfSections,
+      marksDistribution: _marksDistribution,
+      cognitiveLevel: _cognitiveLevel,
+      contentCoverage: _contentCoverage,
+      timeLimitMinutes: _timeLimitMinutes,
+      includeAnswerKey: _includeAnswerKey,
+      explanationLevel: _explanationLevel,
+      specialMode: _specialMode,
+    );
+
+    final success = await quizProvider.createQuiz(
+      dentistUid: user.uid,
+      title: _titleController.text,
+      description: _descriptionController.text,
+      config: config,
+      questions: _generatedQuestions,
+      noteFileUrl: noteUrl,
+      noteFileName: quizProvider.uploadedFileName,
+      status: asDraft ? QuizStatus.draft : QuizStatus.published,
+    );
+
+    if (success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(asDraft
+              ? 'Quiz saved as draft!'
+              : 'Quiz published successfully!'),
+          backgroundColor: _sem?.success ?? _cs.secondary,
+        ),
+      );
+
+      // Navigate to quiz list
+      final navProvider = Provider.of<NavigationProvider>(
+        context,
+        listen: false,
+      );
+      navProvider.setPage('My Quizzes');
+    } else if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            quizProvider.errorMessage ?? 'Failed to save quiz',
+          ),
+          backgroundColor: _sem?.danger ?? _cs.error,
+        ),
+      );
+    }
   }
 
   Widget _buildConfigSection(String title, Widget child) {
@@ -788,10 +1381,10 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
         children: [
           Text(
             title,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF212121),
+              color: _cs.onSurface,
             ),
           ),
           const SizedBox(height: 12),
@@ -805,9 +1398,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: _cs.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[200]!, width: 1),
+        border: Border.all(color: _cs.outlineVariant, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -869,16 +1462,20 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: _cs.surfaceContainerLowest,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[300]!, width: 1),
+        border: Border.all(color: _cs.outlineVariant, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.check_circle, color: Colors.green[700], size: 28),
+              Icon(
+                Icons.check_circle,
+                color: _sem?.success ?? _cs.secondary,
+                size: 28,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Column(
@@ -889,12 +1486,15 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: Colors.green[700],
+                        color: _sem?.success ?? _cs.secondary,
                       ),
                     ),
                     Text(
                       quiz.title,
-                      style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: _cs.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -919,7 +1519,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
             ),
 
           const SizedBox(height: 16),
-          Divider(color: Colors.grey[300]),
+          Divider(color: _cs.outlineVariant),
           const SizedBox(height: 16),
 
           // Questions Preview
@@ -928,15 +1528,14 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF212121),
+              color: _cs.onSurface,
             ),
           ),
           const SizedBox(height: 12),
 
           ...quiz.questions
               .take(3)
-              .map((question) => _buildQuestionPreview(question))
-              .toList(),
+              .map((question) => _buildQuestionPreview(question)),
 
           if (quiz.questions.length > 3)
             Padding(
@@ -945,7 +1544,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                 '+ ${quiz.questions.length - 3} more questions',
                 style: TextStyle(
                   fontStyle: FontStyle.italic,
-                  color: Colors.grey[600],
+                  color: _cs.onSurfaceVariant,
                   fontSize: 12,
                 ),
               ),
@@ -973,8 +1572,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                 icon: const Icon(Icons.add),
                 label: const Text('Create Another'),
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF4A90E2),
-                  side: const BorderSide(color: Color(0xFF4A90E2)),
+                  foregroundColor: _cs.primary,
+                  side: BorderSide(color: _cs.primary),
                 ),
               ),
               ElevatedButton.icon(
@@ -984,8 +1583,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Print failed: $e'),
-                        backgroundColor: Colors.red,
+                        content: const Text('Print failed. Please try again.'),
+                        backgroundColor: _sem?.danger ?? _cs.error,
                       ),
                     );
                   }
@@ -993,8 +1592,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                 icon: const Icon(Icons.print),
                 label: const Text('Print'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A90E2),
-                  foregroundColor: Colors.white,
+                  backgroundColor: _cs.primary,
+                  foregroundColor: _cs.onPrimary,
                 ),
               ),
               ElevatedButton.icon(
@@ -1004,8 +1603,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                   } catch (e) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('Share failed: $e'),
-                        backgroundColor: Colors.red,
+                        content: const Text('Share failed. Please try again.'),
+                        backgroundColor: _sem?.danger ?? _cs.error,
                       ),
                     );
                   }
@@ -1013,8 +1612,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                 icon: const Icon(Icons.share),
                 label: const Text('Share'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A90E2),
-                  foregroundColor: Colors.white,
+                  backgroundColor: _cs.primary,
+                  foregroundColor: _cs.onPrimary,
                 ),
               ),
               ElevatedButton.icon(
@@ -1026,18 +1625,18 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                   navProvider.setPage('My Quizzes');
 
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Opening your quiz list...'),
-                      backgroundColor: Color(0xFF4A90E2),
-                      duration: Duration(seconds: 2),
+                    SnackBar(
+                      content: const Text('Opening your quiz list...'),
+                      backgroundColor: _cs.primary,
+                      duration: const Duration(seconds: 2),
                     ),
                   );
                 },
                 icon: const Icon(Icons.visibility),
                 label: const Text('View Quiz'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
+                  backgroundColor: _sem?.success ?? _cs.secondary,
+                  foregroundColor: _cs.onSecondary,
                 ),
               ),
             ],
@@ -1070,9 +1669,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: _cs.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[200]!),
+        border: Border.all(color: _cs.outlineVariant),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1082,15 +1681,15 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF4A90E2).withOpacity(0.1),
+                  color: _cs.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   question.type.name.toUpperCase(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: Color(0xFF4A90E2),
+                    color: _cs.primary,
                   ),
                 ),
               ),
@@ -1098,7 +1697,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Colors.grey[200],
+                  color: _cs.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
@@ -1106,7 +1705,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                   style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: Colors.grey[700],
+                    color: _cs.onSurfaceVariant,
                   ),
                 ),
               ),
@@ -1125,11 +1724,13 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                     padding: const EdgeInsets.only(left: 16, top: 4),
                     child: Text(
                       '• $option',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: _cs.onSurfaceVariant,
+                      ),
                     ),
                   ),
-                )
-                .toList(),
+                ),
           ],
         ],
       ),
@@ -1141,7 +1742,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
       hintText: hint,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
       filled: true,
-      fillColor: Colors.grey.shade50,
+      fillColor: _cs.surfaceContainerLowest,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
     );
   }
@@ -1222,7 +1823,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('❌ $validationError'),
-                backgroundColor: Colors.red,
+                backgroundColor: _sem?.danger ?? _cs.error,
                 duration: const Duration(seconds: 3),
               ),
             );
@@ -1250,7 +1851,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('✅ $fileType uploaded: $fileName'),
-                backgroundColor: Colors.green,
+                backgroundColor: _sem?.success ?? _cs.secondary,
                 duration: const Duration(seconds: 2),
               ),
             );
@@ -1267,7 +1868,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
                   content: Text('✅ $fileType uploaded: $fileName'),
-                  backgroundColor: Colors.green,
+                  backgroundColor: _sem?.success ?? _cs.secondary,
                   duration: const Duration(seconds: 2),
                 ),
               );
@@ -1283,8 +1884,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            content: const Text('Unable to process selected file. Please try again.'),
+            backgroundColor: _sem?.danger ?? _cs.error,
           ),
         );
       }
@@ -1302,6 +1903,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
       ).showSnackBar(const SnackBar(content: Text('Please login first')));
       return;
     }
+
+    // Start status text cycling
+    _startStatusTextCycling();
 
     // Create quiz configuration
     final config = QuizConfig(
@@ -1321,117 +1925,27 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
     // Generate questions
     List<Question>? questions = await quizProvider.generateQuestionsWithAI(
       config: config,
+      topic: _titleController.text.isNotEmpty
+          ? _titleController.text
+          : 'Dental Quiz',
+      uid: user.uid,
     );
+
+    // Stop status cycling
+    _statusTimer?.cancel();
 
     // Check if generation failed
     if (questions == null || questions.isEmpty) {
-      final errorMsg = quizProvider.errorMessage ?? 'Unknown error';
-      debugPrint('❌ Quiz generation failed: $errorMsg');
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Quiz generation failed: $errorMsg'),
-            backgroundColor: Colors.red,
-            duration: const Duration(seconds: 3),
-          ),
-        );
-      }
+      // Error is shown in the generation step UI via groqError
+      if (mounted) setState(() {});
       return;
     }
 
-    // Upload note file if present, but cap to ~8s to keep UX quick
-    String? noteUrl;
-    const uploadTimeout = Duration(seconds: 8);
-    if (quizProvider.uploadedBytes != null &&
-        quizProvider.uploadedFileName != null) {
-      noteUrl = await quizProvider
-          .uploadNoteBytes(
-            user.uid,
-            quizProvider.uploadedBytes!,
-            quizProvider.uploadedFileName!,
-          )
-          .timeout(uploadTimeout, onTimeout: () => null);
-      if (noteUrl == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Upload skipped (timeout) — quiz saved without file'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-    } else if (quizProvider.uploadedFile != null &&
-        quizProvider.uploadedFileName != null) {
-      noteUrl = await quizProvider
-          .uploadNoteFile(
-            user.uid,
-            quizProvider.uploadedFile!,
-            quizProvider.uploadedFileName!,
-          )
-          .timeout(uploadTimeout, onTimeout: () => null);
-      if (noteUrl == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Upload skipped (timeout) — quiz saved without file'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-    }
-
-    // Save quiz to Firebase
-    final success = await quizProvider.createQuiz(
-      dentistUid: user.uid,
-      title: _titleController.text,
-      description: _descriptionController.text,
-      config: config,
-      questions: questions,
-      noteFileUrl: noteUrl,
-      noteFileName: quizProvider.uploadedFileName,
-    );
-
-    if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Quiz generated successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } else {
-      // Keep quiz locally so user still sees generated content
-      quizProvider.setCurrentQuiz(
-        Quiz(
-          id: 'local-preview',
-          title: _titleController.text,
-          description: _descriptionController.text,
-          dentistUid: user.uid,
-          config: config,
-          questions: questions,
-          noteFileUrl: noteUrl,
-          noteFileName: quizProvider.uploadedFileName,
-          createdAt: DateTime.now(),
-          totalMarks: questions.fold<int>(0, (sum, q) => sum + q.marks),
-          sectionMarks: null,
-        ),
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            quizProvider.errorMessage ??
-                'Saved locally. Firestore write failed (likely rules).',
-          ),
-          backgroundColor: Colors.orange,
-        ),
-      );
-    }
-
-    // Stay on step 2 to show the generated quiz (schedule for after build completes)
+    // Success! Store questions and advance to review step
     if (mounted) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {});
-        }
+      setState(() {
+        _generatedQuestions = List.from(questions);
+        _currentStep = 3; // Advance to Review & Edit
       });
     }
   }

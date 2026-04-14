@@ -1,7 +1,10 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class DataBackupService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  static const Duration _requestTimeout = Duration(seconds: 30);
 
   /// Create full backup of all user data
   Future<Map<String, dynamic>> createFullBackup(String userId) async {
@@ -16,47 +19,48 @@ class DataBackupService {
       final patientsSnapshot = await _firestore
           .collection('patients')
           .where('dentistUid', isEqualTo: userId)
-          .get();
+          .get()
+          .timeout(_requestTimeout);
 
-      backup['data']['patients'] = patientsSnapshot.docs
-          .map((doc) => doc.data())
-          .toList();
+      backup['data']['patients'] =
+          patientsSnapshot.docs.map((doc) => doc.data()).toList();
 
       // Backup cases
       final casesSnapshot = await _firestore
           .collection('cases')
           .where('dentistUid', isEqualTo: userId)
-          .get();
+          .get()
+          .timeout(_requestTimeout);
 
-      backup['data']['cases'] = casesSnapshot.docs
-          .map((doc) => doc.data())
-          .toList();
+      backup['data']['cases'] =
+          casesSnapshot.docs.map((doc) => doc.data()).toList();
 
       // Backup appointments
       final appointmentsSnapshot = await _firestore
           .collection('appointments')
           .where('dentistUid', isEqualTo: userId)
-          .get();
+          .get()
+          .timeout(_requestTimeout);
 
-      backup['data']['appointments'] = appointmentsSnapshot.docs
-          .map((doc) => doc.data())
-          .toList();
+      backup['data']['appointments'] =
+          appointmentsSnapshot.docs.map((doc) => doc.data()).toList();
 
       // Backup treatment plans
       final treatmentPlansSnapshot = await _firestore
           .collection('treatment_plans')
           .where('dentistUid', isEqualTo: userId)
-          .get();
+          .get()
+          .timeout(_requestTimeout);
 
-      backup['data']['treatmentPlans'] = treatmentPlansSnapshot.docs
-          .map((doc) => doc.data())
-          .toList();
+      backup['data']['treatmentPlans'] =
+          treatmentPlansSnapshot.docs.map((doc) => doc.data()).toList();
 
       // Store backup metadata
       await _firestore
           .collection('backups')
           .doc('${userId}_${DateTime.now().millisecondsSinceEpoch}')
-          .set(backup);
+          .set(backup)
+          .timeout(_requestTimeout);
 
       return backup;
     } catch (e) {
@@ -71,7 +75,8 @@ class DataBackupService {
           .collection('backups')
           .where('userId', isEqualTo: userId)
           .orderBy('backupDate', descending: true)
-          .get();
+          .get()
+          .timeout(_requestTimeout);
 
       return snapshot.docs.map((doc) => doc.data()).toList();
     } catch (e) {
@@ -100,28 +105,40 @@ class DataBackupService {
       // Restore patients
       if (data['patients'] != null) {
         for (var patient in data['patients']) {
-          await _firestore.collection('patients').add(patient);
+          await _firestore
+              .collection('patients')
+              .add(patient)
+              .timeout(_requestTimeout);
         }
       }
 
       // Restore cases
       if (data['cases'] != null) {
         for (var case_ in data['cases']) {
-          await _firestore.collection('cases').add(case_);
+          await _firestore
+              .collection('cases')
+              .add(case_)
+              .timeout(_requestTimeout);
         }
       }
 
       // Restore appointments
       if (data['appointments'] != null) {
         for (var appointment in data['appointments']) {
-          await _firestore.collection('appointments').add(appointment);
+          await _firestore
+              .collection('appointments')
+              .add(appointment)
+              .timeout(_requestTimeout);
         }
       }
 
       // Restore treatment plans
       if (data['treatmentPlans'] != null) {
         for (var plan in data['treatmentPlans']) {
-          await _firestore.collection('treatment_plans').add(plan);
+          await _firestore
+              .collection('treatment_plans')
+              .add(plan)
+              .timeout(_requestTimeout);
         }
       }
     } catch (e) {

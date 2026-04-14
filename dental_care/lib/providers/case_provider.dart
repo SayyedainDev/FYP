@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/case.dart';
+import '../utils/provider_error_utils.dart';
 
 class CaseProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -80,16 +81,19 @@ class CaseProvider extends ChangeNotifier {
           .collection('cases')
           .where('dentistUid', isEqualTo: uid)
           .orderBy('caseDate', descending: true)
-          .get();
+          .get()
+          .timeout(ProviderErrorUtils.requestTimeout);
 
-      _cases = querySnapshot.docs
-          .map((doc) => Case.fromFirestore(doc))
-          .toList();
+      _cases =
+          querySnapshot.docs.map((doc) => Case.fromFirestore(doc)).toList();
 
       _loading = false;
       notifyListeners();
     } catch (e) {
-      _error = 'Failed to fetch cases: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to fetch cases. Please try again.',
+      );
       _loading = false;
       notifyListeners();
       debugPrint('Error fetching cases: $e');
@@ -108,20 +112,24 @@ class CaseProvider extends ChangeNotifier {
           .orderBy('caseDate', descending: true)
           .snapshots()
           .listen(
-            (snapshot) {
-              _cases = snapshot.docs
-                  .map((doc) => Case.fromFirestore(doc))
-                  .toList();
-              notifyListeners();
-            },
-            onError: (e) {
-              _error = 'Error listening to cases: $e';
-              notifyListeners();
-              debugPrint('Error listening to cases: $e');
-            },
+        (snapshot) {
+          _cases = snapshot.docs.map((doc) => Case.fromFirestore(doc)).toList();
+          notifyListeners();
+        },
+        onError: (e) {
+          _error = ProviderErrorUtils.mapErrorMessage(
+            e,
+            fallback: 'Unable to sync cases right now.',
           );
+          notifyListeners();
+          debugPrint('Error listening to cases: $e');
+        },
+      );
     } catch (e) {
-      _error = 'Failed to initialize cases listener: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to initialize case updates.',
+      );
       notifyListeners();
       debugPrint('Failed to initialize cases listener: $e');
     }
@@ -139,13 +147,13 @@ class CaseProvider extends ChangeNotifier {
     required String patientName,
     required String toothNumber,
     required List<dynamic>
-    imageFiles, // List of image bytes (Uint8List for web) or File
+        imageFiles, // List of image bytes (Uint8List for web) or File
     String notes = '',
   }) async {
     try {
       final uid = _uid;
       if (uid == null) {
-        _error = 'User not authenticated';
+        _error = 'Your session has expired. Please log in again.';
         notifyListeners();
         return null;
       }
@@ -163,7 +171,7 @@ class CaseProvider extends ChangeNotifier {
       for (int i = 0; i < imageFiles.length; i++) {
         final imageFile = imageFiles[i];
         final fileName = 'case_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
-        final bucket = 'cases';
+        const bucket = 'cases';
         final path = '$patientId/$caseId/$fileName';
 
         Uint8List bytes;
@@ -171,13 +179,17 @@ class CaseProvider extends ChangeNotifier {
           bytes = imageFile;
         } else if (imageFile is String) {
           final file = File(imageFile);
-          if (await file.exists()) {
-            bytes = await file.readAsBytes();
+          if (await file.exists().timeout(ProviderErrorUtils.requestTimeout)) {
+            bytes = await file
+                .readAsBytes()
+                .timeout(ProviderErrorUtils.requestTimeout);
           } else {
             throw Exception('File path does not exist');
           }
         } else if (imageFile is File) {
-          bytes = await imageFile.readAsBytes();
+          bytes = await imageFile
+              .readAsBytes()
+              .timeout(ProviderErrorUtils.requestTimeout);
         } else {
           try {
             bytes = imageFile as Uint8List;
@@ -186,7 +198,10 @@ class CaseProvider extends ChangeNotifier {
           }
         }
 
-        await supabase.storage.from(bucket).uploadBinary(path, bytes);
+        await supabase.storage
+            .from(bucket)
+            .uploadBinary(path, bytes)
+            .timeout(ProviderErrorUtils.requestTimeout);
         final downloadUrl = supabase.storage.from(bucket).getPublicUrl(path);
         imageUrls.add(downloadUrl);
       }
@@ -215,7 +230,11 @@ class CaseProvider extends ChangeNotifier {
       caseData['dentistUid'] = uid;
 
       // Use reserved caseId so document path is deterministic
-      await _firestore.collection('cases').doc(caseId).set(caseData);
+      await _firestore
+          .collection('cases')
+          .doc(caseId)
+          .set(caseData)
+          .timeout(ProviderErrorUtils.requestTimeout);
 
       _loading = false;
       notifyListeners();
@@ -225,7 +244,10 @@ class CaseProvider extends ChangeNotifier {
 
       return caseId;
     } catch (e) {
-      _error = 'Failed to create case: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to create case. Please try again.',
+      );
       _loading = false;
       notifyListeners();
       debugPrint('Error creating case: $e');
@@ -245,7 +267,7 @@ class CaseProvider extends ChangeNotifier {
 
       await _firestore.collection('cases').doc(caseId).update({
         'analysisResults': analysisData,
-      });
+      }).timeout(ProviderErrorUtils.requestTimeout);
 
       _loading = false;
       notifyListeners();
@@ -253,7 +275,10 @@ class CaseProvider extends ChangeNotifier {
       // Refresh the list
       await fetchCases();
     } catch (e) {
-      _error = 'Failed to update case analysis: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to update case analysis. Please try again.',
+      );
       _loading = false;
       notifyListeners();
       debugPrint('Error updating case analysis: $e');
@@ -272,11 +297,17 @@ class CaseProvider extends ChangeNotifier {
           .where('dentistUid', isEqualTo: uid)
           .where('patientId', isEqualTo: patientId)
           .orderBy('caseDate', descending: true)
-          .get();
+          .get()
+          .timeout(ProviderErrorUtils.requestTimeout);
 
       return querySnapshot.docs.map((doc) => Case.fromFirestore(doc)).toList();
     } catch (e) {
       debugPrint('Error fetching cases for patient: $e');
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to fetch patient cases. Please try again.',
+      );
+      notifyListeners();
       return [];
     }
   }
@@ -286,27 +317,23 @@ class CaseProvider extends ChangeNotifier {
     var filtered = List<Case>.from(_cases);
 
     if (_filterPatientId != null) {
-      filtered = filtered
-          .where((c) => c.patientId == _filterPatientId)
-          .toList();
+      filtered =
+          filtered.where((c) => c.patientId == _filterPatientId).toList();
     }
 
     if (_filterCaseStatus != null) {
-      filtered = filtered
-          .where((c) => c.caseStatus == _filterCaseStatus)
-          .toList();
+      filtered =
+          filtered.where((c) => c.caseStatus == _filterCaseStatus).toList();
     }
 
     if (_filterStartDate != null) {
-      filtered = filtered
-          .where((c) => c.caseDate.isAfter(_filterStartDate!))
-          .toList();
+      filtered =
+          filtered.where((c) => c.caseDate.isAfter(_filterStartDate!)).toList();
     }
 
     if (_filterEndDate != null) {
-      filtered = filtered
-          .where((c) => c.caseDate.isBefore(_filterEndDate!))
-          .toList();
+      filtered =
+          filtered.where((c) => c.caseDate.isBefore(_filterEndDate!)).toList();
     }
 
     if (_searchQuery.isNotEmpty) {
@@ -364,7 +391,7 @@ class CaseProvider extends ChangeNotifier {
       await _firestore.collection('cases').doc(caseId).update({
         ...updates,
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      }).timeout(ProviderErrorUtils.requestTimeout);
 
       // Update local cache
       final index = _cases.indexWhere((c) => c.id == caseId);
@@ -374,7 +401,10 @@ class CaseProvider extends ChangeNotifier {
 
       return true;
     } catch (e) {
-      _error = 'Failed to update case: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to update case. Please try again.',
+      );
       debugPrint('Error updating case: $e');
       notifyListeners();
       return false;
@@ -398,17 +428,21 @@ class CaseProvider extends ChangeNotifier {
             final bucket = segments[publicIndex + 1];
             final pathSegments = segments.sublist(publicIndex + 2);
             final path = pathSegments.join('/');
-            await supabase.storage.from(bucket).remove([path]);
+            await supabase.storage
+                .from(bucket)
+                .remove([path]).timeout(ProviderErrorUtils.requestTimeout);
           } else {
             // Fallback: try to extract after '/object/public/'
-            final marker = '/storage/v1/object/public/';
+            const marker = '/storage/v1/object/public/';
             final idx = imageUrl.indexOf(marker);
             if (idx != -1) {
               final remaining = imageUrl.substring(idx + marker.length);
               final parts = remaining.split('/');
               final bucket = parts.first;
               final path = parts.sublist(1).join('/');
-              await supabase.storage.from(bucket).remove([path]);
+              await supabase.storage
+                  .from(bucket)
+                  .remove([path]).timeout(ProviderErrorUtils.requestTimeout);
             }
           }
         } catch (e) {
@@ -417,7 +451,11 @@ class CaseProvider extends ChangeNotifier {
       }
 
       // Delete case from Firestore
-      await _firestore.collection('cases').doc(caseId).delete();
+      await _firestore
+          .collection('cases')
+          .doc(caseId)
+          .delete()
+          .timeout(ProviderErrorUtils.requestTimeout);
 
       // Update local cache
       _cases.removeWhere((c) => c.id == caseId);
@@ -425,7 +463,10 @@ class CaseProvider extends ChangeNotifier {
 
       return true;
     } catch (e) {
-      _error = 'Failed to delete case: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to delete case. Please try again.',
+      );
       debugPrint('Error deleting case: $e');
       notifyListeners();
       return false;
@@ -438,14 +479,17 @@ class CaseProvider extends ChangeNotifier {
       await _firestore.collection('cases').doc(caseId).update({
         'caseStatus': 'Archived',
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      }).timeout(ProviderErrorUtils.requestTimeout);
 
       // Update local cache
       await fetchCases();
 
       return true;
     } catch (e) {
-      _error = 'Failed to archive case: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to archive case. Please try again.',
+      );
       debugPrint('Error archiving case: $e');
       notifyListeners();
       return false;

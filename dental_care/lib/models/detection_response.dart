@@ -1,5 +1,6 @@
 /// Model classes for the Dental Disease Detection API response.
 /// API: POST /coordinates -> multipart/form-data with field "image"
+library;
 
 import 'dart:ui' show Color;
 import 'package:flutter/foundation.dart';
@@ -240,8 +241,7 @@ class Detection {
   bool get hasSegmentation => segmentation.length >= 3;
 
   /// Whether this detection has any urgent proximity alerts.
-  bool get hasUrgentProximity =>
-      proximityAlerts.any((a) => a.urgency != null);
+  bool get hasUrgentProximity => proximityAlerts.any((a) => a.urgency != null);
 
   /// Whether this detection is a Progressed caries.
   bool get isProgressed => severity == 'Progressed';
@@ -505,7 +505,8 @@ class ClinicalSummary {
 
     return ClinicalSummary(
       urgentFindings: parseFindings(json['urgent_findings']),
-      preventativeObservations: parseFindings(json['preventative_observations']),
+      preventativeObservations:
+          parseFindings(json['preventative_observations']),
       urgentCount: _safeInt(json['urgent_count']),
       preventativeCount: _safeInt(json['preventative_count']),
       healthyTeethCount: _safeInt(json['healthy_teeth_count']),

@@ -18,6 +18,9 @@ class AuthController {
     required String address,
     required String highestEducation,
     required String role,
+    String university = '',
+    String yearOfStudy = '',
+    String batchCode = '',
   }) async {
     final cred = await _service.signUpWithEmail(email, password);
     final uid = cred.user!.uid;
@@ -31,6 +34,9 @@ class AuthController {
       highestEducation: highestEducation,
       email: email,
       role: role,
+      university: university,
+      yearOfStudy: yearOfStudy,
+      batchCode: batchCode,
     );
     await _service.saveUserProfile(uid, user.toMap());
     return uid;
@@ -46,5 +52,18 @@ class AuthController {
 
   Future<void> logout() async {
     await _service.signOut();
+  }
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    await _service.sendPasswordResetEmail(email);
+  }
+
+  Future<void> resendEmailVerification() async {
+    await _service.sendCurrentUserEmailVerification();
+  }
+
+  Future<bool> refreshEmailVerificationStatus() async {
+    await _service.reloadCurrentUser();
+    return _service.isCurrentUserEmailVerified;
   }
 }

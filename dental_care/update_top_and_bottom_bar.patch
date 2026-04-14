@@ -1,0 +1,30 @@
+--- lib/view/student_quiz_taking_screen.dart
++++ lib/view/student_quiz_taking_screen.dart
+@@ -1412,6 +1412,25 @@
+                       ),
+                     ),
+                   ],
+                 ),
+               ),
++            const SizedBox(width: 12),
++            ElevatedButton.icon(
++              onPressed: _isSubmitting
++                  ? null
++                  : () => _showSubmitConfirmation(
++                        attemptProvider.currentResponses.length,
++                        totalQuestions,
++                      ),
++              icon: _isSubmitting
++                  ? const SizedBox(
++                      width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
++                  : const Icon(Icons.send, size: 16),
++              label: Text(AppBreakpoints.isDesktop(context) ? 'Submit Quiz' : 'Submit'),
++              style: ElevatedButton.styleFrom(
++                backgroundColor: semanticColors?.success ?? colorScheme.secondary,
++                foregroundColor: colorScheme.onSecondary,
++                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
++              ),
++            ),
+           ],
+         ),
+       ),

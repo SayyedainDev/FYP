@@ -15,7 +15,7 @@ import '../models/detection_response.dart';
 class DentalDetectionApiService {
   static const String baseUrl =
       'https://sayyedain-dental-disease-detection.hf.space';
-  static const Duration requestTimeout = Duration(seconds: 120);
+  static const Duration requestTimeout = Duration(seconds: 30);
   static const Duration healthPollInterval = Duration(seconds: 15);
   static const int maxRetries = 3;
   static const Duration retryDelay = Duration(seconds: 10);
@@ -28,9 +28,8 @@ class DentalDetectionApiService {
   /// Pings the server. Returns `true` if it responds with 200.
   static Future<bool> healthCheck() async {
     try {
-      final response = await http
-          .get(Uri.parse(baseUrl))
-          .timeout(requestTimeout);
+      final response =
+          await http.get(Uri.parse(baseUrl)).timeout(requestTimeout);
       return response.statusCode == 200;
     } catch (_) {
       return false;
@@ -76,9 +75,8 @@ class DentalDetectionApiService {
     final decoded = img.decodeImage(bytes);
     if (decoded == null) return bytes;
 
-    final longestEdge = decoded.width > decoded.height
-        ? decoded.width
-        : decoded.height;
+    final longestEdge =
+        decoded.width > decoded.height ? decoded.width : decoded.height;
 
     if (longestEdge <= maxImageEdge) return bytes;
 
@@ -183,7 +181,7 @@ class DentalDetectionApiService {
           await Future.delayed(retryDelay);
           continue;
         }
-        throw DentalApiException(
+        throw const DentalApiException(
           'Server is unavailable. Please try again in a few minutes.',
           0,
         );
@@ -194,8 +192,8 @@ class DentalDetectionApiService {
           await Future.delayed(retryDelay);
           continue;
         }
-        throw DentalApiException(
-          'Connection failed after $maxRetries attempts: $e',
+        throw const DentalApiException(
+          'Connection failed after $maxRetries attempts. Please try again.',
           0,
         );
       }

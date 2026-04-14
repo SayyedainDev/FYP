@@ -1,17 +1,22 @@
 import 'dart:io';
+import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/quiz.dart';
-import '../service/file_parser_service.dart';
+import '../service/groq_service.dart';
+import '../service/rag_service.dart';
 
 class QuizProvider with ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final supabase = Supabase.instance.client;
+  static const Duration _requestTimeout = Duration(seconds: 30);
+  static const Duration _aiRequestTimeout = Duration(minutes: 3);
 
   List<Quiz> _quizzes = [];
+  List<Quiz> _publishedQuizzes = []; // For students
   bool _isLoading = false;
   String? _errorMessage;
   Quiz? _currentQuiz;
@@ -19,11 +24,16 @@ class QuizProvider with ChangeNotifier {
   File? _uploadedFile;
   String? _uploadedFileName;
   double _uploadProgress = 0.0;
-  String? _tempPath; // Local temp path for non-web
-  Uint8List? _uploadedBytes; // In-memory bytes for web
+  String? _tempPath;
+  Uint8List? _uploadedBytes;
+  String? _extractedText; // Extracted text from uploaded file
+  bool _isGeneratingWithAI = false;
+  String? _groqError;
+  bool _isFetchingPublishedQuizzes = false;
 
   // Getters
   List<Quiz> get quizzes => _quizzes;
+  List<Quiz> get publishedQuizzes => _publishedQuizzes;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   Quiz? get currentQuiz => _currentQuiz;
@@ -33,8 +43,90 @@ class QuizProvider with ChangeNotifier {
   double get uploadProgress => _uploadProgress;
   String? get tempPath => _tempPath;
   Uint8List? get uploadedBytes => _uploadedBytes;
+  String? get extractedText => _extractedText;
+  bool get isGeneratingWithAI => _isGeneratingWithAI;
+  String? get groqError => _groqError;
 
-  // Stream of quizzes for a specific dentist
+  Future<T> _withTimeout<T>(Future<T> future) {
+    return future.timeout(_requestTimeout);
+  }
+
+  Future<T> _withAiTimeout<T>(Future<T> future) {
+    return future.timeout(_aiRequestTimeout);
+  }
+
+  Future<T> _runAiRequestWithRetry<T>(Future<T> Function() request) async {
+    const maxAttempts = 2;
+    for (int attempt = 1; attempt <= maxAttempts; attempt++) {
+      try {
+        return await request();
+      } on TimeoutException {
+        if (attempt == maxAttempts) rethrow;
+        await Future.delayed(Duration(seconds: attempt * 2));
+      } on SocketException {
+        if (attempt == maxAttempts) rethrow;
+        await Future.delayed(Duration(seconds: attempt * 2));
+      }
+    }
+
+    throw TimeoutException('AI request failed after retries.');
+  }
+
+  String _mapErrorMessage(
+    Object error, {
+    String fallback = 'Something went wrong. Please try again.',
+  }) {
+    if (error is TimeoutException) {
+      return 'The request timed out. Check your connection and try again.';
+    }
+
+    if (error is SocketException) {
+      return 'No internet connection. Check your network and try again.';
+    }
+
+    if (error is FirebaseException) {
+      if (error.code == 'permission-denied' || error.code == 'forbidden') {
+        return 'You do not have permission to perform this action.';
+      }
+      if (error.code == 'unauthenticated' || error.code == 'invalid-auth') {
+        return 'Your session has expired. Please log in again.';
+      }
+      if (error.code == 'not-found') {
+        return 'The requested item could not be found.';
+      }
+      if (error.code == 'deadline-exceeded') {
+        return 'The request timed out. Check your connection and try again.';
+      }
+    }
+
+    final raw = error.toString().toLowerCase();
+    if (raw.contains('401') ||
+        raw.contains('unauthorized') ||
+        raw.contains('token')) {
+      return 'Your session has expired. Please log in again.';
+    }
+    if (raw.contains('403') ||
+        raw.contains('forbidden') ||
+        raw.contains('permission')) {
+      return 'You do not have permission to perform this action.';
+    }
+    if (raw.contains('404') || raw.contains('not found')) {
+      return 'The requested item could not be found.';
+    }
+    if (raw.contains('socketexception') || raw.contains('network')) {
+      return 'No internet connection. Check your network and try again.';
+    }
+    if (raw.contains('timeout') || raw.contains('deadline')) {
+      return 'The request timed out. Check your connection and try again.';
+    }
+    if (raw.contains('500') || raw.contains('internal server')) {
+      return 'Something went wrong on our end. Please try again.';
+    }
+
+    return fallback;
+  }
+
+  // Stream of quizzes for a specific dentist/professor
   Stream<List<Quiz>> getQuizzesStream(String dentistUid) {
     if (dentistUid.trim().isEmpty) {
       return Stream.value(<Quiz>[]);
@@ -71,7 +163,7 @@ class QuizProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Save file to a temporary folder (non-web). For Web, hold bytes in memory.
+  // Save file to a temporary folder
   Future<String?> saveToTemp({
     File? file,
     Uint8List? bytes,
@@ -79,7 +171,6 @@ class QuizProvider with ChangeNotifier {
   }) async {
     try {
       if (kIsWeb) {
-        // On web we can't write to disk; keep bytes in memory
         if (bytes != null) {
           _uploadedBytes = bytes;
           _tempPath = null;
@@ -89,14 +180,13 @@ class QuizProvider with ChangeNotifier {
         return null;
       }
 
-      // Mobile/Desktop: copy to temp directory
       if (file != null) {
-        final tmpDir = await getTemporaryDirectory();
+        final tmpDir = await _withTimeout(getTemporaryDirectory());
         final target = File(
           '${tmpDir.path}/quiz_notes_${DateTime.now().millisecondsSinceEpoch}_$fileName',
         );
-        await target.create(recursive: true);
-        await file.copy(target.path);
+        await _withTimeout(target.create(recursive: true));
+        await _withTimeout(file.copy(target.path));
         _tempPath = target.path;
         _uploadedFile = target;
         _uploadedFileName = fileName;
@@ -106,7 +196,10 @@ class QuizProvider with ChangeNotifier {
 
       return null;
     } catch (e) {
-      _errorMessage = 'Failed to save temp file: $e';
+      _errorMessage = _mapErrorMessage(
+        e,
+        fallback: 'Failed to prepare file for upload. Please try again.',
+      );
       notifyListeners();
       return null;
     }
@@ -118,7 +211,7 @@ class QuizProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  // Upload note file to Firebase Storage
+  // Upload note file to Supabase Storage
   Future<String?> uploadNoteFile(
     String dentistUid,
     File file,
@@ -129,11 +222,12 @@ class QuizProvider with ChangeNotifier {
       _uploadProgress = 0.0;
       notifyListeners();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final bucket = 'quizzes';
+      const bucket = 'quizzes';
       final path = '$dentistUid/notes/${timestamp}_$fileName';
-      final bytes = await file.readAsBytes();
+      final bytes = await _withTimeout(file.readAsBytes());
 
-      await supabase.storage.from(bucket).uploadBinary(path, bytes);
+      await _withTimeout(
+          supabase.storage.from(bucket).uploadBinary(path, bytes));
       final downloadUrl = supabase.storage.from(bucket).getPublicUrl(path);
 
       _isLoading = false;
@@ -143,13 +237,16 @@ class QuizProvider with ChangeNotifier {
       return downloadUrl;
     } catch (e) {
       _isLoading = false;
-      _errorMessage = 'Failed to upload file: $e';
+      _errorMessage = _mapErrorMessage(
+        e,
+        fallback: 'Failed to upload file. Please try again.',
+      );
       notifyListeners();
       return null;
     }
   }
 
-  // Upload note bytes to Firebase Storage (Web)
+  // Upload note bytes to Supabase Storage (Web)
   Future<String?> uploadNoteBytes(
     String dentistUid,
     Uint8List bytes,
@@ -160,10 +257,11 @@ class QuizProvider with ChangeNotifier {
       _uploadProgress = 0.0;
       notifyListeners();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final bucket = 'quizzes';
+      const bucket = 'quizzes';
       final path = '$dentistUid/notes/${timestamp}_$fileName';
 
-      await supabase.storage.from(bucket).uploadBinary(path, bytes);
+      await _withTimeout(
+          supabase.storage.from(bucket).uploadBinary(path, bytes));
       final downloadUrl = supabase.storage.from(bucket).getPublicUrl(path);
 
       _isLoading = false;
@@ -173,13 +271,16 @@ class QuizProvider with ChangeNotifier {
       return downloadUrl;
     } catch (e) {
       _isLoading = false;
-      _errorMessage = 'Failed to upload file: $e';
+      _errorMessage = _mapErrorMessage(
+        e,
+        fallback: 'Failed to upload file. Please try again.',
+      );
       notifyListeners();
       return null;
     }
   }
 
-  // Create a new quiz
+  // Create a new quiz (defaults to draft status)
   Future<bool> createQuiz({
     required String dentistUid,
     required String title,
@@ -188,22 +289,17 @@ class QuizProvider with ChangeNotifier {
     required List<Question> questions,
     String? noteFileUrl,
     String? noteFileName,
+    String? sourceText,
+    QuizStatus status = QuizStatus.draft,
   }) async {
     try {
       debugPrint('🔄 Starting quiz creation...');
-      debugPrint('👤 Dentist UID: $dentistUid');
-      debugPrint('📝 Title: $title');
-      debugPrint('❓ Questions count: ${questions.length}');
-
       _isLoading = true;
       _errorMessage = null;
       notifyListeners();
 
-      // Calculate total marks
       final totalMarks = questions.fold<int>(0, (sum, q) => sum + q.marks);
-      debugPrint('📊 Total marks: $totalMarks');
 
-      // Calculate section marks
       Map<String, int>? sectionMarks;
       if (config.numberOfSections > 1) {
         sectionMarks = {};
@@ -216,7 +312,7 @@ class QuizProvider with ChangeNotifier {
       }
 
       final quiz = Quiz(
-        id: '', // Firestore will generate
+        id: '',
         title: title,
         description: description,
         dentistUid: dentistUid,
@@ -224,70 +320,128 @@ class QuizProvider with ChangeNotifier {
         questions: questions,
         noteFileUrl: noteFileUrl,
         noteFileName: noteFileName,
+        sourceText: sourceText,
+        status: status,
         createdAt: DateTime.now(),
         totalMarks: totalMarks,
         sectionMarks: sectionMarks,
       );
 
-      debugPrint('📤 Attempting to save quiz to Firestore...');
-      final docRef = await _firestore
-          .collection('quizzes')
-          .add(quiz.toFirestore());
+      final docRef = await _withTimeout(
+          _firestore.collection('quizzes').add(quiz.toFirestore()));
 
-      debugPrint('✅ Quiz saved with ID: ${docRef.id}');
+      await _withTimeout(docRef.update({'id': docRef.id}));
 
-      // Update with generated ID
-      await docRef.update({'id': docRef.id});
-      debugPrint('✅ Quiz ID updated in document');
-
-      // Create a new quiz instance with the correct ID
-      _currentQuiz = Quiz(
-        id: docRef.id,
-        title: title,
-        description: description,
-        dentistUid: dentistUid,
-        config: config,
-        questions: questions,
-        noteFileUrl: noteFileUrl,
-        noteFileName: noteFileName,
-        createdAt: quiz.createdAt,
-        totalMarks: totalMarks,
-        sectionMarks: sectionMarks,
-      );
+      _currentQuiz = quiz.copyWith(id: docRef.id);
       _isLoading = false;
       notifyListeners();
 
-      debugPrint('🎉 Quiz creation completed successfully!');
+      debugPrint(
+          '🎉 Quiz created with ID: ${docRef.id} (status: ${status.name})');
       return true;
     } catch (e, stackTrace) {
       debugPrint('❌ Error creating quiz: $e');
       debugPrint('📚 Stack trace: $stackTrace');
       _isLoading = false;
-      _errorMessage = 'Failed to create quiz: $e';
+      _errorMessage = _mapErrorMessage(
+        e,
+        fallback: 'Failed to create quiz. Please try again.',
+      );
       notifyListeners();
       return false;
     }
   }
 
-  // Set current quiz locally (e.g., when offline/Firebase fails)
+  /// Publish a quiz (make it available to students)
+  Future<bool> publishQuiz(String quizId) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      await _withTimeout(_firestore.collection('quizzes').doc(quizId).update({
+        'status': QuizStatus.published.name,
+        'lastModified': Timestamp.now(),
+      }));
+
+      // Update local list
+      final idx = _quizzes.indexWhere((q) => q.id == quizId);
+      if (idx >= 0) {
+        _quizzes[idx] = _quizzes[idx].copyWith(
+          status: QuizStatus.published,
+          lastModified: DateTime.now(),
+        );
+      }
+
+      debugPrint('✅ Quiz $quizId published');
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error publishing quiz: $e');
+      _isLoading = false;
+      _errorMessage = _mapErrorMessage(
+        e,
+        fallback: 'Failed to publish quiz. Please try again.',
+      );
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Close a quiz (no longer available to students)
+  Future<bool> closeQuiz(String quizId) async {
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      await _withTimeout(_firestore.collection('quizzes').doc(quizId).update({
+        'status': QuizStatus.closed.name,
+        'lastModified': Timestamp.now(),
+      }));
+
+      final idx = _quizzes.indexWhere((q) => q.id == quizId);
+      if (idx >= 0) {
+        _quizzes[idx] = _quizzes[idx].copyWith(
+          status: QuizStatus.closed,
+          lastModified: DateTime.now(),
+        );
+      }
+
+      debugPrint('✅ Quiz $quizId closed');
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error closing quiz: $e');
+      _isLoading = false;
+      _errorMessage = _mapErrorMessage(
+        e,
+        fallback: 'Failed to close quiz. Please try again.',
+      );
+      notifyListeners();
+      return false;
+    }
+  }
+
+  // Set current quiz locally
   void setCurrentQuiz(Quiz quiz) {
     _currentQuiz = quiz;
     notifyListeners();
   }
 
-  // Fetch all quizzes for a dentist
+  // Fetch all quizzes for a dentist/professor
   Future<void> fetchQuizzes(String dentistUid) async {
     try {
-      debugPrint('🔍 Fetching quizzes for dentist: $dentistUid');
+      debugPrint('🔍 Fetching quizzes for: $dentistUid');
       _isLoading = true;
       _errorMessage = null;
-      notifyListeners();
+      Future.microtask(() => notifyListeners());
 
-      final snapshot = await _firestore
+      final snapshot = await _withTimeout(_firestore
           .collection('quizzes')
           .where('dentistUid', isEqualTo: dentistUid)
           .orderBy('createdAt', descending: true)
-          .get();
+          .get());
 
       _quizzes = snapshot.docs.map((doc) => Quiz.fromFirestore(doc)).toList();
 
@@ -298,7 +452,46 @@ class QuizProvider with ChangeNotifier {
       debugPrint('❌ Error fetching quizzes: $e');
       debugPrint('📚 Stack trace: $stackTrace');
       _isLoading = false;
-      _errorMessage = 'Failed to fetch quizzes: $e';
+      _errorMessage = _mapErrorMessage(
+        e,
+        fallback: 'Failed to fetch quizzes. Please try again.',
+      );
+      notifyListeners();
+    }
+  }
+
+  /// Fetch all published quizzes (for students)
+  Future<void> fetchPublishedQuizzes() async {
+    if (_isFetchingPublishedQuizzes) return;
+
+    try {
+      _isFetchingPublishedQuizzes = true;
+      debugPrint('🔍 Fetching published quizzes for students...');
+      _isLoading = true;
+      _errorMessage = null;
+      notifyListeners();
+
+      final snapshot = await _withTimeout(_firestore
+          .collection('quizzes')
+          .where('status', isEqualTo: QuizStatus.published.name)
+          .orderBy('createdAt', descending: true)
+          .get());
+
+      _publishedQuizzes =
+          snapshot.docs.map((doc) => Quiz.fromFirestore(doc)).toList();
+
+      debugPrint('✅ Fetched ${_publishedQuizzes.length} published quizzes');
+      _isLoading = false;
+      _isFetchingPublishedQuizzes = false;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('❌ Error fetching published quizzes: $e');
+      _isLoading = false;
+      _isFetchingPublishedQuizzes = false;
+      _errorMessage = _mapErrorMessage(
+        e,
+        fallback: 'Failed to fetch quizzes. Please try again.',
+      );
       notifyListeners();
     }
   }
@@ -306,29 +499,29 @@ class QuizProvider with ChangeNotifier {
   // Get a single quiz by ID
   Future<Quiz?> getQuizById(String quizId) async {
     try {
-      debugPrint('🔍 Fetching quiz with ID: $quizId');
       _isLoading = true;
       notifyListeners();
 
-      final doc = await _firestore.collection('quizzes').doc(quizId).get();
+      final doc = await _withTimeout(
+        _firestore.collection('quizzes').doc(quizId).get(),
+      );
 
       if (doc.exists) {
         _currentQuiz = Quiz.fromFirestore(doc);
-        debugPrint('✅ Quiz fetched successfully');
         _isLoading = false;
         notifyListeners();
         return _currentQuiz;
       }
 
-      debugPrint('⚠️ Quiz not found');
       _isLoading = false;
       notifyListeners();
       return null;
-    } catch (e, stackTrace) {
-      debugPrint('❌ Error fetching quiz: $e');
-      debugPrint('📚 Stack trace: $stackTrace');
+    } catch (e) {
       _isLoading = false;
-      _errorMessage = 'Failed to fetch quiz: $e';
+      _errorMessage = _mapErrorMessage(
+        e,
+        fallback: 'Failed to fetch quiz. Please try again.',
+      );
       notifyListeners();
       return null;
     }
@@ -341,33 +534,22 @@ class QuizProvider with ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      final updatedQuiz = Quiz(
-        id: quiz.id,
-        title: quiz.title,
-        description: quiz.description,
-        dentistUid: quiz.dentistUid,
-        config: quiz.config,
-        questions: quiz.questions,
-        noteFileUrl: quiz.noteFileUrl,
-        noteFileName: quiz.noteFileName,
-        createdAt: quiz.createdAt,
-        lastModified: DateTime.now(),
-        totalMarks: quiz.totalMarks,
-        sectionMarks: quiz.sectionMarks,
-      );
+      final updatedQuiz = quiz.copyWith(lastModified: DateTime.now());
 
-      await _firestore
+      await _withTimeout(_firestore
           .collection('quizzes')
           .doc(quiz.id)
-          .update(updatedQuiz.toFirestore());
+          .update(updatedQuiz.toFirestore()));
 
       _isLoading = false;
       notifyListeners();
-
       return true;
     } catch (e) {
       _isLoading = false;
-      _errorMessage = 'Failed to update quiz: $e';
+      _errorMessage = _mapErrorMessage(
+        e,
+        fallback: 'Failed to update quiz. Please try again.',
+      );
       notifyListeners();
       return false;
     }
@@ -380,19 +562,18 @@ class QuizProvider with ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      // Delete the quiz document
-      await _firestore.collection('quizzes').doc(quizId).delete();
-
-      // Remove from local list
+      await _withTimeout(_firestore.collection('quizzes').doc(quizId).delete());
       _quizzes.removeWhere((q) => q.id == quizId);
 
       _isLoading = false;
       notifyListeners();
-
       return true;
     } catch (e) {
       _isLoading = false;
-      _errorMessage = 'Failed to delete quiz: $e';
+      _errorMessage = _mapErrorMessage(
+        e,
+        fallback: 'Failed to delete quiz. Please try again.',
+      );
       notifyListeners();
       return false;
     }
@@ -405,6 +586,7 @@ class QuizProvider with ChangeNotifier {
     _uploadedFile = null;
     _uploadedFileName = null;
     _uploadProgress = 0.0;
+    _extractedText = null;
     notifyListeners();
   }
 
@@ -414,284 +596,102 @@ class QuizProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Generate quiz questions locally without OpenAI
+  /// Clear Groq error
+  void clearGroqError() {
+    _groqError = null;
+    notifyListeners();
+  }
+
+  /// Generate quiz questions using Rag Backend Service
   Future<List<Question>?> generateQuestionsWithAI({
     required QuizConfig config,
+    required String topic,
+    required String uid,
     String? noteContent,
   }) async {
     try {
       _isLoading = true;
+      _isGeneratingWithAI = true;
       _errorMessage = null;
+      _groqError = null;
       notifyListeners();
 
       String content = noteContent ?? '';
+      String documentId = '';
 
-      // If no content provided, try to extract from uploaded file
       if (content.isEmpty) {
-        debugPrint('📄 Extracting content from uploaded file...');
-        content = await _extractNoteContent();
-        debugPrint('📄 Extracted content length: ${content.length} characters');
+        if (_uploadedBytes != null && _uploadedFileName != null) {
+          debugPrint('Uploading PDF bytes to RAG backend...');
+          documentId = await _runAiRequestWithRetry(
+            () => _withAiTimeout(
+              RagService.uploadPdfBytes(_uploadedBytes!, _uploadedFileName!),
+            ),
+          );
+        } else if (_uploadedFile != null) {
+          debugPrint('Uploading PDF file to RAG backend...');
+          documentId = await _runAiRequestWithRetry(
+            () => _withAiTimeout(RagService.uploadPdfFile(_uploadedFile!)),
+          );
+        } else {
+          throw Exception(
+              'Please select existing lecture notes or upload a PDF.');
+        }
+      } else {
+        debugPrint('Uploading existing text to RAG backend...');
+        documentId = await _runAiRequestWithRetry(
+          () => _withAiTimeout(RagService.uploadRawText(content)),
+        );
       }
 
-      debugPrint('🎯 Generating ${config.totalQuestions} questions locally...');
+      debugPrint(
+          '🤖 Using Backend RAG API for question generation (DocID: $documentId)...');
+      try {
+        final questions = await _runAiRequestWithRetry(
+          () => _withAiTimeout(
+            RagService.generateRagQuiz(
+              topic: topic,
+              documentId: documentId,
+              config: config,
+              uid: uid,
+            ),
+          ),
+        );
 
-      // Generate questions locally
-      final questions = _generateIntelligentQuestions(content, config);
+        debugPrint('✅ RagService generated ${questions.length} questions');
 
-      debugPrint('✅ Generated ${questions.length} questions');
-
-      _isLoading = false;
-      notifyListeners();
-
-      return questions;
+        _extractedText =
+            "Context processed securely via backend RAG for topic: $topic";
+        _isLoading = false;
+        _isGeneratingWithAI = false;
+        notifyListeners();
+        return questions;
+      } on GroqException catch (e) {
+        debugPrint('❌ RAG API error: $e');
+        _groqError = e.message;
+        _isLoading = false;
+        _isGeneratingWithAI = false;
+        _errorMessage = 'AI generation failed. Please try again.';
+        notifyListeners();
+        return null;
+      } catch (e) {
+        debugPrint('❌ RAG parse/unknown error: $e');
+        _groqError = _mapErrorMessage(e, fallback: 'AI generation failed.');
+        _isLoading = false;
+        _isGeneratingWithAI = false;
+        _errorMessage = 'AI response parsing failed. Please try again.';
+        notifyListeners();
+        return null;
+      }
     } catch (e) {
       _isLoading = false;
-      _errorMessage = 'Failed to generate quiz: $e';
+      _isGeneratingWithAI = false;
+      _errorMessage = _mapErrorMessage(
+        e,
+        fallback: 'Failed to generate quiz. Please try again.',
+      );
       debugPrint('❌ Error in generateQuestionsWithAI: $e');
       notifyListeners();
       return null;
     }
-  }
-
-  /// Extract text content from uploaded note file
-  Future<String> _extractNoteContent() async {
-    try {
-      if (_uploadedBytes != null && _uploadedFileName != null) {
-        debugPrint('🔍 Extracting content from: $_uploadedFileName');
-
-        // Use FileParserService for multi-format support
-        final content = await FileParserService.extractTextFromBytes(
-          _uploadedBytes!,
-          _uploadedFileName!,
-        );
-
-        if (content.isEmpty) {
-          throw Exception(
-            'Unable to extract text from file. The file may be empty or in an unsupported format.',
-          );
-        }
-
-        return content;
-      } else if (_uploadedFile != null) {
-        debugPrint(
-          '🔍 Extracting content from file path: ${_uploadedFile!.path}',
-        );
-
-        // Use FileParserService for multi-format support
-        final content = await FileParserService.extractTextFromFile(
-          _uploadedFile!,
-        );
-
-        if (content.isEmpty) {
-          throw Exception(
-            'Unable to extract text from file. The file may be empty or in an unsupported format.',
-          );
-        }
-
-        return content;
-      }
-      return '';
-    } catch (e) {
-      debugPrint('Error extracting note content: $e');
-      return '';
-    }
-  }
-
-  /// Generate intelligent questions based on content and configuration
-  List<Question> _generateIntelligentQuestions(
-    String content,
-    QuizConfig config,
-  ) {
-    final questions = <Question>[];
-    final types = config.questionTypes.toList();
-
-    // Extract meaningful sentences from content
-    List<String> extractedContent = [];
-    if (content.isNotEmpty && content.length > 50) {
-      final sentences = content
-          .replaceAll('\n', ' ')
-          .replaceAll(RegExp(r'\s+'), ' ')
-          .split(RegExp(r'[.!?]'))
-          .map((s) => s.trim())
-          .where(
-            (s) =>
-                s.split(' ').length >= 6 &&
-                s.split(' ').length <= 40 &&
-                !s.toLowerCase().contains('generate') &&
-                !s.toLowerCase().contains('sample'),
-          )
-          .toList();
-
-      extractedContent = sentences.take(config.totalQuestions * 3).toList();
-    }
-
-    // Only show error if truly no content
-    if (extractedContent.isEmpty) {
-      throw Exception(
-        'Unable to generate quiz: The lecture notes appear to be empty or contain insufficient content. '
-        'Supported formats: ${FileParserService.getSupportedFormatsString()}. '
-        'Please upload a file with at least 50 words of content.',
-      );
-    }
-
-    for (int i = 0; i < config.totalQuestions; i++) {
-      final contentIndex = i % extractedContent.length;
-      final topic = extractedContent[contentIndex];
-      final type = types[i % types.length];
-      final marks = config.marksDistribution == 'equal' ? 1 : (i % 3) + 1;
-      final section = config.numberOfSections > 1
-          ? 'Section ${(i % config.numberOfSections) + 1}'
-          : null;
-      final difficulty = config.difficulty == DifficultyLevel.mixed
-          ? DifficultyLevel.values[i % 3]
-          : config.difficulty;
-
-      questions.add(
-        _createQuestion(i, topic, type, marks, difficulty, section, config),
-      );
-    }
-
-    return questions;
-  }
-
-  Question _createQuestion(
-    int index,
-    String topic,
-    QuestionType type,
-    int marks,
-    DifficultyLevel difficulty,
-    String? section,
-    QuizConfig config,
-  ) {
-    // Extract key terms from topic for better question generation
-    final words = topic.split(' ').where((w) => w.length > 3).toList();
-    final keyTerm = words.isNotEmpty ? words[0] : topic.split(' ')[0];
-
-    switch (type) {
-      case QuestionType.mcq:
-        // Create distractor options from the content
-        final mainConcept = _extractMainConcept(topic);
-        final otherWords = words.length > 3 ? words.sublist(1, 4) : words;
-
-        return Question(
-          id: 'q_${DateTime.now().millisecondsSinceEpoch}_$index',
-          questionText:
-              'According to the lecture notes, what is stated about $keyTerm?',
-          type: type,
-          options: [
-            mainConcept,
-            otherWords.isNotEmpty
-                ? otherWords.join(' ')
-                : 'Alternative concept',
-            'It is not mentioned in the notes',
-            'Opposite of the stated information',
-          ]..shuffle(),
-          correctAnswer: mainConcept,
-          explanation: config.includeAnswerKey
-              ? 'From the notes: "$topic"'
-              : null,
-          marks: marks,
-          difficulty: difficulty,
-          section: section,
-        );
-
-      case QuestionType.trueFalse:
-        return Question(
-          id: 'q_${DateTime.now().millisecondsSinceEpoch}_$index',
-          questionText: 'Based on the lecture material: $topic',
-          type: type,
-          options: ['True', 'False'],
-          correctAnswer: 'True',
-          explanation: config.includeAnswerKey
-              ? 'This information is directly stated in the uploaded notes.'
-              : null,
-          marks: marks,
-          difficulty: difficulty,
-          section: section,
-        );
-
-      case QuestionType.shortAnswer:
-        return Question(
-          id: 'q_${DateTime.now().millisecondsSinceEpoch}_$index',
-          questionText: 'Explain what the lecture notes state about: $keyTerm',
-          type: type,
-          options: null,
-          correctAnswer: topic,
-          explanation: config.includeAnswerKey
-              ? 'Expected answer: $topic'
-              : null,
-          marks: marks,
-          difficulty: difficulty,
-          section: section,
-        );
-
-      case QuestionType.longAnswer:
-        return Question(
-          id: 'q_${DateTime.now().millisecondsSinceEpoch}_$index',
-          questionText: 'Discuss the concepts related to: $topic',
-          type: type,
-          options: null,
-          correctAnswer: 'A comprehensive answer covering: $topic',
-          explanation: config.includeAnswerKey
-              ? 'Answer should reference the concepts from the lecture notes and demonstrate understanding.'
-              : null,
-          marks: marks,
-          difficulty: difficulty,
-          section: section,
-        );
-
-      case QuestionType.fillInTheBlanks:
-        // Find a significant word to blank out (noun, verb, adjective)
-        final words = topic.split(' ');
-        var blankIndex = words.indexWhere(
-          (w) =>
-              w.length > 4 &&
-              !['the', 'and', 'or', 'but', 'with'].contains(w.toLowerCase()),
-        );
-        if (blankIndex == -1) blankIndex = words.length > 3 ? 1 : 0;
-
-        final answer = words[blankIndex];
-        final questionWords = List<String>.from(words);
-        questionWords[blankIndex] = '______';
-
-        return Question(
-          id: 'q_${DateTime.now().millisecondsSinceEpoch}_$index',
-          questionText:
-              'Complete the statement from the lecture: ${questionWords.join(' ')}',
-          type: type,
-          options: null,
-          correctAnswer: answer,
-          explanation: config.includeAnswerKey
-              ? 'The complete statement: $topic'
-              : null,
-          marks: marks,
-          difficulty: difficulty,
-          section: section,
-        );
-
-      case QuestionType.scenarioBased:
-        return Question(
-          id: 'q_${DateTime.now().millisecondsSinceEpoch}_$index',
-          questionText:
-              'Based on the lecture material about "$keyTerm", how would you apply this knowledge in practice: $topic',
-          type: type,
-          options: null,
-          correctAnswer: 'Application of concepts: $topic',
-          explanation: config.includeAnswerKey
-              ? 'Consider how the information from the notes applies to clinical/practical situations.'
-              : null,
-          marks: marks,
-          difficulty: difficulty,
-          section: section,
-        );
-    }
-  }
-
-  String _extractMainConcept(String text) {
-    final words = text.split(' ');
-    if (words.length > 3) {
-      return words.take(4).join(' ');
-    }
-    return text;
   }
 }

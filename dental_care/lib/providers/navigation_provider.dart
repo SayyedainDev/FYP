@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class NavigationProvider extends ChangeNotifier {
-  String _currentPage = 'Dashboard';
+  String _currentPage = 'Overview';
 
   String get currentPage => _currentPage;
 

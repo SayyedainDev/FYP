@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/treatment_plan.dart';
+import '../utils/provider_error_utils.dart';
 
 class TreatmentPlanProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -38,7 +39,8 @@ class TreatmentPlanProvider extends ChangeNotifier {
           .collection('treatment_plans')
           .where('dentistUid', isEqualTo: dentistUid)
           .orderBy('startDate', descending: true)
-          .get();
+          .get()
+          .timeout(ProviderErrorUtils.requestTimeout);
 
       _treatmentPlans = querySnapshot.docs
           .map((doc) => TreatmentPlan.fromFirestore(doc))
@@ -47,7 +49,10 @@ class TreatmentPlanProvider extends ChangeNotifier {
       _loading = false;
       notifyListeners();
     } catch (e) {
-      _error = 'Failed to fetch treatment plans: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to fetch treatment plans. Please try again.',
+      );
       _loading = false;
       notifyListeners();
       debugPrint('Error fetching treatment plans: $e');
@@ -62,13 +67,17 @@ class TreatmentPlanProvider extends ChangeNotifier {
       await _firestore
           .collection('treatment_plans')
           .doc(plan.id)
-          .set(plan.toFirestore());
+          .set(plan.toFirestore())
+          .timeout(ProviderErrorUtils.requestTimeout);
 
       _treatmentPlans.add(plan);
       _loading = false;
       notifyListeners();
     } catch (e) {
-      _error = 'Failed to create treatment plan: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to create treatment plan. Please try again.',
+      );
       _loading = false;
       notifyListeners();
     }
@@ -79,7 +88,8 @@ class TreatmentPlanProvider extends ChangeNotifier {
       await _firestore
           .collection('treatment_plans')
           .doc(plan.id)
-          .update(plan.toFirestore());
+          .update(plan.toFirestore())
+          .timeout(ProviderErrorUtils.requestTimeout);
 
       final index = _treatmentPlans.indexWhere((p) => p.id == plan.id);
       if (index != -1) {
@@ -87,7 +97,10 @@ class TreatmentPlanProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      _error = 'Failed to update treatment plan: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to update treatment plan. Please try again.',
+      );
       notifyListeners();
     }
   }
@@ -97,7 +110,7 @@ class TreatmentPlanProvider extends ChangeNotifier {
       await _firestore.collection('treatment_plans').doc(planId).update({
         'progressPercentage': progress,
         'updatedAt': DateTime.now(),
-      });
+      }).timeout(ProviderErrorUtils.requestTimeout);
 
       final index = _treatmentPlans.indexWhere((p) => p.id == planId);
       if (index != -1) {
@@ -121,7 +134,10 @@ class TreatmentPlanProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      _error = 'Failed to update progress: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to update progress. Please try again.',
+      );
       notifyListeners();
     }
   }

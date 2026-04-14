@@ -10,14 +10,19 @@ class MainSidebar extends StatelessWidget {
   Widget build(BuildContext context) {
     final navProvider = Provider.of<NavigationProvider>(context);
     final authProvider = Provider.of<AuthProvider>(context);
-    final isDentist = authProvider.userRole.toLowerCase() != 'student';
+    final isStudent = authProvider.userRole.toLowerCase() == 'student';
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Container(
       width: 240,
-      decoration: const BoxDecoration(
-        color: Color(0xFF2C2F33),
+      decoration: BoxDecoration(
+        color: colorScheme.surfaceContainerHigh,
         boxShadow: [
-          BoxShadow(color: Colors.black12, blurRadius: 4, offset: Offset(2, 0)),
+          BoxShadow(
+            color: colorScheme.shadow.withValues(alpha: 0.12),
+            blurRadius: 4,
+            offset: const Offset(2, 0),
+          ),
         ],
       ),
       child: Column(
@@ -31,20 +36,20 @@ class MainSidebar extends StatelessWidget {
                   width: 40,
                   height: 40,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF4A90E2),
+                    color: colorScheme.primary,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.medication_outlined,
-                    color: Colors.white,
+                    color: colorScheme.onPrimary,
                     size: 24,
                   ),
                 ),
                 const SizedBox(width: 12),
-                const Text(
+                Text(
                   'PalPath',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: colorScheme.onSurface,
                     fontSize: 20,
                     fontWeight: FontWeight.bold,
                   ),
@@ -60,51 +65,71 @@ class MainSidebar extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: Column(
                 children: [
+                  // Common items
                   _SidebarItem(
                     icon: Icons.dashboard_outlined,
                     label: 'Overview',
                     isActive: navProvider.isActive('Overview'),
                     onTap: () => navProvider.setPage('Overview'),
                   ),
-                  _SidebarItem(
-                    icon: Icons.auto_awesome,
-                    label: 'Disease Detection',
-                    isActive: navProvider.isActive('Disease Detection'),
-                    enabled: isDentist,
-                    onTap: () => navProvider.setPage('Disease Detection'),
-                  ),
-                  _SidebarItem(
-                    icon: Icons.people_outline,
-                    label: 'Patients',
-                    isActive: navProvider.isActive('Patients'),
-                    enabled: isDentist,
-                    onTap: () => navProvider.setPage('Patients'),
-                  ),
-                  _SidebarItem(
-                    icon: Icons.history_outlined,
-                    label: 'Scan History',
-                    isActive: navProvider.isActive('Scan History'),
-                    onTap: () => navProvider.setPage('Scan History'),
-                  ),
-                  _SidebarItem(
-                    icon: Icons.quiz_outlined,
-                    label: 'Create Quiz',
-                    isActive: navProvider.isActive('Create Quiz'),
-                    onTap: () => navProvider.setPage('Create Quiz'),
-                  ),
-                  _SidebarItem(
-                    icon: Icons.list_alt_outlined,
-                    label: 'My Quizzes',
-                    isActive: navProvider.isActive('My Quizzes'),
-                    onTap: () => navProvider.setPage('My Quizzes'),
-                  ),
-                  _SidebarItem(
-                    icon: Icons.library_books_outlined,
-                    label: 'Lecture Notes',
-                    isActive: navProvider.isActive('Lecture Notes'),
-                    enabled: isDentist,
-                    onTap: () => navProvider.setPage('Lecture Notes'),
-                  ),
+
+                  // Professor/Dentist-only items
+                  if (!isStudent) ...[
+                    _SidebarItem(
+                      icon: Icons.auto_awesome,
+                      label: 'Disease Detection',
+                      isActive: navProvider.isActive('Disease Detection'),
+                      onTap: () => navProvider.setPage('Disease Detection'),
+                    ),
+                    _SidebarItem(
+                      icon: Icons.people_outline,
+                      label: 'Patients',
+                      isActive: navProvider.isActive('Patients'),
+                      onTap: () => navProvider.setPage('Patients'),
+                    ),
+                    _SidebarItem(
+                      icon: Icons.history_outlined,
+                      label: 'Scan History',
+                      isActive: navProvider.isActive('Scan History'),
+                      onTap: () => navProvider.setPage('Scan History'),
+                    ),
+                    _SidebarItem(
+                      icon: Icons.quiz_outlined,
+                      label: 'Create Quiz',
+                      isActive: navProvider.isActive('Create Quiz'),
+                      onTap: () => navProvider.setPage('Create Quiz'),
+                    ),
+                    _SidebarItem(
+                      icon: Icons.list_alt_outlined,
+                      label: 'My Quizzes',
+                      isActive: navProvider.isActive('My Quizzes'),
+                      onTap: () => navProvider.setPage('My Quizzes'),
+                    ),
+                    _SidebarItem(
+                      icon: Icons.library_books_outlined,
+                      label: 'Lecture Notes',
+                      isActive: navProvider.isActive('Lecture Notes'),
+                      onTap: () => navProvider.setPage('Lecture Notes'),
+                    ),
+                  ],
+
+                  // Student-specific items
+                  if (isStudent) ...[
+                    _SidebarItem(
+                      icon: Icons.quiz_outlined,
+                      label: 'Available Quizzes',
+                      isActive: navProvider.isActive('Available Quizzes'),
+                      onTap: () => navProvider.setPage('Available Quizzes'),
+                    ),
+                    _SidebarItem(
+                      icon: Icons.assignment_turned_in_outlined,
+                      label: 'My Results',
+                      isActive: navProvider.isActive('My Results'),
+                      onTap: () => navProvider.setPage('My Results'),
+                    ),
+                  ],
+
+                  // Common items
                   _SidebarItem(
                     icon: Icons.settings_outlined,
                     label: 'Settings',
@@ -120,7 +145,10 @@ class MainSidebar extends StatelessWidget {
             padding: const EdgeInsets.all(16.0),
             decoration: BoxDecoration(
               border: Border(
-                top: BorderSide(color: Colors.white.withOpacity(0.1), width: 1),
+                top: BorderSide(
+                  color: colorScheme.outlineVariant.withValues(alpha: 0.5),
+                  width: 1,
+                ),
               ),
             ),
             child: Column(
@@ -134,11 +162,12 @@ class MainSidebar extends StatelessWidget {
                       children: [
                         CircleAvatar(
                           radius: 20,
-                          backgroundColor: Colors.white.withOpacity(0.2),
+                          backgroundColor:
+                              colorScheme.onSurface.withValues(alpha: 0.2),
                           child: Text(
                             authProvider.initials,
-                            style: const TextStyle(
-                              color: Colors.white,
+                            style: TextStyle(
+                              color: colorScheme.onSurface,
                               fontSize: 14,
                               fontWeight: FontWeight.w600,
                             ),
@@ -151,9 +180,11 @@ class MainSidebar extends StatelessWidget {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                authProvider.displayName,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                isStudent
+                                    ? authProvider.userName ?? 'Student'
+                                    : authProvider.displayName,
+                                style: TextStyle(
+                                  color: colorScheme.onSurface,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
                                 ),
@@ -161,15 +192,15 @@ class MainSidebar extends StatelessWidget {
                               ),
                               Text(
                                 authProvider.userRole,
-                                style: const TextStyle(
-                                  color: Color(0xFF9B9B9B),
+                                style: TextStyle(
+                                  color: colorScheme.onSurfaceVariant,
                                   fontSize: 12,
                                 ),
                               ),
-                              const Text(
+                              Text(
                                 'View profile',
                                 style: TextStyle(
-                                  color: Color(0xFF9B9B9B),
+                                  color: colorScheme.onSurfaceVariant,
                                   fontSize: 12,
                                 ),
                               ),
@@ -187,12 +218,16 @@ class MainSidebar extends StatelessWidget {
                     onPressed: () async {
                       await authProvider.logout();
                       if (context.mounted) {
-                        Navigator.of(context).pushReplacementNamed('/');
+                        Navigator.pushNamedAndRemoveUntil(
+                            context, '/', (route) => false);
                       }
                     },
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: BorderSide(color: Colors.white.withOpacity(0.3)),
+                      foregroundColor: colorScheme.onSurface,
+                      side: BorderSide(
+                        color:
+                            colorScheme.outlineVariant.withValues(alpha: 0.7),
+                      ),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(6),
                       ),
@@ -215,47 +250,34 @@ class _SidebarItem extends StatelessWidget {
   final String label;
   final bool isActive;
   final VoidCallback onTap;
-  final bool enabled;
 
   const _SidebarItem({
     required this.icon,
     required this.label,
     required this.isActive,
-    this.enabled = true,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2.0),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          onTap: enabled
-              ? onTap
-              : () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Access restricted to dentists'),
-                      backgroundColor: Colors.orange,
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                },
+          onTap: onTap,
           borderRadius: BorderRadius.circular(8),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
-              color: !enabled
-                  ? const Color(0xFF9B9B9B).withOpacity(0.08)
-                  : isActive
-                  ? const Color(0xFF4A90E2).withOpacity(0.15)
+              color: isActive
+                  ? colorScheme.primary.withValues(alpha: 0.15)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
               border: isActive
                   ? Border.all(
-                      color: const Color(0xFF4A90E2).withOpacity(0.3),
+                      color: colorScheme.primary.withValues(alpha: 0.3),
                       width: 1,
                     )
                   : null,
@@ -264,22 +286,18 @@ class _SidebarItem extends StatelessWidget {
               children: [
                 Icon(
                   icon,
-                  color: !enabled
-                      ? const Color(0xFF6B7280)
-                      : isActive
-                      ? const Color(0xFF4A90E2)
-                      : const Color(0xFF9B9B9B),
+                  color: isActive
+                      ? colorScheme.primary
+                      : colorScheme.onSurfaceVariant,
                   size: 20,
                 ),
                 const SizedBox(width: 12),
                 Text(
                   label,
                   style: TextStyle(
-                    color: !enabled
-                        ? const Color(0xFF6B7280)
-                        : isActive
-                        ? Colors.white
-                        : const Color(0xFF9B9B9B),
+                    color: isActive
+                        ? colorScheme.onSurface
+                        : colorScheme.onSurfaceVariant,
                     fontSize: 14,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
                   ),

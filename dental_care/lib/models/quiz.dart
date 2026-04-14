@@ -15,6 +15,8 @@ enum CognitiveLevel { knowledge, understanding, application, analysis, mixed }
 
 enum QuizMode { exam, practice, adaptive, conceptual, analytical }
 
+enum QuizStatus { draft, published, closed }
+
 class QuizConfig {
   final DifficultyLevel difficulty;
   final int totalQuestions;
@@ -45,6 +47,10 @@ class QuizConfig {
     this.explanationLevel = 'brief',
     this.specialMode,
   });
+
+  /// Time limit in seconds (derived from minutes)
+  int? get timeLimitSeconds =>
+      timeLimitMinutes != null ? timeLimitMinutes! * 60 : null;
 
   Map<String, dynamic> toFirestore() {
     return {
@@ -112,7 +118,8 @@ class Question {
   final String questionText;
   final QuestionType type;
   final List<String>? options; // For MCQ
-  final String correctAnswer;
+  final int correctIndex; // Index of correct option (secure)
+  final String? correctAnswer; // Legacy: kept for backward compat / non-MCQ
   final String? explanation;
   final int marks;
   final DifficultyLevel difficulty;
@@ -123,12 +130,47 @@ class Question {
     required this.questionText,
     required this.type,
     this.options,
-    required this.correctAnswer,
+    required this.correctIndex,
+    this.correctAnswer,
     this.explanation,
     required this.marks,
     required this.difficulty,
     this.section,
   });
+
+  Question copyWith({
+    String? id,
+    String? questionText,
+    QuestionType? type,
+    List<String>? options,
+    int? correctIndex,
+    String? correctAnswer,
+    String? explanation,
+    int? marks,
+    DifficultyLevel? difficulty,
+    String? section,
+  }) {
+    return Question(
+      id: id ?? this.id,
+      questionText: questionText ?? this.questionText,
+      type: type ?? this.type,
+      options: options ?? this.options,
+      correctIndex: correctIndex ?? this.correctIndex,
+      correctAnswer: correctAnswer ?? this.correctAnswer,
+      explanation: explanation ?? this.explanation,
+      marks: marks ?? this.marks,
+      difficulty: difficulty ?? this.difficulty,
+      section: section ?? this.section,
+    );
+  }
+
+  /// Get the correct answer text (from options using index, or legacy field)
+  String get correctAnswerText {
+    if (options != null && correctIndex >= 0 && correctIndex < options!.length) {
+      return options![correctIndex];
+    }
+    return correctAnswer ?? '';
+  }
 
   Map<String, dynamic> toFirestore() {
     return {
@@ -136,7 +178,22 @@ class Question {
       'questionText': questionText,
       'type': type.name,
       'options': options,
-      'correctAnswer': correctAnswer,
+      'correctIndex': correctIndex,
+      'correctAnswer': correctAnswerText, // Store for backward compat
+      'explanation': explanation,
+      'marks': marks,
+      'difficulty': difficulty.name,
+      'section': section,
+    };
+  }
+
+  /// Firestore data WITHOUT the answer (for student-facing reads)
+  Map<String, dynamic> toFirestoreWithoutAnswer() {
+    return {
+      'id': id,
+      'questionText': questionText,
+      'type': type.name,
+      'options': options,
       'explanation': explanation,
       'marks': marks,
       'difficulty': difficulty.name,
@@ -145,6 +202,22 @@ class Question {
   }
 
   factory Question.fromFirestore(Map<String, dynamic> data) {
+    // Support both new correctIndex and legacy correctAnswer
+    int parsedIndex = data['correctIndex'] ?? -1;
+
+    // Fallback: if correctIndex is missing, try to find it from correctAnswer
+    if (parsedIndex < 0 && data['correctAnswer'] != null) {
+      final options = (data['options'] as List<dynamic>?)
+          ?.map((e) => e.toString())
+          .toList();
+      if (options != null) {
+        parsedIndex = options.indexOf(data['correctAnswer'].toString());
+        if (parsedIndex < 0) parsedIndex = 0;
+      } else {
+        parsedIndex = 0;
+      }
+    }
+
     return Question(
       id: data['id'] ?? '',
       questionText: data['questionText'] ?? '',
@@ -155,7 +228,8 @@ class Question {
       options: (data['options'] as List<dynamic>?)
           ?.map((e) => e.toString())
           .toList(),
-      correctAnswer: data['correctAnswer'] ?? '',
+      correctIndex: parsedIndex >= 0 ? parsedIndex : 0,
+      correctAnswer: data['correctAnswer']?.toString(),
       explanation: data['explanation'],
       marks: data['marks'] ?? 1,
       difficulty: DifficultyLevel.values.firstWhere(
@@ -171,14 +245,16 @@ class Quiz {
   final String id;
   final String title;
   final String description;
-  final String dentistUid;
+  final String dentistUid; // creatorId (professor/dentist UID)
   final QuizConfig config;
   final List<Question> questions;
   final String? noteFileUrl;
   final String? noteFileName;
-  final List<String>? lectureNoteIds; // References to lecture notes
-  final String? additionalNotesUrl; // Additional notes uploaded for this quiz
+  final List<String>? lectureNoteIds;
+  final String? additionalNotesUrl;
   final String? additionalNotesFileName;
+  final String? sourceText; // Extracted text used for AI generation
+  final QuizStatus status; // draft, published, closed
   final DateTime createdAt;
   final DateTime? lastModified;
   final int totalMarks;
@@ -196,11 +272,20 @@ class Quiz {
     this.lectureNoteIds,
     this.additionalNotesUrl,
     this.additionalNotesFileName,
+    this.sourceText,
+    this.status = QuizStatus.draft,
     required this.createdAt,
     this.lastModified,
     required this.totalMarks,
     this.sectionMarks,
   });
+
+  /// Alias for professor/teacher context
+  String get creatorId => dentistUid;
+
+  bool get isDraft => status == QuizStatus.draft;
+  bool get isPublished => status == QuizStatus.published;
+  bool get isClosed => status == QuizStatus.closed;
 
   Map<String, dynamic> toFirestore() {
     return {
@@ -215,6 +300,8 @@ class Quiz {
       'lectureNoteIds': lectureNoteIds,
       'additionalNotesUrl': additionalNotesUrl,
       'additionalNotesFileName': additionalNotesFileName,
+      'sourceText': sourceText,
+      'status': status.name,
       'createdAt': Timestamp.fromDate(createdAt),
       'lastModified': lastModified != null
           ? Timestamp.fromDate(lastModified!)
@@ -244,12 +331,43 @@ class Quiz {
           .toList(),
       additionalNotesUrl: data['additionalNotesUrl'],
       additionalNotesFileName: data['additionalNotesFileName'],
+      sourceText: data['sourceText'],
+      status: QuizStatus.values.firstWhere(
+        (e) => e.name == (data['status'] ?? 'draft'),
+        orElse: () => QuizStatus.draft,
+      ),
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       lastModified: (data['lastModified'] as Timestamp?)?.toDate(),
       totalMarks: data['totalMarks'] ?? 0,
       sectionMarks: data['sectionMarks'] != null
           ? Map<String, int>.from(data['sectionMarks'])
           : null,
+    );
+  }
+
+  /// Create Quiz from raw map (for student-facing reads without doc reference)
+  factory Quiz.fromMap(String id, Map<String, dynamic> data) {
+    return Quiz(
+      id: id,
+      title: data['title'] ?? '',
+      description: data['description'] ?? '',
+      dentistUid: data['dentistUid'] ?? '',
+      config: QuizConfig.fromFirestore(data['config'] ?? {}),
+      questions:
+          (data['questions'] as List<dynamic>?)
+              ?.map((q) => Question.fromFirestore(q as Map<String, dynamic>))
+              .toList() ??
+          [],
+      noteFileUrl: data['noteFileUrl'],
+      noteFileName: data['noteFileName'],
+      sourceText: data['sourceText'],
+      status: QuizStatus.values.firstWhere(
+        (e) => e.name == (data['status'] ?? 'draft'),
+        orElse: () => QuizStatus.draft,
+      ),
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      lastModified: (data['lastModified'] as Timestamp?)?.toDate(),
+      totalMarks: data['totalMarks'] ?? 0,
     );
   }
 
@@ -275,5 +393,51 @@ class Quiz {
       return minutes > 0 ? '$hours hr $minutes min' : '$hours hr';
     }
     return '$minutes min';
+  }
+
+  String get statusText {
+    switch (status) {
+      case QuizStatus.draft:
+        return 'Draft';
+      case QuizStatus.published:
+        return 'Published';
+      case QuizStatus.closed:
+        return 'Closed';
+    }
+  }
+
+  /// Copy quiz with modified fields
+  Quiz copyWith({
+    String? id,
+    String? title,
+    String? description,
+    String? dentistUid,
+    QuizConfig? config,
+    List<Question>? questions,
+    String? noteFileUrl,
+    String? noteFileName,
+    String? sourceText,
+    QuizStatus? status,
+    DateTime? createdAt,
+    DateTime? lastModified,
+    int? totalMarks,
+    Map<String, int>? sectionMarks,
+  }) {
+    return Quiz(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      dentistUid: dentistUid ?? this.dentistUid,
+      config: config ?? this.config,
+      questions: questions ?? this.questions,
+      noteFileUrl: noteFileUrl ?? this.noteFileUrl,
+      noteFileName: noteFileName ?? this.noteFileName,
+      sourceText: sourceText ?? this.sourceText,
+      status: status ?? this.status,
+      createdAt: createdAt ?? this.createdAt,
+      lastModified: lastModified ?? this.lastModified,
+      totalMarks: totalMarks ?? this.totalMarks,
+      sectionMarks: sectionMarks ?? this.sectionMarks,
+    );
   }
 }

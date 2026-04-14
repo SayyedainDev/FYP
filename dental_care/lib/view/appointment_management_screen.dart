@@ -2,9 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/appointment.dart';
 import '../providers/appointment_provider.dart';
+import '../core/theme/app_semantic_colors.dart';
+import '../widgets/loaders/app_loader.dart';
 
 class AppointmentManagementScreen extends StatefulWidget {
-  const AppointmentManagementScreen({Key? key}) : super(key: key);
+  const AppointmentManagementScreen({super.key});
 
   @override
   State<AppointmentManagementScreen> createState() =>
@@ -17,8 +19,9 @@ class _AppointmentManagementScreenState
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: colorScheme.surface,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
@@ -33,16 +36,19 @@ class _AppointmentManagementScreenState
                   children: [
                     Text(
                       'Appointment Management',
-                      style: Theme.of(context).textTheme.headlineMedium
-                          ?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF212121),
-                          ),
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurface,
+                              ),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'Schedule and manage patient appointments',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -51,8 +57,8 @@ class _AppointmentManagementScreenState
                   icon: const Icon(Icons.add),
                   label: const Text('New Appointment'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF4A90E2),
-                    foregroundColor: Colors.white,
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 14,
@@ -93,7 +99,7 @@ class _AppointmentManagementScreenState
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(64.0),
-                      child: CircularProgressIndicator(),
+                      child: AppLoader(message: 'Loading appointments...'),
                     ),
                   );
                 }
@@ -106,11 +112,11 @@ class _AppointmentManagementScreenState
                   return Container(
                     padding: const EdgeInsets.all(64),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: colorScheme.shadow.withValues(alpha: 0.08),
                           blurRadius: 10,
                           offset: const Offset(0, 2),
                         ),
@@ -122,7 +128,7 @@ class _AppointmentManagementScreenState
                           Icon(
                             Icons.event_busy,
                             size: 64,
-                            color: Colors.grey[300],
+                            color: colorScheme.outlineVariant,
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -130,13 +136,15 @@ class _AppointmentManagementScreenState
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: Colors.grey[700],
+                              color: colorScheme.onSurface,
                             ),
                           ),
                           const SizedBox(height: 8),
                           Text(
                             'Schedule a new appointment to get started',
-                            style: TextStyle(color: Colors.grey[500]),
+                            style: TextStyle(
+                              color: colorScheme.onSurfaceVariant,
+                            ),
                           ),
                         ],
                       ),
@@ -162,21 +170,23 @@ class _AppointmentManagementScreenState
   }
 
   Widget _buildFilterChip(String label, String value, IconData icon) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isSelected = _selectedFilter == value;
     return InkWell(
       onTap: () => setState(() => _selectedFilter = value),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF4A90E2) : Colors.white,
+          color: isSelected ? colorScheme.primary : colorScheme.surface,
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
-            color: isSelected ? const Color(0xFF4A90E2) : Colors.grey.shade300,
+            color:
+                isSelected ? colorScheme.primary : colorScheme.outlineVariant,
           ),
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: const Color(0xFF4A90E2).withOpacity(0.3),
+                    color: colorScheme.primary.withValues(alpha: 0.3),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -188,13 +198,17 @@ class _AppointmentManagementScreenState
             Icon(
               icon,
               size: 18,
-              color: isSelected ? Colors.white : Colors.grey[700],
+              color: isSelected
+                  ? colorScheme.onPrimary
+                  : colorScheme.onSurfaceVariant,
             ),
             const SizedBox(width: 8),
             Text(
               label,
               style: TextStyle(
-                color: isSelected ? Colors.white : Colors.grey[700],
+                color: isSelected
+                    ? colorScheme.onPrimary
+                    : colorScheme.onSurfaceVariant,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                 fontSize: 14,
               ),
@@ -206,17 +220,18 @@ class _AppointmentManagementScreenState
   }
 
   Widget _buildAppointmentCard(Appointment appointment) {
+    final colorScheme = Theme.of(context).colorScheme;
     final statusColor = _getStatusColor(appointment.status);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: colorScheme.outlineVariant),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: colorScheme.shadow.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -233,8 +248,8 @@ class _AppointmentManagementScreenState
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    statusColor.withOpacity(0.2),
-                    statusColor.withOpacity(0.1),
+                    statusColor.withValues(alpha: 0.2),
+                    statusColor.withValues(alpha: 0.1),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -275,10 +290,10 @@ class _AppointmentManagementScreenState
                       Expanded(
                         child: Text(
                           'Patient: ${appointment.patientId}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Color(0xFF212121),
+                            color: colorScheme.onSurface,
                           ),
                         ),
                       ),
@@ -288,7 +303,7 @@ class _AppointmentManagementScreenState
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: statusColor.withOpacity(0.15),
+                          color: statusColor.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
@@ -308,18 +323,21 @@ class _AppointmentManagementScreenState
                       Icon(
                         Icons.access_time,
                         size: 16,
-                        color: Colors.grey[500],
+                        color: colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         '${appointment.appointmentDate.hour.toString().padLeft(2, '0')}:${appointment.appointmentDate.minute.toString().padLeft(2, '0')}',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
                       ),
                       const SizedBox(width: 16),
                       Icon(
                         Icons.medical_services,
                         size: 16,
-                        color: Colors.grey[500],
+                        color: colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(width: 6),
                       Expanded(
@@ -327,7 +345,7 @@ class _AppointmentManagementScreenState
                           appointment.appointmentType,
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.grey[600],
+                            color: colorScheme.onSurfaceVariant,
                           ),
                         ),
                       ),
@@ -339,7 +357,7 @@ class _AppointmentManagementScreenState
                       appointment.notes,
                       style: TextStyle(
                         fontSize: 13,
-                        color: Colors.grey[600],
+                        color: colorScheme.onSurfaceVariant,
                         fontStyle: FontStyle.italic,
                       ),
                       maxLines: 2,
@@ -354,12 +372,18 @@ class _AppointmentManagementScreenState
             Column(
               children: [
                 IconButton(
-                  icon: Icon(Icons.edit, color: Colors.grey[600]),
+                  icon: Icon(Icons.edit, color: colorScheme.onSurfaceVariant),
                   onPressed: () => _editAppointment(appointment),
                   tooltip: 'Edit',
                 ),
                 IconButton(
-                  icon: Icon(Icons.delete, color: Colors.red[400]),
+                  icon: Icon(
+                    Icons.delete,
+                    color: Theme.of(context)
+                            .extension<AppSemanticColors>()
+                            ?.danger ??
+                        colorScheme.error,
+                  ),
                   onPressed: () => _deleteAppointment(appointment),
                   tooltip: 'Delete',
                 ),
@@ -396,11 +420,12 @@ class _AppointmentManagementScreenState
   }
 
   void _deleteAppointment(Appointment appointment) {
+    final colorScheme = Theme.of(context).colorScheme;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Appointment'),
-        content: Text('Are you sure you want to delete this appointment?'),
+        content: const Text('Are you sure you want to delete this appointment?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -413,7 +438,12 @@ class _AppointmentManagementScreenState
                 const SnackBar(content: Text('Appointment deleted')),
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor:
+                  Theme.of(context).extension<AppSemanticColors>()?.danger ??
+                      colorScheme.error,
+              foregroundColor: colorScheme.onError,
+            ),
             child: const Text('Delete'),
           ),
         ],
@@ -439,16 +469,18 @@ class _AppointmentManagementScreenState
   }
 
   Color _getStatusColor(String status) {
+    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
+    final colorScheme = Theme.of(context).colorScheme;
     switch (status.toLowerCase()) {
       case 'completed':
-        return Colors.green;
+        return semanticColors?.success ?? colorScheme.secondary;
       case 'cancelled':
-        return Colors.red;
+        return semanticColors?.danger ?? colorScheme.error;
       case 'scheduled':
       case 'upcoming':
-        return Colors.blue;
+        return semanticColors?.info ?? colorScheme.primary;
       default:
-        return Colors.grey;
+        return colorScheme.onSurfaceVariant;
     }
   }
 

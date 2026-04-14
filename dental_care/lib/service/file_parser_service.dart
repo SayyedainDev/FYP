@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:archive/archive.dart';
@@ -153,10 +152,8 @@ class FileParserService {
         }
       }
 
-      final extractedText = textParts
-          .join(' ')
-          .replaceAll(RegExp(r'\s+'), ' ')
-          .trim();
+      final extractedText =
+          textParts.join(' ').replaceAll(RegExp(r'\s+'), ' ').trim();
 
       debugPrint('✅ DOCX extraction: ${extractedText.length} characters');
 
@@ -220,10 +217,8 @@ class FileParserService {
         }
       }
 
-      final extractedText = textParts
-          .join(' ')
-          .replaceAll(RegExp(r'\s+'), ' ')
-          .trim();
+      final extractedText =
+          textParts.join(' ').replaceAll(RegExp(r'\s+'), ' ').trim();
 
       debugPrint(
         '✅ PPTX extraction: ${extractedText.length} characters from ${textParts.length} text elements',
@@ -288,10 +283,8 @@ class FileParserService {
         }
       }
 
-      final extractedText = textParts
-          .join(' ')
-          .replaceAll(RegExp(r'\s+'), ' ')
-          .trim();
+      final extractedText =
+          textParts.join(' ').replaceAll(RegExp(r'\s+'), ' ').trim();
 
       debugPrint('✅ XLSX extraction: ${extractedText.length} characters');
 

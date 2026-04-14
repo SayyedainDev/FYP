@@ -5,12 +5,16 @@ import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
+import '../core/responsive/app_breakpoints.dart';
+import '../core/theme/app_semantic_colors.dart';
 import '../provider/auth_provider.dart';
 import '../providers/lecture_notes_provider.dart';
 import '../models/lecture_note.dart';
+import '../utils/app_dialogs.dart';
+import '../widgets/loaders/app_loader.dart';
 
 class LectureNotesScreen extends StatefulWidget {
-  const LectureNotesScreen({Key? key}) : super(key: key);
+  const LectureNotesScreen({super.key});
 
   @override
   State<LectureNotesScreen> createState() => _LectureNotesScreenState();
@@ -54,7 +58,7 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: Column(
         children: [
           _buildModernTabBar(),
@@ -74,14 +78,14 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
 
   Widget _buildModernTabBar() {
     return Container(
-      color: Colors.white,
+      color: Theme.of(context).colorScheme.surface,
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: TabBar(
         controller: _tabController,
-        dividerColor: Colors.grey[200],
-        indicatorColor: const Color(0xFF4A90E2),
-        labelColor: const Color(0xFF4A90E2),
-        unselectedLabelColor: Colors.grey[600],
+        dividerColor: Theme.of(context).colorScheme.outlineVariant,
+        indicatorColor: Theme.of(context).colorScheme.primary,
+        labelColor: Theme.of(context).colorScheme.primary,
+        unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
         labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
         tabs: const [
           Tab(text: 'Upload'),
@@ -95,8 +99,9 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
     LectureNotesProvider notesProvider,
     AuthProvider authProvider,
   ) {
+    final horizontal = AppBreakpoints.horizontalPadding(context) + 12;
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
+      padding: EdgeInsets.all(horizontal),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 900),
@@ -123,9 +128,12 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
   Widget _buildModernUploadZone() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[200]!, width: 1),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant,
+          width: 1,
+        ),
       ),
       child: Column(
         children: [
@@ -138,12 +146,12 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
                 decoration: BoxDecoration(
                   border: Border.all(
                     color: _selectedPlatformFile != null
-                        ? const Color(0xFF4A90E2)
-                        : Colors.grey[300]!,
+                        ? Theme.of(context).colorScheme.primary
+                        : Theme.of(context).colorScheme.outline,
                     width: 2,
                   ),
                   borderRadius: BorderRadius.circular(8),
-                  color: Colors.grey[50],
+                  color: Theme.of(context).colorScheme.surfaceContainerLowest,
                 ),
                 child: Column(
                   children: [
@@ -151,8 +159,8 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
                       Icons.upload_file,
                       size: 48,
                       color: _selectedPlatformFile != null
-                          ? const Color(0xFF4A90E2)
-                          : Colors.grey[400],
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context).colorScheme.outline,
                     ),
                     const SizedBox(height: 16),
                     Text(
@@ -161,15 +169,18 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: _selectedPlatformFile != null
-                            ? const Color(0xFF4A90E2)
-                            : const Color(0xFF212121),
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.onSurface,
                       ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Text(
                       'PDF, DOCX, PPT, Images, Videos (Max 500MB)',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ],
@@ -185,9 +196,12 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
   Widget _buildModernForm() {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[200]!, width: 1),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant,
+          width: 1,
+        ),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -235,10 +249,10 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
       children: [
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: Color(0xFF212121),
+            color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 8),
@@ -250,18 +264,23 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
             hintText: hint,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey[300]!),
+              borderSide:
+                  BorderSide(color: Theme.of(context).colorScheme.outline),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey[300]!),
+              borderSide:
+                  BorderSide(color: Theme.of(context).colorScheme.outline),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 2),
+              borderSide: BorderSide(
+                color: Theme.of(context).colorScheme.primary,
+                width: 2,
+              ),
             ),
             filled: true,
-            fillColor: Colors.grey[50],
+            fillColor: Theme.of(context).colorScheme.surfaceContainerLowest,
             contentPadding: const EdgeInsets.all(12),
           ),
         ),
@@ -280,17 +299,19 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey[200]!),
+          border:
+              Border.all(color: Theme.of(context).colorScheme.outlineVariant),
         ),
         child: Column(
           children: [
             LinearProgressIndicator(
               value: notesProvider.uploadProgress,
-              backgroundColor: Colors.grey[300],
-              valueColor: const AlwaysStoppedAnimation<Color>(
-                Color(0xFF4A90E2),
+              backgroundColor:
+                  Theme.of(context).colorScheme.surfaceContainerHighest,
+              valueColor: AlwaysStoppedAnimation<Color>(
+                Theme.of(context).colorScheme.primary,
               ),
             ),
             const SizedBox(height: 12),
@@ -299,7 +320,7 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
               style: TextStyle(
                 fontSize: 13,
                 fontWeight: FontWeight.w500,
-                color: Colors.grey[600],
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ],
@@ -308,14 +329,14 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
     }
 
     return ElevatedButton(
-      onPressed: canUpload
-          ? () => _uploadFile(notesProvider, authProvider)
-          : null,
+      onPressed:
+          canUpload ? () => _uploadFile(notesProvider, authProvider) : null,
       style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF4A90E2),
-        foregroundColor: Colors.white,
-        disabledBackgroundColor: Colors.grey[300],
-        disabledForegroundColor: Colors.grey[700],
+        backgroundColor: Theme.of(context).colorScheme.primary,
+        foregroundColor: Theme.of(context).colorScheme.onPrimary,
+        disabledBackgroundColor:
+            Theme.of(context).colorScheme.surfaceContainerHighest,
+        disabledForegroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         elevation: 0,
@@ -331,13 +352,12 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
     LectureNotesProvider notesProvider,
     AuthProvider authProvider,
   ) {
+    final colorScheme = Theme.of(context).colorScheme;
     return StreamBuilder<List<LectureNote>>(
       stream: notesProvider.getLectureNotesStream(authProvider.user!.uid),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(
-            child: CircularProgressIndicator(color: Color(0xFF6366F1)),
-          );
+          return const Center(child: AppLoader(message: 'Loading notes...'));
         }
 
         if (snapshot.hasError) {
@@ -345,11 +365,11 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.error_outline, size: 64, color: Colors.red[300]),
+                Icon(Icons.error_outline, size: 64, color: colorScheme.error),
                 const SizedBox(height: 16),
                 Text(
                   'Error: ${snapshot.error}',
-                  style: TextStyle(color: Colors.red[700]),
+                  style: TextStyle(color: colorScheme.error),
                 ),
               ],
             ),
@@ -360,30 +380,30 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
         final filteredNotes = _searchQuery.isEmpty
             ? notes
             : notes
-                  .where(
-                    (note) =>
-                        note.title.toLowerCase().contains(
-                          _searchQuery.toLowerCase(),
-                        ) ||
-                        note.description.toLowerCase().contains(
-                          _searchQuery.toLowerCase(),
-                        ),
-                  )
-                  .toList();
+                .where(
+                  (note) =>
+                      note.title.toLowerCase().contains(
+                            _searchQuery.toLowerCase(),
+                          ) ||
+                      note.description.toLowerCase().contains(
+                            _searchQuery.toLowerCase(),
+                          ),
+                )
+                .toList();
 
         return Column(
           children: [
             // Search Bar
             Container(
               padding: const EdgeInsets.all(20),
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               child: TextField(
                 onChanged: (value) => setState(() => _searchQuery = value),
                 decoration: InputDecoration(
                   hintText: 'Search notes...',
-                  prefixIcon: const Icon(
+                  prefixIcon: Icon(
                     Icons.search,
-                    color: Color(0xFF4A90E2),
+                    color: Theme.of(context).colorScheme.primary,
                   ),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
@@ -393,21 +413,24 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
                       : null,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
+                    borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.outline),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: BorderSide(color: Colors.grey[300]!),
+                    borderSide: BorderSide(
+                        color: Theme.of(context).colorScheme.outline),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
-                    borderSide: const BorderSide(
-                      color: Color(0xFF4A90E2),
+                    borderSide: BorderSide(
+                      color: Theme.of(context).colorScheme.primary,
                       width: 2,
                     ),
                   ),
                   filled: true,
-                  fillColor: Colors.grey[50],
+                  fillColor:
+                      Theme.of(context).colorScheme.surfaceContainerLowest,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
@@ -429,18 +452,23 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
   }
 
   Widget _buildEmptyState() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.folder_open, size: 64, color: Colors.grey[400]),
+          Icon(
+            Icons.folder_open,
+            size: 64,
+            color: colorScheme.outline,
+          ),
           const SizedBox(height: 16),
           Text(
             _searchQuery.isEmpty ? 'No notes yet' : 'No matching notes found',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF212121),
+              color: Theme.of(context).colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 8),
@@ -448,7 +476,10 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
             _searchQuery.isEmpty
                 ? 'Upload notes to get started'
                 : 'Try different keywords',
-            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+            style: TextStyle(
+              fontSize: 13,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -460,10 +491,18 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
     LectureNotesProvider notesProvider,
     AuthProvider authProvider,
   ) {
+    final device = AppBreakpoints.fromWidth(MediaQuery.sizeOf(context).width);
+    final crossAxisCount = switch (device) {
+      AppDeviceType.mobile => 1,
+      AppDeviceType.tablet => 2,
+      AppDeviceType.desktop => 3,
+      AppDeviceType.largeDesktop => 3,
+    };
+
     return GridView.builder(
       padding: const EdgeInsets.all(20),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: crossAxisCount,
         crossAxisSpacing: 16,
         mainAxisSpacing: 16,
         childAspectRatio: 0.85,
@@ -480,11 +519,16 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
     LectureNotesProvider notesProvider,
     AuthProvider authProvider,
   ) {
+    final semantic = Theme.of(context).extension<AppSemanticColors>();
+    final danger = semantic?.danger ?? Theme.of(context).colorScheme.error;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[200]!, width: 1),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant,
+          width: 1,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -493,13 +537,16 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.grey[50],
+              color: Theme.of(context).colorScheme.surfaceContainerLowest,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(8),
                 topRight: Radius.circular(8),
               ),
               border: Border(
-                bottom: BorderSide(color: Colors.grey[200]!, width: 1),
+                bottom: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                  width: 1,
+                ),
               ),
             ),
             child: Row(
@@ -507,16 +554,16 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
                 Icon(
                   _getTypeIcon(note.type),
                   size: 20,
-                  color: const Color(0xFF4A90E2),
+                  color: Theme.of(context).colorScheme.primary,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     note.title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF212121),
+                      color: Theme.of(context).colorScheme.onSurface,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -526,7 +573,7 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
                   icon: Icon(
                     Icons.more_vert,
                     size: 18,
-                    color: Colors.grey[600],
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
                   ),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -552,13 +599,13 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
                           notesProvider,
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.delete, size: 18, color: Colors.red),
-                          SizedBox(width: 8),
+                          Icon(Icons.delete, size: 18, color: danger),
+                          const SizedBox(width: 8),
                           Text(
                             'Delete',
-                            style: TextStyle(color: Colors.red, fontSize: 13),
+                            style: TextStyle(color: danger, fontSize: 13),
                           ),
                         ],
                       ),
@@ -578,23 +625,36 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
                 children: [
                   Text(
                     note.description,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[700]),
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
                   const Spacer(),
                   Row(
                     children: [
-                      Icon(Icons.visibility, size: 14, color: Colors.grey[400]),
+                      Icon(
+                        Icons.visibility,
+                        size: 14,
+                        color: Theme.of(context).colorScheme.outline,
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         '${note.views}',
-                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                       const Spacer(),
                       Text(
                         note.formatFileSize(),
-                        style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ],
                   ),
@@ -651,11 +711,9 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error picking file: $e'),
-            backgroundColor: Colors.red,
-          ),
+        AppDialogs.showErrorDialog(
+          context,
+          message: 'Unable to pick file right now. Please try again.',
         );
       }
     }
@@ -666,12 +724,8 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
     AuthProvider authProvider,
   ) async {
     if (_selectedPlatformFile == null || _titleController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a file and enter a title'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      AppDialogs.showErrorDialog(context,
+          message: 'Please select a file and enter a title');
       return;
     }
 
@@ -688,12 +742,7 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
       // For web, use bytes
       final bytes = _selectedPlatformFile!.bytes;
       if (bytes == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to read file'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppDialogs.showErrorDialog(context, message: 'Failed to read file');
         return;
       }
 
@@ -709,12 +758,8 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
       // For mobile, use file path
       final path = _selectedPlatformFile!.path;
       if (path == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to read file path'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppDialogs.showErrorDialog(context,
+            message: 'Failed to read file path');
         return;
       }
 
@@ -730,22 +775,8 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
 
     if (mounted) {
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle, color: Colors.white),
-                const SizedBox(width: 12),
-                const Text('Lecture note uploaded successfully!'),
-              ],
-            ),
-            backgroundColor: const Color(0xFF10B981),
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        AppDialogs.showInfoDialog(context,
+            title: 'Success', message: 'Lecture note uploaded successfully!');
         // Clear form
         _titleController.clear();
         _descriptionController.clear();
@@ -756,22 +787,9 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
         // Switch to notes list
         _tabController.animateTo(1);
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.error, color: Colors.white),
-                const SizedBox(width: 12),
-                Expanded(child: Text('Error: ${notesProvider.errorMessage}')),
-              ],
-            ),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        AppDialogs.showErrorDialog(context,
+            message: notesProvider.errorMessage ??
+                'Unable to upload lecture note. Please try again.');
       }
     }
   }
@@ -835,12 +853,8 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
       );
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to share: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppDialogs.showErrorDialog(context,
+            message: 'Failed to share note. Please try again.');
       }
     }
   }
@@ -850,6 +864,10 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
     LectureNote note,
     LectureNotesProvider notesProvider,
   ) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semantic = Theme.of(context).extension<AppSemanticColors>();
+    final danger = semantic?.danger ?? colorScheme.error;
+    final successColor = semantic?.success ?? colorScheme.primary;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -859,12 +877,13 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: Colors.red.shade50,
+                color:
+                    Theme.of(context).colorScheme.error.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 Icons.warning_amber_rounded,
-                color: Colors.red.shade400,
+                color: Theme.of(context).colorScheme.error,
                 size: 24,
               ),
             ),
@@ -880,30 +899,21 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
           ),
           ElevatedButton(
             onPressed: () async {
-              Navigator.pop(context);
               final success = await notesProvider.deleteLectureNote(
                 noteId: note.id,
                 dentistUid: note.dentistUid,
                 fileName: note.fileName,
               );
               if (mounted) {
+                Navigator.pop(context);
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Row(
-                      children: [
-                        Icon(
-                          success ? Icons.check_circle : Icons.error,
-                          color: Colors.white,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          success
-                              ? 'Note deleted successfully'
-                              : 'Error deleting note',
-                        ),
-                      ],
+                    content: Text(
+                      success
+                          ? 'Note deleted successfully.'
+                          : 'Failed to delete note. Please try again.',
                     ),
-                    backgroundColor: success ? Colors.green : Colors.red,
+                    backgroundColor: success ? successColor : danger,
                     behavior: SnackBarBehavior.floating,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -913,8 +923,8 @@ class _LectureNotesScreenState extends State<LectureNotesScreen>
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
+              backgroundColor: danger,
+              foregroundColor: colorScheme.onError,
             ),
             child: const Text('Delete'),
           ),

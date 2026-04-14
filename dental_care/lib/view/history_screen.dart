@@ -6,6 +6,9 @@ import 'package:printing/printing.dart';
 import '../providers/case_provider.dart';
 import 'widgets/create_case_dialog.dart';
 import '../providers/patient_provider.dart';
+import '../core/theme/app_semantic_colors.dart';
+import '../utils/app_dialogs.dart';
+import '../widgets/loaders/app_loader.dart';
 
 class HistoryScreen extends StatelessWidget {
   const HistoryScreen({super.key});
@@ -14,6 +17,7 @@ class HistoryScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final caseProvider = Provider.of<CaseProvider>(context);
     final patientProvider = Provider.of<PatientProvider>(context);
+    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
@@ -48,9 +52,15 @@ class HistoryScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           if (caseProvider.loading)
-            const Center(child: CircularProgressIndicator())
+            const Center(child: AppLoader(message: 'Loading scan history...'))
           else if (caseProvider.error != null)
-            Text(caseProvider.error!, style: const TextStyle(color: Colors.red))
+            Text(
+              caseProvider.error!,
+              style: TextStyle(
+                color: semanticColors?.danger ??
+                    Theme.of(context).colorScheme.error,
+              ),
+            )
           else
             Column(
               children: caseProvider.cases
@@ -71,12 +81,13 @@ class _FilterRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
+        border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
         children: [
@@ -210,6 +221,7 @@ class _DatePicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: () async {
         final picked = await showDatePicker(
@@ -236,7 +248,9 @@ class _DatePicker extends StatelessWidget {
         child: Text(
           date != null ? _formatDate(date!) : 'Select date',
           style: TextStyle(
-            color: date != null ? Colors.black87 : Colors.grey.shade600,
+            color: date != null
+                ? colorScheme.onSurface
+                : colorScheme.onSurfaceVariant,
           ),
         ),
       ),
@@ -255,6 +269,8 @@ class _CaseHistoryCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
     final isAnalysisComplete = caseItem.isAnalysisComplete;
     final hasCavity = caseItem.hasCavity;
     final status = caseItem.caseStatus;
@@ -262,31 +278,36 @@ class _CaseHistoryCard extends StatelessWidget {
     Color statusColor;
     Color statusBg;
     if (status == 'Completed') {
-      statusColor = Colors.green;
-      statusBg = Colors.green.shade50;
+      statusColor = semanticColors?.success ?? colorScheme.secondary;
+      statusBg = (semanticColors?.success ?? colorScheme.secondary)
+          .withValues(alpha: 0.12);
     } else if (status == 'Under Review') {
-      statusColor = Colors.blue;
-      statusBg = Colors.blue.shade50;
+      statusColor = semanticColors?.info ?? colorScheme.primary;
+      statusBg =
+          (semanticColors?.info ?? colorScheme.primary).withValues(alpha: 0.12);
     } else {
-      statusColor = Colors.orange;
-      statusBg = Colors.orange.shade50;
+      statusColor = semanticColors?.warning ?? colorScheme.tertiary;
+      statusBg = (semanticColors?.warning ?? colorScheme.tertiary)
+          .withValues(alpha: 0.12);
     }
 
     final analysisLabel = !isAnalysisComplete
         ? 'Pending Analysis'
         : hasCavity
-        ? 'Cavity Detected'
-        : 'Healthy';
+            ? 'Cavity Detected'
+            : 'Healthy';
     final analysisColor = !isAnalysisComplete
-        ? Colors.blue
+        ? semanticColors?.info ?? colorScheme.primary
         : hasCavity
-        ? Colors.orange
-        : Colors.green;
+            ? semanticColors?.warning ?? colorScheme.tertiary
+            : semanticColors?.success ?? colorScheme.secondary;
     final analysisBg = !isAnalysisComplete
-        ? Colors.blue.shade50
+        ? (semanticColors?.info ?? colorScheme.primary).withValues(alpha: 0.12)
         : hasCavity
-        ? Colors.orange.shade50
-        : Colors.green.shade50;
+            ? (semanticColors?.warning ?? colorScheme.tertiary)
+                .withValues(alpha: 0.12)
+            : (semanticColors?.success ?? colorScheme.secondary)
+                .withValues(alpha: 0.12);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
@@ -299,23 +320,26 @@ class _CaseHistoryCard extends StatelessWidget {
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
                 color: !isAnalysisComplete
-                    ? Colors.blue.shade100
+                    ? (semanticColors?.info ?? colorScheme.primary)
+                        .withValues(alpha: 0.22)
                     : hasCavity
-                    ? Colors.orange.shade100
-                    : Colors.green.shade100,
+                        ? (semanticColors?.warning ?? colorScheme.tertiary)
+                            .withValues(alpha: 0.22)
+                        : (semanticColors?.success ?? colorScheme.secondary)
+                            .withValues(alpha: 0.22),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 !isAnalysisComplete
                     ? Icons.hourglass_empty
                     : hasCavity
-                    ? Icons.warning_amber
-                    : Icons.check_circle,
+                        ? Icons.warning_amber
+                        : Icons.check_circle,
                 color: !isAnalysisComplete
-                    ? Colors.blue
+                    ? semanticColors?.info ?? colorScheme.primary
                     : hasCavity
-                    ? Colors.orange
-                    : Colors.green,
+                        ? semanticColors?.warning ?? colorScheme.tertiary
+                        : semanticColors?.success ?? colorScheme.secondary,
                 size: 32,
               ),
             ),
@@ -369,24 +393,24 @@ class _CaseHistoryCard extends StatelessWidget {
                       Icon(
                         Icons.calendar_today,
                         size: 16,
-                        color: Colors.grey.shade600,
+                        color: colorScheme.onSurfaceVariant,
                       ),
                       const SizedBox(width: 8),
                       Text(
                         _formatDateTime(caseItem.caseDate),
-                        style: TextStyle(color: Colors.grey.shade600),
+                        style: TextStyle(color: colorScheme.onSurfaceVariant),
                       ),
                       if (caseItem.toothNumber.isNotEmpty) ...[
                         const SizedBox(width: 24),
                         Icon(
                           Icons.medical_services,
                           size: 16,
-                          color: Colors.grey.shade600,
+                          color: colorScheme.onSurfaceVariant,
                         ),
                         const SizedBox(width: 8),
                         Text(
                           'Tooth #${caseItem.toothNumber}',
-                          style: TextStyle(color: Colors.grey.shade600),
+                          style: TextStyle(color: colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ],
@@ -394,11 +418,15 @@ class _CaseHistoryCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      Icon(Icons.image, size: 16, color: Colors.grey.shade600),
+                      Icon(
+                        Icons.image,
+                        size: 16,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         '${caseItem.imageUrls.length} X-ray image(s)',
-                        style: TextStyle(color: Colors.grey.shade600),
+                        style: TextStyle(color: colorScheme.onSurfaceVariant),
                       ),
                     ],
                   ),
@@ -407,7 +435,7 @@ class _CaseHistoryCard extends StatelessWidget {
                     Text(
                       caseItem.notes,
                       style: TextStyle(
-                        color: Colors.grey.shade700,
+                        color: colorScheme.onSurfaceVariant,
                         fontSize: 14,
                       ),
                       maxLines: 2,
@@ -419,7 +447,7 @@ class _CaseHistoryCard extends StatelessWidget {
                     Text(
                       'Review: ${caseItem.reviewNotes}',
                       style: TextStyle(
-                        color: Colors.grey.shade700,
+                        color: colorScheme.onSurfaceVariant,
                         fontSize: 13,
                         fontStyle: FontStyle.italic,
                       ),
@@ -486,13 +514,15 @@ class _CaseHistoryCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'delete',
                       child: Row(
                         children: [
-                          Icon(Icons.delete, color: Colors.red, size: 20),
-                          SizedBox(width: 8),
-                          Text('Delete', style: TextStyle(color: Colors.red)),
+                          Icon(Icons.delete,
+                              color: colorScheme.error, size: 20),
+                          const SizedBox(width: 8),
+                          Text('Delete',
+                              style: TextStyle(color: colorScheme.error)),
                         ],
                       ),
                     ),
@@ -569,13 +599,19 @@ class _CaseHistoryCard extends StatelessWidget {
                     fit: BoxFit.cover,
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
-                      return const Center(child: CircularProgressIndicator());
+                      return const Center(child: AppLoader(size: 36));
                     },
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
-                        color: Colors.grey.shade200,
-                        child: const Center(
-                          child: Icon(Icons.error, color: Colors.grey),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        child: Center(
+                          child: Icon(
+                            Icons.error,
+                            color:
+                                Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       );
                     },
@@ -599,7 +635,7 @@ class _CaseHistoryCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        backgroundColor: Colors.black,
+        backgroundColor: Theme.of(context).colorScheme.scrim,
         child: Stack(
           children: [
             Center(
@@ -611,9 +647,7 @@ class _CaseHistoryCard extends StatelessWidget {
                   fit: BoxFit.contain,
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
-                    return const Center(
-                      child: CircularProgressIndicator(color: Colors.white),
-                    );
+                    return const Center(child: AppLoader(size: 42));
                   },
                 ),
               ),
@@ -622,7 +656,11 @@ class _CaseHistoryCard extends StatelessWidget {
               top: 16,
               right: 16,
               child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white, size: 30),
+                icon: Icon(
+                  Icons.close,
+                  color: Theme.of(context).colorScheme.onPrimary,
+                  size: 30,
+                ),
                 onPressed: () => Navigator.pop(context),
               ),
             ),
@@ -697,11 +735,9 @@ class _CaseHistoryCard extends StatelessWidget {
       );
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to generate report: $e'),
-            backgroundColor: Colors.red,
-          ),
+        AppDialogs.showErrorDialog(
+          context,
+          message: 'Failed to generate report. Please try again.',
         );
       }
     }
@@ -796,16 +832,13 @@ class _CaseHistoryCard extends StatelessWidget {
 
               if (context.mounted) {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success
-                          ? 'Case updated successfully'
-                          : 'Failed to update case',
-                    ),
-                    backgroundColor: success ? Colors.green : Colors.red,
-                  ),
-                );
+                if (success) {
+                  AppDialogs.showInfoDialog(context,
+                      title: 'Success', message: 'Case updated successfully');
+                } else {
+                  AppDialogs.showErrorDialog(context,
+                      message: 'Failed to update case.');
+                }
               }
             },
             child: const Text('Save'),
@@ -816,6 +849,8 @@ class _CaseHistoryCard extends StatelessWidget {
   }
 
   void _archiveCase(BuildContext context, Case caseItem) {
+    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
+    final colorScheme = Theme.of(context).colorScheme;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -838,19 +873,19 @@ class _CaseHistoryCard extends StatelessWidget {
 
               if (context.mounted) {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success
-                          ? 'Case archived successfully'
-                          : 'Failed to archive case',
-                    ),
-                    backgroundColor: success ? Colors.green : Colors.red,
-                  ),
-                );
+                if (success) {
+                  AppDialogs.showInfoDialog(context,
+                      title: 'Success', message: 'Case archived successfully');
+                } else {
+                  AppDialogs.showErrorDialog(context,
+                      message: 'Failed to archive case.');
+                }
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.orange),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: semanticColors?.warning ?? colorScheme.tertiary,
+              foregroundColor: colorScheme.onTertiary,
+            ),
             child: const Text('Archive'),
           ),
         ],
@@ -859,6 +894,8 @@ class _CaseHistoryCard extends StatelessWidget {
   }
 
   void _deleteCase(BuildContext context, Case caseItem) {
+    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
+    final colorScheme = Theme.of(context).colorScheme;
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -871,9 +908,9 @@ class _CaseHistoryCard extends StatelessWidget {
               'Are you sure you want to permanently delete "${caseItem.caseTitle.isEmpty ? caseItem.id : caseItem.caseTitle}"?',
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'This action cannot be undone. All images will be deleted.',
-              style: TextStyle(color: Colors.red, fontSize: 12),
+              style: TextStyle(color: colorScheme.error, fontSize: 12),
             ),
           ],
         ),
@@ -892,19 +929,19 @@ class _CaseHistoryCard extends StatelessWidget {
 
               if (context.mounted) {
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      success
-                          ? 'Case deleted successfully'
-                          : 'Failed to delete case',
-                    ),
-                    backgroundColor: success ? Colors.green : Colors.red,
-                  ),
-                );
+                if (success) {
+                  AppDialogs.showInfoDialog(context,
+                      title: 'Success', message: 'Case deleted successfully');
+                } else {
+                  AppDialogs.showErrorDialog(context,
+                      message: 'Failed to delete case.');
+                }
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: semanticColors?.danger ?? colorScheme.error,
+              foregroundColor: colorScheme.onError,
+            ),
             child: const Text('Delete'),
           ),
         ],

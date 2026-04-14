@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/theme/app_semantic_colors.dart';
 import '../providers/patient_provider.dart';
 import '../providers/case_provider.dart';
 
@@ -10,6 +11,8 @@ class DashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
     return SingleChildScrollView(
       padding: const EdgeInsets.all(32),
       child: Column(
@@ -19,14 +22,14 @@ class DashboardScreen extends StatelessWidget {
           Text(
             'Overview',
             style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF212121),
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
           ),
           const SizedBox(height: 8),
           Text(
             'Your practice at a glance',
-            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            style: TextStyle(fontSize: 14, color: colorScheme.onSurfaceVariant),
           ),
           const SizedBox(height: 32),
 
@@ -45,29 +48,32 @@ class DashboardScreen extends StatelessWidget {
                     icon: Icons.people,
                     title: 'Patients',
                     value: patientProvider.totalPatients.toString(),
-                    color: const Color(0xFF4A90E2),
-                    bgColor: const Color(0xFFE3F2FD),
+                    color: semanticColors?.info ?? colorScheme.primary,
+                    bgColor: (semanticColors?.info ?? colorScheme.primary)
+                        .withValues(alpha: 0.12),
                   ),
                   _InsightCard(
                     icon: Icons.image_search,
                     title: 'Scans',
                     value: caseProvider.totalCases.toString(),
-                    color: const Color(0xFF7C3AED),
-                    bgColor: const Color(0xFFF3E8FF),
+                    color: colorScheme.secondary,
+                    bgColor: colorScheme.secondary.withValues(alpha: 0.12),
                   ),
                   _InsightCard(
                     icon: Icons.warning_rounded,
                     title: 'Cavities',
                     value: caseProvider.cavitiesDetected.toString(),
-                    color: const Color(0xFFEF4444),
-                    bgColor: const Color(0xFFFEE2E2),
+                    color: semanticColors?.danger ?? colorScheme.error,
+                    bgColor: (semanticColors?.danger ?? colorScheme.error)
+                        .withValues(alpha: 0.12),
                   ),
                   _InsightCard(
                     icon: Icons.check_circle,
                     title: 'Healthy',
                     value: caseProvider.healthyCases.toString(),
-                    color: const Color(0xFF10B981),
-                    bgColor: const Color(0xFFECFDF5),
+                    color: semanticColors?.success ?? colorScheme.secondary,
+                    bgColor: (semanticColors?.success ?? colorScheme.secondary)
+                        .withValues(alpha: 0.12),
                   ),
                 ],
               );
@@ -121,11 +127,12 @@ class _InsightCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!, width: 1),
+        border: Border.all(color: colorScheme.outlineVariant, width: 1),
       ),
       child: Padding(
         padding: const EdgeInsets.all(20),
@@ -155,7 +162,7 @@ class _InsightCard extends StatelessWidget {
               title,
               style: TextStyle(
                 fontSize: 12,
-                color: Colors.grey[600],
+                color: colorScheme.onSurfaceVariant,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -169,15 +176,17 @@ class _InsightCard extends StatelessWidget {
 class _ActivityFeedSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
     return Consumer<CaseProvider>(
       builder: (context, caseProvider, _) {
         final recentCases = caseProvider.recentCases;
 
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!, width: 1),
+            border: Border.all(color: colorScheme.outlineVariant, width: 1),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -193,18 +202,21 @@ class _ActivityFeedSection extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF212121),
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Latest scan results and updates',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
               ),
-              Divider(height: 1, color: Colors.grey[200]),
+              Divider(height: 1, color: colorScheme.outlineVariant),
               // Content
               if (recentCases.isEmpty)
                 Padding(
@@ -212,11 +224,12 @@ class _ActivityFeedSection extends StatelessWidget {
                   child: Center(
                     child: Column(
                       children: [
-                        Icon(Icons.inbox, size: 40, color: Colors.grey[300]),
+                        Icon(Icons.inbox,
+                            size: 40, color: colorScheme.outlineVariant),
                         const SizedBox(height: 8),
                         Text(
                           'No recent activity',
-                          style: TextStyle(color: Colors.grey[500]),
+                          style: TextStyle(color: colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -226,8 +239,8 @@ class _ActivityFeedSection extends StatelessWidget {
                 ...recentCases.map((case_) {
                   final isCavity = case_.analysisResults['status'] == 'Cavity';
                   final statusColor = isCavity
-                      ? const Color(0xFFEF4444)
-                      : const Color(0xFF10B981);
+                      ? semanticColors?.danger ?? colorScheme.error
+                      : semanticColors?.success ?? colorScheme.secondary;
 
                   return Padding(
                     padding: const EdgeInsets.symmetric(
@@ -253,10 +266,10 @@ class _ActivityFeedSection extends StatelessWidget {
                             children: [
                               Text(
                                 case_.patientName,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF212121),
+                                  color: colorScheme.onSurface,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -264,7 +277,7 @@ class _ActivityFeedSection extends StatelessWidget {
                                 'Tooth #${case_.toothNumber} • ${case_.timeAgo}',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.grey[600],
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ],
@@ -278,8 +291,11 @@ class _ActivityFeedSection extends StatelessWidget {
                           ),
                           decoration: BoxDecoration(
                             color: isCavity
-                                ? const Color(0xFFFEE2E2)
-                                : const Color(0xFFECFDF5),
+                                ? (semanticColors?.danger ?? colorScheme.error)
+                                    .withValues(alpha: 0.12)
+                                : (semanticColors?.success ??
+                                        colorScheme.secondary)
+                                    .withValues(alpha: 0.12),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
@@ -294,7 +310,7 @@ class _ActivityFeedSection extends StatelessWidget {
                       ],
                     ),
                   );
-                }).toList(),
+                }),
             ],
           ),
         );
@@ -306,15 +322,16 @@ class _ActivityFeedSection extends StatelessWidget {
 class _PatientHighlightsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Consumer<PatientProvider>(
       builder: (context, patientProvider, _) {
         final recentPatients = patientProvider.getRecentPatients(limit: 5);
 
         return Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: colorScheme.surface,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!, width: 1),
+            border: Border.all(color: colorScheme.outlineVariant, width: 1),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -330,18 +347,21 @@ class _PatientHighlightsSection extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF212121),
+                        color: colorScheme.onSurface,
                       ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Your recent patients',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
               ),
-              Divider(height: 1, color: Colors.grey[200]),
+              Divider(height: 1, color: colorScheme.outlineVariant),
               // Content
               if (recentPatients.isEmpty)
                 Padding(
@@ -352,12 +372,12 @@ class _PatientHighlightsSection extends StatelessWidget {
                         Icon(
                           Icons.people_outline,
                           size: 40,
-                          color: Colors.grey[300],
+                          color: colorScheme.outlineVariant,
                         ),
                         const SizedBox(height: 8),
                         Text(
                           'No patients yet',
-                          style: TextStyle(color: Colors.grey[500]),
+                          style: TextStyle(color: colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -366,14 +386,14 @@ class _PatientHighlightsSection extends StatelessWidget {
               else
                 ...recentPatients.map((patient) {
                   final colors = [
-                    const Color(0xFFE3F2FD),
-                    const Color(0xFFFCE4EC),
-                    const Color(0xFFE8EAF6),
+                    colorScheme.primaryContainer,
+                    colorScheme.secondaryContainer,
+                    colorScheme.tertiaryContainer,
                   ];
                   final textColors = [
-                    const Color(0xFF1976D2),
-                    const Color(0xFFD81B60),
-                    const Color(0xFF5E35B1),
+                    colorScheme.onPrimaryContainer,
+                    colorScheme.onSecondaryContainer,
+                    colorScheme.onTertiaryContainer,
                   ];
                   final bgColor = colors[patient.name.hashCode % colors.length];
                   final textColor =
@@ -413,10 +433,10 @@ class _PatientHighlightsSection extends StatelessWidget {
                             children: [
                               Text(
                                 patient.name,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 13,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF212121),
+                                  color: colorScheme.onSurface,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -424,7 +444,7 @@ class _PatientHighlightsSection extends StatelessWidget {
                                 '${patient.age} • ${patient.gender}',
                                 style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.grey[600],
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ],
@@ -433,7 +453,7 @@ class _PatientHighlightsSection extends StatelessWidget {
                       ],
                     ),
                   );
-                }).toList(),
+                }),
             ],
           ),
         );

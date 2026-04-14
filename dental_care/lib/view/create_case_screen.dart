@@ -1,5 +1,6 @@
 import 'dart:math' as math;
-import 'dart:ui';
+import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -14,6 +15,10 @@ import 'package:provider/provider.dart';
 import '../models/patient.dart';
 import '../provider/auth_provider.dart' as app_auth;
 import '../service/ai_analysis_service.dart';
+import '../core/theme/app_semantic_colors.dart';
+import '../utils/app_dialogs.dart';
+import '../utils/global_error_handler.dart';
+import '../widgets/loaders/app_loader.dart';
 
 class CreateCaseScreen extends StatefulWidget {
   const CreateCaseScreen({super.key});
@@ -48,19 +53,22 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   final FocusNode _keyboardFocus = FocusNode();
 
   // Card decoration matching the target UI
-  BoxDecoration get _cardDecoration => BoxDecoration(
-    color: Colors.white,
-    borderRadius: BorderRadius.circular(8),
-    border: Border.all(color: const Color(0xFFE5E7EB), width: 1),
-    boxShadow: [
-      BoxShadow(
-        color: Colors.black.withOpacity(0.04),
-        blurRadius: 8,
-        spreadRadius: 0,
-        offset: const Offset(0, 2),
-      ),
-    ],
-  );
+  BoxDecoration get _cardDecoration {
+    final colorScheme = Theme.of(context).colorScheme;
+    return BoxDecoration(
+      color: colorScheme.surface,
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: colorScheme.outlineVariant, width: 1),
+      boxShadow: [
+        BoxShadow(
+          color: colorScheme.shadow.withValues(alpha: 0.04),
+          blurRadius: 8,
+          spreadRadius: 0,
+          offset: const Offset(0, 2),
+        ),
+      ],
+    );
+  }
 
   @override
   void dispose() {
@@ -145,7 +153,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
         return 'Image ${file.name} is too large (> ${_maxResolution.width.toInt()}px)';
       }
     } catch (e) {
-      return 'Could not read ${file.name}: $e';
+      return 'Could not read ${file.name}. Please try another image.';
     }
 
     return null;
@@ -153,10 +161,12 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
 
   Future<void> _pickImages() async {
     if (_isStudentRole) {
-      _showSnackBar(
-        'Students have view-only access. Upload requires Dentist role.',
-        Colors.orange,
-      );
+      AppDialogs.showWarningDialog(context,
+          title: 'Access Denied',
+          message:
+              'Students have view-only access. Upload requires Dentist role.',
+          confirmLabel: 'OK',
+          onConfirm: () {});
       return;
     }
     try {
@@ -171,7 +181,11 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
         for (final file in result.files) {
           final validation = await _validateImageFile(file);
           if (validation != null) {
-            _showSnackBar(validation, Colors.red);
+            AppDialogs.showWarningDialog(context,
+                title: 'Validation Error',
+                message: validation,
+                confirmLabel: 'OK',
+                onConfirm: () {});
             continue;
           }
           validFiles.add(file);
@@ -183,8 +197,8 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
           _selectedFiles.addAll(validFiles);
         });
       }
-    } catch (e) {
-      _showSnackBar('Error picking files: $e', Colors.red);
+    } catch (e, stack) {
+      if (mounted) GlobalErrorHandler.instance.handleError(e, stack);
     }
   }
 
@@ -201,19 +215,29 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
 
   Future<void> _diagnoseCase() async {
     if (_isStudentRole) {
-      _showSnackBar(
-        'Students have view-only access. Please log in as Dentist to create cases.',
-        Colors.orange,
-      );
+      AppDialogs.showWarningDialog(context,
+          title: 'Access Denied',
+          message:
+              'Students have view-only access. Please log in as Dentist to create cases.',
+          confirmLabel: 'OK',
+          onConfirm: () {});
       return;
     }
     // Validation (kept from your code)
     if (_selectedPatient == null) {
-      _showSnackBar('Please select a patient', Colors.red);
+      AppDialogs.showWarningDialog(context,
+          title: 'Required',
+          message: 'Please select a patient',
+          confirmLabel: 'OK',
+          onConfirm: () {});
       return;
     }
     if (_selectedFiles.isEmpty) {
-      _showSnackBar('Please upload at least one X-ray image', Colors.red);
+      AppDialogs.showWarningDialog(context,
+          title: 'Required',
+          message: 'Please upload at least one X-ray image',
+          confirmLabel: 'OK',
+          onConfirm: () {});
       return;
     }
 
@@ -227,14 +251,16 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
       final currentUser = FirebaseAuth.instance.currentUser;
       if (currentUser == null) throw Exception('No authenticated user');
 
-      final analyzed = await _aiService.analyze(
-        imageBytes: _selectedFiles
-            .where((f) => f.bytes != null)
-            .map((f) => f.bytes!)
-            .toList(),
-        toothNumbers: '',
-        caseTitle: _caseTitleController.text.trim(),
-      );
+      final analyzed = await _aiService
+          .analyze(
+            imageBytes: _selectedFiles
+                .where((f) => f.bytes != null)
+                .map((f) => f.bytes!)
+                .toList(),
+            toothNumbers: '',
+            caseTitle: _caseTitleController.text.trim(),
+          )
+          .timeout(const Duration(seconds: 30));
 
       // TODO: Replace with Supabase storage integration
       final List<String> imageUrls = [];
@@ -252,15 +278,14 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
           ? 'Case for ${_selectedPatient!.name}'
           : _caseTitleController.text.trim();
       final reviewNotes = _manualReviewController.text.trim();
-      final statusToSave = _caseStatus == 'Under Review'
-          ? 'Completed'
-          : _caseStatus;
+      final statusToSave =
+          _caseStatus == 'Under Review' ? 'Completed' : _caseStatus;
 
       final supabase = Supabase.instance.client;
       for (int i = 0; i < _selectedFiles.length; i++) {
         final file = _selectedFiles[i];
         final fileName = '${timestamp}_image_$i.${file.extension ?? 'jpg'}';
-        final bucket = 'cases';
+        const bucket = 'cases';
         final path = '${currentUser.uid}/$caseId/$fileName';
 
         try {
@@ -291,8 +316,10 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
         'updatedAt': nowTs,
       };
 
-      await patientCaseRef.set(baseCaseData);
-      await mainCaseRef.set(baseCaseData);
+      await patientCaseRef
+          .set(baseCaseData)
+          .timeout(const Duration(seconds: 30));
+      await mainCaseRef.set(baseCaseData).timeout(const Duration(seconds: 30));
 
       // Update AI results state
       setState(() {
@@ -303,13 +330,26 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
         _currentImageIndex = 0; // Reset carousel to first image
       });
 
-      _showSnackBar('Case analyzed and saved successfully!', Colors.green);
-    } catch (e) {
-      debugPrint('Error in diagnosis: $e');
-      _showSnackBar('Failed to analyze case: $e', Colors.red);
+      AppDialogs.showInfoDialog(context,
+          title: 'Success', message: 'Case analyzed and saved successfully!');
+    } on TimeoutException catch (_) {
       setState(() {
         _isAnalyzing = false;
       });
+      if (mounted) {
+        AppDialogs.showErrorDialog(context,
+            message: "The request timed out. Check your connection.");
+      }
+    } on SocketException catch (_) {
+      setState(() {
+        _isAnalyzing = false;
+      });
+      if (mounted) AppDialogs.showNoInternetDialog(context);
+    } catch (e, stack) {
+      setState(() {
+        _isAnalyzing = false;
+      });
+      if (mounted) GlobalErrorHandler.instance.handleError(e, stack);
     }
   }
 
@@ -328,14 +368,6 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
     });
   }
 
-  void _showSnackBar(String message, Color color) {
-    if (mounted) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message), backgroundColor: color));
-    }
-  }
-
   void _showAddPatientDialog() {
     showDialog(
       context: context,
@@ -345,8 +377,9 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
-      color: const Color(0xFFF9FAFB),
+      color: colorScheme.surfaceContainerLowest,
       child: SingleChildScrollView(
         child: Padding(
           padding: const EdgeInsets.all(32.0),
@@ -399,31 +432,31 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   }
 
   Widget _buildUploadCard() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       decoration: _cardDecoration,
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Upload Scan / Photo',
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF1F2937),
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 20),
 
           // Drag & Drop Area with Carousel
           GestureDetector(
-            onTap: _isAnalyzing || _selectedFiles.isNotEmpty
-                ? null
-                : _pickImages,
+            onTap:
+                _isAnalyzing || _selectedFiles.isNotEmpty ? null : _pickImages,
             child: DottedBorder(
               borderType: BorderType.RRect,
               radius: const Radius.circular(8),
-              color: const Color(0xFFD1D5DB),
+              color: colorScheme.outlineVariant,
               strokeWidth: 2,
               dashPattern: const [6, 4],
               padding: EdgeInsets.zero,
@@ -435,43 +468,43 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                   height: 280,
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFFAFAFA),
+                    color: colorScheme.surfaceContainerLowest,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: _selectedFiles.isEmpty
                       ? Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.image_outlined,
                               size: 48,
-                              color: Color(0xFF9CA3AF),
+                              color: colorScheme.onSurfaceVariant,
                             ),
                             const SizedBox(height: 16),
                             RichText(
-                              text: const TextSpan(
+                              text: TextSpan(
                                 style: TextStyle(
                                   fontSize: 15,
-                                  color: Color(0xFF6B7280),
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
                                 children: [
                                   TextSpan(
                                     text: 'Click to add image',
                                     style: TextStyle(
-                                      color: Color(0xFF3B82F6),
+                                      color: colorScheme.primary,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
-                                  TextSpan(text: ' or drag and drop'),
+                                  const TextSpan(text: ' or drag and drop'),
                                 ],
                               ),
                             ),
                             const SizedBox(height: 8),
-                            const Text(
+                            Text(
                               'PNG, JPG accepted (max 8MB, min 512px)',
                               style: TextStyle(
                                 fontSize: 13,
-                                color: Color(0xFF9CA3AF),
+                                color: colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -491,7 +524,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                 icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
                 label: const Text('Add More Images'),
                 style: TextButton.styleFrom(
-                  foregroundColor: const Color(0xFF3B82F6),
+                  foregroundColor: colorScheme.primary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 8,
@@ -507,6 +540,9 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
 
   // Carousel inside the upload box
   Widget _buildUploadBoxCarousel() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semantic = Theme.of(context).extension<AppSemanticColors>();
+    final danger = semantic?.danger ?? colorScheme.error;
     return CarouselSlider.builder(
       itemCount: _selectedFiles.length,
       itemBuilder: (context, index, realIndex) {
@@ -521,11 +557,11 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                 child: Container(
                   width: double.infinity,
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: colorScheme.surface,
                     borderRadius: BorderRadius.circular(8),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: colorScheme.shadow.withValues(alpha: 0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -547,7 +583,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                           child: Icon(
                             Icons.image,
                             size: 64,
-                            color: Colors.grey.shade400,
+                            color: colorScheme.onSurfaceVariant,
                           ),
                         ),
                 ),
@@ -564,19 +600,19 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                     child: Container(
                       padding: const EdgeInsets.all(6),
                       decoration: BoxDecoration(
-                        color: Colors.red.withOpacity(0.9),
+                        color: danger.withValues(alpha: 0.9),
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
+                            color: colorScheme.shadow.withValues(alpha: 0.2),
                             blurRadius: 4,
                             offset: const Offset(0, 2),
                           ),
                         ],
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.close,
-                        color: Colors.white,
+                        color: colorScheme.onError,
                         size: 20,
                       ),
                     ),
@@ -612,13 +648,13 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.7),
+                      color: colorScheme.shadow.withValues(alpha: 0.7),
                       borderRadius: BorderRadius.circular(16),
                     ),
                     child: Text(
                       '${index + 1} / ${_selectedFiles.length}',
-                      style: const TextStyle(
-                        color: Colors.white,
+                      style: TextStyle(
+                        color: colorScheme.onSurface,
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                       ),
@@ -646,6 +682,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   }
 
   Widget _buildCaseDetailsCard() {
+    final colorScheme = Theme.of(context).colorScheme;
     // Your code for this was already excellent, just minor tweaks.
     return Container(
       decoration: _cardDecoration,
@@ -656,9 +693,9 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
           Text(
             'Case Details',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF212121),
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
           ),
           const SizedBox(height: 24),
           Row(
@@ -668,7 +705,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey[700],
+                  color: colorScheme.onSurface,
                 ),
               ),
               const Spacer(),
@@ -695,19 +732,19 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
               }
               return DropdownButtonFormField<Patient>(
                 value: _selectedPatient,
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: 'Select an existing patient...',
                   filled: true,
-                  fillColor: Color(0xFFF8F9FA),
+                  fillColor: colorScheme.surfaceContainerLowest,
                   border: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(8)),
-                    borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+                    borderRadius: const BorderRadius.all(Radius.circular(8)),
+                    borderSide: BorderSide(color: colorScheme.outlineVariant),
                   ),
                   enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.all(Radius.circular(8)),
-                    borderSide: BorderSide(color: Color(0xFFE0E0E0)),
+                    borderRadius: const BorderRadius.all(Radius.circular(8)),
+                    borderSide: BorderSide(color: colorScheme.outlineVariant),
                   ),
-                  contentPadding: EdgeInsets.symmetric(
+                  contentPadding: const EdgeInsets.symmetric(
                     horizontal: 16,
                     vertical: 12,
                   ),
@@ -779,9 +816,9 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   }
 
   Widget _buildActionButtons() {
+    final colorScheme = Theme.of(context).colorScheme;
     // Kept your buttons as they are functional
-    final bool canDiagnose =
-        !_isStudentRole &&
+    final bool canDiagnose = !_isStudentRole &&
         _selectedPatient != null &&
         _selectedFiles.isNotEmpty;
 
@@ -791,23 +828,20 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
           child: ElevatedButton(
             onPressed: (canDiagnose && !_isAnalyzing) ? _diagnoseCase : null,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF4A90E2),
-              foregroundColor: Colors.white,
+              backgroundColor: colorScheme.primary,
+              foregroundColor: colorScheme.onPrimary,
               padding: const EdgeInsets.symmetric(vertical: 20),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
               ),
               elevation: 2,
-              shadowColor: const Color(0xFF4A90E2).withOpacity(0.5),
+              shadowColor: colorScheme.primary.withValues(alpha: 0.5),
             ),
             child: _isAnalyzing
                 ? const SizedBox(
                     height: 20,
                     width: 20,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                    ),
+                    child: AppLoader(size: 20),
                   )
                 : const Text(
                     'Analyze & Save Case',
@@ -825,6 +859,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   }
 
   Widget _buildAIAnalysisColumn() {
+    final colorScheme = Theme.of(context).colorScheme;
     // Completely rebuilt to match the image
     return Container(
       decoration: _cardDecoration,
@@ -835,9 +870,9 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
           Text(
             'AI Analysis',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF212121),
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface,
+                ),
           ),
           const SizedBox(height: 24),
           if (_isAnalyzing)
@@ -876,18 +911,19 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   }
 
   Widget _buildAILoadingState() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         children: [
           const SizedBox(height: 60),
-          const CircularProgressIndicator(color: Color(0xFF4A90E2)),
+          const AppLoader(message: 'Analyzing X-ray images...'),
           const SizedBox(height: 24),
           Text(
-            'Analyzing X-ray images...',
+            'Preparing your analysis...',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF212121),
-            ),
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
+                ),
           ),
           const SizedBox(height: 16),
           Text(
@@ -895,7 +931,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[600],
+              color: colorScheme.onSurfaceVariant,
               height: 1.5,
             ),
           ),
@@ -906,19 +942,20 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   }
 
   Widget _buildAIEmptyState() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           const SizedBox(height: 60),
-          Icon(Icons.biotech_outlined, size: 64, color: Colors.grey[300]),
+          Icon(Icons.biotech_outlined, size: 64, color: colorScheme.outline),
           const SizedBox(height: 24),
           Text(
             'Analysis Results',
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: const Color(0xFF212121),
-            ),
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
+                ),
           ),
           const SizedBox(height: 16),
           Text(
@@ -926,7 +963,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[600],
+              color: colorScheme.onSurfaceVariant,
               height: 1.5,
             ),
           ),
@@ -937,6 +974,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   }
 
   Widget _buildAIResultState() {
+    final colorScheme = Theme.of(context).colorScheme;
     // This is the new UI from the image
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -956,8 +994,8 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
             label: const Text('Start New Case'),
             style: TextButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 12),
-              foregroundColor: Colors.white,
-              backgroundColor: Colors.grey.shade600,
+              foregroundColor: colorScheme.onSurface,
+              backgroundColor: colorScheme.surfaceContainerHighest,
             ),
           ),
         ),
@@ -966,11 +1004,12 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   }
 
   Widget _buildAnalyzedImageCarousel() {
+    final colorScheme = Theme.of(context).colorScheme;
     final List<Map<String, dynamic>> annotations =
         (_aiResults['annotations'] as List<dynamic>?)
-            ?.map((e) => e as Map<String, dynamic>)
-            .toList() ??
-        [];
+                ?.map((e) => e as Map<String, dynamic>)
+                .toList() ??
+            [];
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -980,7 +1019,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Colors.grey[700],
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 12),
@@ -996,7 +1035,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                   // Image
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
+                      color: colorScheme.surfaceContainerHighest,
                       borderRadius: BorderRadius.circular(8),
                       image: DecorationImage(
                         image: MemoryImage(_selectedFiles[index].bytes!),
@@ -1036,19 +1075,20 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   }
 
   Widget _buildImagePlaceholder() {
+    final colorScheme = Theme.of(context).colorScheme;
     // This matches the "Mouth Scan Placeholder" in the image
     return AspectRatio(
       aspectRatio: 16 / 10,
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.grey.shade200,
+          color: colorScheme.surfaceContainerHighest,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Center(
           child: Text(
             'Mouth Scan Placeholder',
             style: TextStyle(
-              color: Colors.grey.shade500,
+              color: colorScheme.onSurfaceVariant,
               fontSize: 18,
               fontWeight: FontWeight.w600,
             ),
@@ -1059,6 +1099,9 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   }
 
   Widget _buildRiskAssessment() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semantic = Theme.of(context).extension<AppSemanticColors>();
+    final warning = semantic?.warning ?? colorScheme.secondary;
     final confidence = (_aiResults['confidence'] as double?) ?? 0.0;
     final riskLabel = _aiResults['riskLabel'] as String? ?? 'No Risk Detected';
 
@@ -1070,14 +1113,14 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Colors.grey[700],
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: colorScheme.outlineVariant),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Row(
@@ -1089,15 +1132,16 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                 children: [
                   Text(
                     '${(confidence * 100).toStringAsFixed(0)}%',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
-                      color: Color(0xFF212121),
+                      color: colorScheme.onSurface,
                     ),
                   ),
-                  const Text(
+                  Text(
                     'Confidence',
-                    style: TextStyle(fontSize: 14, color: Color(0xFF212121)),
+                    style:
+                        TextStyle(fontSize: 14, color: colorScheme.onSurface),
                   ),
                 ],
               ),
@@ -1108,14 +1152,14 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                   vertical: 8,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFFFBE6), // Yellow from image
+                  color: warning.withValues(alpha: 0.15),
                   borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFFFE58F)),
+                  border: Border.all(color: warning.withValues(alpha: 0.4)),
                 ),
                 child: Text(
                   riskLabel,
-                  style: const TextStyle(
-                    color: Color(0xFFD48806), // Dark yellow
+                  style: TextStyle(
+                    color: warning,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
@@ -1129,8 +1173,8 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   }
 
   Widget _buildVerdictNotes() {
-    final notes =
-        (_aiResults['verdictNotes'] as List<dynamic>?)
+    final colorScheme = Theme.of(context).colorScheme;
+    final notes = (_aiResults['verdictNotes'] as List<dynamic>?)
             ?.map((e) => e.toString())
             .toList() ??
         [];
@@ -1143,16 +1187,16 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: Colors.grey[700],
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 12),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey.shade300),
+            border: Border.all(color: colorScheme.outlineVariant),
             borderRadius: BorderRadius.circular(8),
-            color: Colors.grey.shade50,
+            color: colorScheme.surfaceContainerLowest,
           ),
           child: Column(
             children: notes.map((note) => _buildVerdictListItem(note)).toList(),
@@ -1163,6 +1207,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   }
 
   Widget _buildVerdictListItem(String text) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Row(
@@ -1170,7 +1215,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
         children: [
           Icon(
             Icons.check_circle,
-            color: const Color(0xFF4A90E2), // Blue from image
+            color: colorScheme.primary,
             size: 20,
           ),
           const SizedBox(width: 12),
@@ -1179,7 +1224,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
               text,
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[800],
+                color: colorScheme.onSurface,
                 height: 1.5,
               ),
             ),
@@ -1192,16 +1237,20 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
   // --- KEPT YOUR UTILITY WIDGETS ---
 
   Stream<QuerySnapshot> _getPatientsStream() {
-    final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser == null) {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) {
+        return const Stream.empty();
+      }
+
+      return FirebaseFirestore.instance
+          .collection('patients')
+          .where('dentistUid', isEqualTo: currentUser.uid)
+          .orderBy('createdAt', descending: true)
+          .snapshots();
+    } catch (_) {
       return const Stream.empty();
     }
-
-    return FirebaseFirestore.instance
-        .collection('patients')
-        .where('dentistUid', isEqualTo: currentUser.uid)
-        .orderBy('createdAt', descending: true)
-        .snapshots();
   }
 }
 
@@ -1217,12 +1266,12 @@ class _AnnotationPainter extends CustomPainter {
     if (!showAnnotations) return;
 
     final paintBox = Paint()
-      ..color = Colors.red.withOpacity(0.8)
+      ..color = Colors.red.withValues(alpha: 0.8)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
     final paintCircle = Paint()
-      ..color = Colors.red.withOpacity(0.8)
+      ..color = Colors.red.withValues(alpha: 0.8)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 2;
 
@@ -1261,15 +1310,16 @@ class _RotationButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Material(
-      color: Colors.black.withOpacity(0.5),
+      color: colorScheme.shadow.withValues(alpha: 0.5),
       shape: const CircleBorder(),
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: onTap,
         child: Padding(
           padding: const EdgeInsets.all(8.0),
-          child: Icon(icon, color: Colors.white, size: 20),
+          child: Icon(icon, color: colorScheme.onSurface, size: 20),
         ),
       ),
     );
@@ -1307,6 +1357,7 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
@@ -1321,12 +1372,11 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
               Text(
                 'Add New Patient',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF212121),
-                ),
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
               ),
               const SizedBox(height: 24),
-
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -1341,7 +1391,6 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
                 },
               ),
               const SizedBox(height: 16),
-
               GestureDetector(
                 onTap: _selectDate,
                 child: Container(
@@ -1350,15 +1399,15 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
                     vertical: 16,
                   ),
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.grey.shade400),
+                    border: Border.all(color: colorScheme.outlineVariant),
                     borderRadius: BorderRadius.circular(8),
-                    color: const Color(0xFFF8F9FA),
+                    color: colorScheme.surfaceContainerLowest,
                   ),
                   child: Row(
                     children: [
                       Icon(
                         Icons.calendar_today,
-                        color: Colors.grey[600],
+                        color: colorScheme.onSurfaceVariant,
                         size: 20,
                       ),
                       const SizedBox(width: 12),
@@ -1369,8 +1418,8 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
                         style: TextStyle(
                           fontSize: 16,
                           color: _selectedDate == null
-                              ? Colors.grey[600]
-                              : const Color(0xFF212121),
+                              ? colorScheme.onSurfaceVariant
+                              : colorScheme.onSurface,
                         ),
                       ),
                     ],
@@ -1378,7 +1427,6 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
                 ),
               ),
               const SizedBox(height: 16),
-
               DropdownButtonFormField<String>(
                 value: _selectedGender,
                 decoration: const InputDecoration(labelText: 'Gender'),
@@ -1391,7 +1439,6 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
                 onChanged: (value) => setState(() => _selectedGender = value!),
               ),
               const SizedBox(height: 16),
-
               TextFormField(
                 controller: _phoneController,
                 decoration: const InputDecoration(
@@ -1401,7 +1448,6 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
                 keyboardType: TextInputType.phone,
               ),
               const SizedBox(height: 16),
-
               TextFormField(
                 controller: _emailController,
                 decoration: const InputDecoration(
@@ -1421,7 +1467,6 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
                 },
               ),
               const SizedBox(height: 16),
-
               TextFormField(
                 controller: _notesController,
                 decoration: const InputDecoration(
@@ -1431,7 +1476,6 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
                 maxLines: 3,
               ),
               const SizedBox(height: 32),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -1443,8 +1487,8 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
                   ElevatedButton(
                     onPressed: _isLoading ? null : _savePatient,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF4A90E2),
-                      foregroundColor: Colors.white,
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 24,
                         vertical: 12,
@@ -1454,12 +1498,7 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
                         ? const SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            ),
+                            child: AppLoader(size: 20),
                           )
                         : const Text('Save Patient'),
                   ),
@@ -1473,6 +1512,7 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
   }
 
   Future<void> _selectDate() async {
+    final colorScheme = Theme.of(context).colorScheme;
     final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now().subtract(const Duration(days: 365 * 30)),
@@ -1482,7 +1522,7 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
         data: Theme.of(context).copyWith(
           colorScheme: Theme.of(
             context,
-          ).colorScheme.copyWith(primary: const Color(0xFF4A90E2)),
+          ).colorScheme.copyWith(primary: colorScheme.primary),
         ),
         child: child!,
       ),
@@ -1491,12 +1531,14 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
   }
 
   Future<void> _savePatient() async {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semantic = Theme.of(context).extension<AppSemanticColors>();
     if (!_formKey.currentState!.validate() || _selectedDate == null) {
       if (_selectedDate == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please select a date of birth'),
-            backgroundColor: Colors.red,
+          SnackBar(
+            content: const Text('Please select a date of birth'),
+            backgroundColor: semantic?.danger ?? colorScheme.error,
           ),
         );
       }
@@ -1528,9 +1570,9 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Patient added successfully!'),
-            backgroundColor: Colors.green,
+          SnackBar(
+            content: const Text('Patient added successfully!'),
+            backgroundColor: semantic?.success ?? colorScheme.primary,
           ),
         );
       }
@@ -1538,8 +1580,8 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to add patient: $e'),
-            backgroundColor: Colors.red,
+            content: const Text('Failed to add patient. Please try again.'),
+            backgroundColor: semantic?.danger ?? colorScheme.error,
           ),
         );
       }

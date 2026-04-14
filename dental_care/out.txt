@@ -1,0 +1,129 @@
+Analyzing dental_care...                                        
+
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:27:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:45:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:60:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:68:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:92:9 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:99:3 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:111:5 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:117:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:121:5 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:123:5 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:128:3 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:144:5 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:151:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:159:3 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:167:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:173:9 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:178:5 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:186:5 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:191:3 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:198:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:225:5 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:234:5 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:238:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:246:3 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:253:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:263:5 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:271:5 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:276:3 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:283:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:293:5 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:301:5 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:306:3 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:313:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:318:5 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:326:5 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:331:3 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:338:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:346:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/app_navigation_test.dart:349:5 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:17:11 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:21:9 • avoid_print
+   info • 'window' is deprecated and shouldn't be used. Use WidgetTester.platformDispatcher or WidgetTester.view instead. Deprecated to prepare for the upcoming multi-window support. This feature was deprecated after v3.9.0-0.1.pre • integration_test/settings_features_test.dart:28:27 • deprecated_member_use
+   info • 'clearPhysicalSizeTestValue' is deprecated and shouldn't be used. Use WidgetTester.view.resetPhysicalSize() instead. Deprecated to prepare for the upcoming multi-window support. This feature was deprecated after v3.9.0-0.1.pre • integration_test/settings_features_test.dart:28:34 • deprecated_member_use
+   info • 'window' is deprecated and shouldn't be used. Use WidgetTester.platformDispatcher or WidgetTester.view instead. Deprecated to prepare for the upcoming multi-window support. This feature was deprecated after v3.9.0-0.1.pre • integration_test/settings_features_test.dart:29:15 • deprecated_member_use
+   info • 'physicalSizeTestValue' is deprecated and shouldn't be used. Use WidgetTester.view.physicalSize instead. Deprecated to prepare for the upcoming multi-window support. This feature was deprecated after v3.9.0-0.1.pre • integration_test/settings_features_test.dart:29:22 • deprecated_member_use
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:35:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:40:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:47:9 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:57:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:63:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:80:24 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:88:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:94:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:111:25 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:119:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:125:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:142:22 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:150:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:154:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:168:24 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:176:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:180:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:194:21 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:202:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:208:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:225:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:235:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:241:7 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:260:11 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:263:9 • avoid_print
+   info • Don't invoke 'print' in production code • integration_test/settings_features_test.dart:272:7 • avoid_print
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/core/web_context_menu_overlay.dart:53:49 • deprecated_member_use
+   info • The type of the right operand ('String') isn't a subtype or a supertype of the left operand ('DifficultyLevel') • lib/features/analytics/repository/analytics_repository.dart:79:56 • unrelated_type_equality_checks
+   info • The type of the right operand ('String') isn't a subtype or a supertype of the left operand ('DifficultyLevel') • lib/features/analytics/repository/analytics_repository.dart:87:56 • unrelated_type_equality_checks
+   info • The type of the right operand ('String') isn't a subtype or a supertype of the left operand ('DifficultyLevel') • lib/features/analytics/repository/analytics_repository.dart:95:56 • unrelated_type_equality_checks
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/analytics/view/analytics_dashboard_screen.dart:187:40 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/analytics/view/analytics_dashboard_screen.dart:188:38 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/features/analytics/view/analytics_dashboard_screen.dart:204:41 • deprecated_member_use
+warning • The declaration '_isAttemptGraded' isn't referenced • lib/providers/quiz_attempt_provider.dart:115:8 • unused_element
+   info • The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/foundation.dart' • lib/providers/quiz_provider.dart:3:8 • unnecessary_import
+   info • The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/foundation.dart' • lib/service/dental_disease_detection_service.dart:3:8 • unnecessary_import
+   info • The import of 'dart:typed_data' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/foundation.dart' • lib/service/quiz_pdf_service.dart:1:8 • unnecessary_import
+   info • The import of 'package:cross_file/cross_file.dart' is unnecessary because all of the used elements are also provided by the import of 'package:share_plus/share_plus.dart' • lib/service/quiz_pdf_service.dart:6:8 • unnecessary_import
+   info • The imported package 'cross_file' isn't a dependency of the importing package • lib/service/quiz_pdf_service.dart:6:8 • depend_on_referenced_packages
+   info • Invalid use of a private type in a public API • lib/utils/web_interop_stub.dart:34:7 • library_private_types_in_public_api
+   info • Invalid use of a private type in a public API • lib/utils/web_interop_stub.dart:35:7 • library_private_types_in_public_api
+   info • 'dart:html' is deprecated and shouldn't be used. Use package:web and dart:js_interop instead • lib/utils/web_interop_web.dart:1:1 • deprecated_member_use
+   info • Don't use web-only libraries outside Flutter web plugins • lib/utils/web_interop_web.dart:1:1 • avoid_web_libraries_in_flutter
+   info • Don't use 'BuildContext's across async gaps • lib/view/advanced_analytics_screen.dart:21:21 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/view/advanced_analytics_screen.dart:22:7 • use_build_context_synchronously
+   info • Use 'const' literals as arguments to constructors of '@immutable' classes • lib/view/ai_quiz_screen.dart:612:22 • prefer_const_literals_to_create_immutables
+   info • Don't use 'BuildContext's across async gaps • lib/view/ai_quiz_screen.dart:1584:42 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/view/ai_quiz_screen.dart:1604:42 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/view/create_case_screen.dart:184:42 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/view/create_case_screen.dart:333:33 • use_build_context_synchronously
+warning • Unused import: 'package:go_router/go_router.dart' • lib/view/dentist_profile_screen.dart:7:8 • unused_import
+   info • Don't use 'BuildContext's across async gaps • lib/view/lecture_notes_screen.dart:597:27 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/view/lecture_notes_screen.dart:908:31 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/view/lecture_notes_screen.dart:909:38 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/view/login.dart:375:37 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/view/login.dart:381:37 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/view/login.dart:386:56 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/view/login.dart:391:61 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/view/login.dart:404:33 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/view/login.dart:412:33 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/view/login.dart:419:63 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/view/login.dart:423:31 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/view/login.dart:432:33 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/view/login.dart:442:33 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/view/login.dart:455:58 • use_build_context_synchronously
+warning • Unused import: 'package:go_router/go_router.dart' • lib/view/quiz_list_screen.dart:3:8 • unused_import
+   info • Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check • lib/view/quiz_list_screen.dart:441:56 • use_build_context_synchronously
+   info • Use 'const' with the constructor to improve performance • lib/view/quiz_list_screen.dart:750:27 • prefer_const_constructors
+   info • Use 'const' with the constructor to improve performance • lib/view/quiz_list_screen.dart:825:27 • prefer_const_constructors
+warning • Unused import: 'package:go_router/go_router.dart' • lib/view/student_dashboard_screen.dart:8:8 • unused_import
+warning • Unused import: 'student_quiz_result_screen.dart' • lib/view/student_my_results_screen.dart:1:8 • unused_import
+warning • Unused import: 'package:go_router/go_router.dart' • lib/view/student_notifications_screen.dart:4:8 • unused_import
+   info • Use 'const' for final variables initialized to a constant value • lib/view/student_quiz_detail_screen.dart:157:5 • prefer_const_declarations
+warning • Unused import: 'student_quiz_result_screen.dart' • lib/view/student_quiz_list_screen.dart:1:8 • unused_import
+warning • Unused import: '../core/app_page_route.dart' • lib/view/student_quiz_taking_screen.dart:11:8 • unused_import
+warning • The value of the local variable 'semanticColors' isn't used • lib/view/student_quiz_taking_screen.dart:1409:11 • unused_local_variable
+   info • Use 'const' with the constructor to improve performance • lib/view/widgets/adaptive_nav_shell.dart:80:27 • prefer_const_constructors
+   info • Don't use 'BuildContext's across async gaps • lib/view/widgets/upload_scan_dialog.dart:103:23 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/view/widgets/upload_scan_dialog.dart:207:9 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/view/widgets/upload_scan_dialog.dart:362:50 • use_build_context_synchronously
+   info • Don't use 'BuildContext's across async gaps • lib/view/widgets/upload_scan_dialog.dart:369:50 • use_build_context_synchronously
+

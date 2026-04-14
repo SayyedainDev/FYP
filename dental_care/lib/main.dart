@@ -13,6 +13,7 @@ import 'package:dental_care/providers/scan_provider.dart';
 import 'package:dental_care/providers/case_provider.dart';
 import 'package:dental_care/providers/navigation_provider.dart';
 import 'package:dental_care/providers/quiz_provider.dart';
+import 'package:dental_care/providers/quiz_attempt_provider.dart';
 import 'package:dental_care/providers/lecture_notes_provider.dart';
 import 'package:dental_care/providers/appointment_provider.dart';
 import 'package:dental_care/providers/treatment_plan_provider.dart';
@@ -74,6 +75,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => ScanProvider()),
         ChangeNotifierProvider(create: (_) => CaseProvider()),
         ChangeNotifierProvider(create: (_) => QuizProvider()),
+        ChangeNotifierProvider(create: (_) => QuizAttemptProvider()),
         ChangeNotifierProvider(create: (_) => LectureNotesProvider()),
         ChangeNotifierProvider(create: (_) => AppointmentProvider()),
         ChangeNotifierProvider(create: (_) => TreatmentPlanProvider()),

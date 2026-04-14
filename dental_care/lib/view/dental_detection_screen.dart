@@ -22,12 +22,20 @@ import 'package:image_picker/image_picker.dart';
 
 import '../models/detection_response.dart';
 import '../service/dental_disease_detection_service.dart';
+import 'dart:async';
+import 'dart:io';
+import '../utils/app_dialogs.dart';
+import '../utils/global_error_handler.dart';
+import '../widgets/loaders/app_loader.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Design System — clinical palette
 // ─────────────────────────────────────────────────────────────────────────────
 class _T {
   _T._();
+
+  static const Color white = Color(0xFFF4F6F8);
+  static const Color transparent = Color(0x00000000);
 
   // Charcoal panels
   static const Color panelBg = Color(0xFF1B1F23);
@@ -36,7 +44,7 @@ class _T {
 
   // Light workspace
   static const Color workspaceBg = Color(0xFFF0F2F5);
-  static const Color cardBg = Colors.white;
+  static const Color cardBg = Color(0xFFF4F6F8);
   static const Color cardBorder = Color(0xFFE1E4E8);
 
   // Image viewport
@@ -90,8 +98,9 @@ Color _conditionColor(String label) {
   final l = label.toLowerCase();
   if (l.contains('caries') || l.contains('cavity')) return _T.colCaries;
   if (l.contains('filling')) return _T.colFilling;
-  if (l.contains('root canal') || l.contains('root_canal'))
+  if (l.contains('root canal') || l.contains('root_canal')) {
     return _T.colRootCanal;
+  }
   if (l.contains('impacted')) return _T.colImpacted;
   if (l.contains('calculus') || l.contains('tartar')) return _T.colCalculus;
   if (l.contains('gingivitis')) return _T.colGingivitis;
@@ -160,13 +169,14 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
           _serverStatus = 'AI Server Online';
         });
       }
-    } catch (e) {
+    } catch (e, stack) {
       if (mounted) {
         setState(() {
           _serverReady = false;
           _checkingServer = false;
-          _serverStatus = 'Server offline — $e';
+          _serverStatus = 'Server offline';
         });
+        GlobalErrorHandler.instance.handleError(e, stack);
       }
     }
   }
@@ -190,8 +200,9 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
         _errorMsg = null;
         _highlightIdx = -1;
       });
-    } catch (e) {
-      _snack('Failed to pick image: $e');
+    } catch (e, stack) {
+      _snack('Failed to pick image');
+      GlobalErrorHandler.instance.handleError(e, stack);
     }
   }
 
@@ -221,17 +232,24 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
       }
     } on DentalApiException catch (e) {
       if (mounted) {
-        setState(() {
-          _isDetecting = false;
-          _errorMsg = e.message;
-        });
+        setState(() => _isDetecting = false);
+        AppDialogs.showErrorDialog(context, message: e.message);
       }
-    } catch (e) {
+    } on TimeoutException catch (_) {
       if (mounted) {
-        setState(() {
-          _isDetecting = false;
-          _errorMsg = '$e';
-        });
+        setState(() => _isDetecting = false);
+        AppDialogs.showErrorDialog(context,
+            message: "Detection request timed out. Please try again.");
+      }
+    } on SocketException catch (_) {
+      if (mounted) {
+        setState(() => _isDetecting = false);
+        AppDialogs.showNoInternetDialog(context);
+      }
+    } catch (e, stack) {
+      if (mounted) {
+        setState(() => _isDetecting = false);
+        GlobalErrorHandler.instance.handleError(e, stack);
       }
     }
   }
@@ -296,11 +314,7 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
       child: Row(
         children: [
           if (_checkingServer)
-            SizedBox(
-              width: 14,
-              height: 14,
-              child: CircularProgressIndicator(strokeWidth: 2, color: fg),
-            )
+            const SizedBox(width: 14, height: 14, child: AppLoader(size: 14))
           else
             Icon(icon, size: 14, color: fg),
           const SizedBox(width: _T.s8),
@@ -360,9 +374,9 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
               Text(
                 'Dental Disease Detection',
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: _T.textDark,
-                ),
+                      fontWeight: FontWeight.w700,
+                      color: _T.textDark,
+                    ),
               ),
               const SizedBox(height: _T.s6),
               const Text(
@@ -533,10 +547,7 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
                 ? const SizedBox(
                     width: 16,
                     height: 16,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
-                      color: Colors.white,
-                    ),
+                    child: AppLoader(size: 16),
                   )
                 : const Icon(Icons.play_arrow_rounded, size: 18),
             label: Text(_isDetecting ? 'Analyzing…' : 'Run Detection'),
@@ -579,11 +590,7 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
       ),
       child: Row(
         children: [
-          const SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(strokeWidth: 2, color: _T.accent),
-          ),
+          const SizedBox(width: 20, height: 20, child: AppLoader(size: 20)),
           const SizedBox(width: _T.s16),
           Expanded(
             child: Column(
@@ -722,7 +729,7 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.black54,
+                        color: _T.panelBg.withValues(alpha: 0.7),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
@@ -746,7 +753,7 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.black54,
+                        color: _T.panelBg.withValues(alpha: 0.7),
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: const Row(
@@ -968,25 +975,25 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
           // Detection cards
           Expanded(
             child: result.detections.isEmpty
-                ? Center(
+                ? const Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.check_circle_outline_rounded,
                           size: 40,
                           color: _T.success,
                         ),
-                        const SizedBox(height: _T.s12),
-                        const Text(
+                        SizedBox(height: _T.s12),
+                        Text(
                           'No findings detected',
                           style: TextStyle(
                             color: _T.success,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        const Text(
+                        SizedBox(height: 4),
+                        Text(
                           'Image appears healthy',
                           style: TextStyle(color: _T.textMuted, fontSize: 12),
                         ),
@@ -1012,7 +1019,7 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
     final pct = (conf * 100);
 
     return Material(
-      color: isHl ? c.withValues(alpha: 0.08) : Colors.transparent,
+      color: isHl ? c.withValues(alpha: 0.08) : _T.transparent,
       child: InkWell(
         onTap: () =>
             setState(() => _highlightIdx = _highlightIdx == idx ? -1 : idx),
@@ -1024,7 +1031,7 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
           ),
           decoration: BoxDecoration(
             border: Border(
-              left: BorderSide(color: isHl ? c : Colors.transparent, width: 3),
+              left: BorderSide(color: isHl ? c : _T.transparent, width: 3),
               bottom: const BorderSide(color: _T.panelBorder, width: 0.5),
             ),
           ),
@@ -1111,7 +1118,7 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
       PageRouteBuilder(
         opaque: false,
         barrierDismissible: true,
-        barrierColor: Colors.black87,
+        barrierColor: _T.panelBg.withValues(alpha: 0.9),
         transitionDuration: const Duration(milliseconds: 250),
         reverseTransitionDuration: const Duration(milliseconds: 180),
         pageBuilder: (_, anim, __) {
@@ -1750,7 +1757,7 @@ class _AnnotationPainter extends CustomPainter {
       text: TextSpan(
         text: d.label,
         style: TextStyle(
-          color: Colors.white,
+          color: _T.white,
           fontSize: fontSize,
           fontWeight: FontWeight.w600,
           letterSpacing: 0.15,
@@ -1764,7 +1771,7 @@ class _AnnotationPainter extends CustomPainter {
       text: TextSpan(
         text: d.confidencePercent,
         style: TextStyle(
-          color: Colors.white.withValues(alpha: 0.85),
+          color: _T.white.withValues(alpha: 0.85),
           fontSize: fontSize - 1,
           fontWeight: FontWeight.w700,
           fontFamily: _T.monoFont,
@@ -1814,9 +1821,9 @@ class _AnnotationPainter extends CustomPainter {
     if (!found) {
       final shifted = Rect.fromLTWH(
         candidates[0].dx.clamp(
-          1.0,
-          (size.width - totalW - 1).clamp(1.0, double.infinity),
-        ),
+              1.0,
+              (size.width - totalW - 1).clamp(1.0, double.infinity),
+            ),
         (boxRect.top - totalH - 4 + placed.length * (totalH + 3)).clamp(
           1.0,
           size.height - totalH - 1,
@@ -1838,7 +1845,7 @@ class _AnnotationPainter extends CustomPainter {
     );
 
     // Background
-    canvas.drawRRect(rrect, Paint()..color = const Color(0xE8141820));
+    canvas.drawRRect(rrect, Paint()..color = _T.panelBg.withValues(alpha: 0.9));
 
     // Left accent bar
     canvas.drawRRect(
@@ -1943,7 +1950,7 @@ class _FullScreenViewerState extends State<_FullScreenViewer> {
       focusNode: _focusNode,
       onKeyEvent: _onKey,
       child: Scaffold(
-        backgroundColor: const Color(0xFF0D1117),
+        backgroundColor: _T.viewportBg,
         body: SafeArea(
           child: Column(
             children: [
@@ -2041,7 +2048,7 @@ class _FullScreenViewerState extends State<_FullScreenViewer> {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: active ? _T.accent.withValues(alpha: 0.1) : Colors.transparent,
+        color: active ? _T.accent.withValues(alpha: 0.1) : _T.transparent,
         borderRadius: BorderRadius.circular(4),
         child: InkWell(
           onTap: onTap,
@@ -2233,9 +2240,8 @@ class _FullScreenViewerState extends State<_FullScreenViewer> {
                       final isHl = _hlIdx == i;
                       final c = _conditionColor(d.label);
                       return Material(
-                        color: isHl
-                            ? c.withValues(alpha: 0.08)
-                            : Colors.transparent,
+                        color:
+                            isHl ? c.withValues(alpha: 0.08) : _T.transparent,
                         child: InkWell(
                           onTap: () =>
                               setState(() => _hlIdx = _hlIdx == i ? -1 : i),
@@ -2248,7 +2254,7 @@ class _FullScreenViewerState extends State<_FullScreenViewer> {
                             decoration: BoxDecoration(
                               border: Border(
                                 left: BorderSide(
-                                  color: isHl ? c : Colors.transparent,
+                                  color: isHl ? c : _T.transparent,
                                   width: 3,
                                 ),
                                 bottom: const BorderSide(

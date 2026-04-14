@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../provider/auth_provider.dart';
 import '../../providers/patient_provider.dart';
+import '../../widgets/loaders/app_loader.dart';
+import '../../core/theme/app_semantic_colors.dart';
 
 class AddPatientDialog extends StatefulWidget {
   final Function(String)? onPatientCreated;
@@ -33,6 +35,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
   }
 
   Future<void> _selectDate() async {
+    final colorScheme = Theme.of(context).colorScheme;
     final picked = await showDatePicker(
       context: context,
       initialDate: DateTime.now().subtract(const Duration(days: 365 * 30)),
@@ -42,12 +45,12 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: ColorScheme.light(
-              primary: const Color(0xFF4A90E2),
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black87,
+              primary: colorScheme.primary,
+              onPrimary: colorScheme.onPrimary,
+              surface: colorScheme.surface,
+              onSurface: colorScheme.onSurface,
             ),
-            dialogBackgroundColor: Colors.white,
+            dialogTheme: DialogThemeData(backgroundColor: colorScheme.surface),
           ),
           child: child!,
         );
@@ -62,15 +65,19 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
   }
 
   Future<void> _submit() async {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semantic = Theme.of(context).extension<AppSemanticColors>();
+    final danger = semantic?.danger ?? colorScheme.error;
+    final success = semantic?.success ?? colorScheme.primary;
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
     if (_selectedDate == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a date of birth'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: const Text('Please select a date of birth'),
+          backgroundColor: danger,
         ),
       );
       return;
@@ -84,9 +91,9 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
     final uid = Provider.of<AuthProvider>(context, listen: false).uid;
     if (uid == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error: No authenticated user found'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: const Text('Error: No authenticated user found'),
+          backgroundColor: danger,
         ),
       );
       return;
@@ -113,12 +120,12 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.check_circle, color: Colors.white),
+              Icon(Icons.check_circle, color: colorScheme.onPrimary),
               const SizedBox(width: 12),
               const Text('Patient added successfully!'),
             ],
           ),
-          backgroundColor: Colors.green.shade600,
+          backgroundColor: success,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           margin: const EdgeInsets.all(16),
@@ -138,12 +145,12 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.error, color: Colors.white),
+              Icon(Icons.error, color: colorScheme.onError),
               const SizedBox(width: 12),
               Expanded(child: Text('Error: ${e.toString()}')),
             ],
           ),
-          backgroundColor: Colors.red.shade600,
+          backgroundColor: danger,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           margin: const EdgeInsets.all(16),
@@ -154,6 +161,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       elevation: 8,
@@ -161,11 +169,11 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
         width: 650,
         constraints: const BoxConstraints(maxHeight: 750),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: colorScheme.shadow.withValues(alpha: 0.1),
               blurRadius: 20,
               spreadRadius: 5,
             ),
@@ -179,7 +187,10 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [const Color(0xFF4A90E2), const Color(0xFF357ABD)],
+                  colors: [
+                    colorScheme.primary,
+                    colorScheme.primary.withValues(alpha: 0.85),
+                  ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -193,12 +204,12 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: colorScheme.onPrimary.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.person_add,
-                      color: Colors.white,
+                      color: colorScheme.onPrimary,
                       size: 28,
                     ),
                   ),
@@ -207,12 +218,12 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Add New Patient',
                           style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: colorScheme.onPrimary,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -220,7 +231,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                           'Enter patient details below',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.white.withOpacity(0.9),
+                            color: colorScheme.onPrimary.withValues(alpha: 0.9),
                           ),
                         ),
                       ],
@@ -228,7 +239,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon: Icon(Icons.close, color: colorScheme.onPrimary),
                   ),
                 ],
               ),
@@ -271,7 +282,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.grey[700],
+                                    color: colorScheme.onSurface,
                                   ),
                                 ),
                                 const SizedBox(height: 8),
@@ -286,18 +297,19 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                                     decoration: BoxDecoration(
                                       border: Border.all(
                                         color: _selectedDate == null
-                                            ? Colors.red.shade300
-                                            : Colors.grey.shade300,
+                                            ? colorScheme.error
+                                                .withValues(alpha: 0.6)
+                                            : colorScheme.outlineVariant,
                                       ),
                                       borderRadius: BorderRadius.circular(12),
-                                      color: Colors.grey.shade50,
+                                      color: colorScheme.surfaceContainerLowest,
                                     ),
                                     child: Row(
                                       children: [
                                         Icon(
                                           Icons.calendar_today,
                                           size: 20,
-                                          color: const Color(0xFF4A90E2),
+                                          color: colorScheme.primary,
                                         ),
                                         const SizedBox(width: 12),
                                         Text(
@@ -307,8 +319,8 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                                           style: TextStyle(
                                             fontSize: 16,
                                             color: _selectedDate == null
-                                                ? Colors.grey[500]
-                                                : Colors.grey[800],
+                                                ? colorScheme.onSurfaceVariant
+                                                : colorScheme.onSurface,
                                           ),
                                         ),
                                       ],
@@ -328,17 +340,17 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.grey[700],
+                                    color: colorScheme.onSurface,
                                   ),
                                 ),
                                 const SizedBox(height: 8),
                                 Container(
                                   decoration: BoxDecoration(
                                     border: Border.all(
-                                      color: Colors.grey.shade300,
+                                      color: colorScheme.outlineVariant,
                                     ),
                                     borderRadius: BorderRadius.circular(12),
-                                    color: Colors.grey.shade50,
+                                    color: colorScheme.surfaceContainerLowest,
                                   ),
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
@@ -349,7 +361,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                                       isExpanded: true,
                                       icon: Icon(
                                         Icons.arrow_drop_down,
-                                        color: const Color(0xFF4A90E2),
+                                        color: colorScheme.primary,
                                       ),
                                       items: ['Male', 'Female', 'Other']
                                           .map(
@@ -360,9 +372,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                                                   Icon(
                                                     Icons.person_outline,
                                                     size: 20,
-                                                    color: const Color(
-                                                      0xFF4A90E2,
-                                                    ),
+                                                    color: colorScheme.primary,
                                                   ),
                                                   const SizedBox(width: 12),
                                                   Text(gender),
@@ -431,7 +441,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: colorScheme.surfaceContainerLowest,
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(20),
                   bottomRight: Radius.circular(20),
@@ -450,7 +460,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      side: BorderSide(color: Colors.grey.shade400),
+                      side: BorderSide(color: colorScheme.outlineVariant),
                     ),
                     child: const Text('Cancel', style: TextStyle(fontSize: 16)),
                   ),
@@ -460,8 +470,8 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                       return ElevatedButton(
                         onPressed: provider.loading ? null : _submit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4A90E2),
-                          foregroundColor: Colors.white,
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: colorScheme.onPrimary,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 32,
                             vertical: 16,
@@ -477,12 +487,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                               const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation(
-                                    Colors.white,
-                                  ),
-                                ),
+                                child: AppLoader(size: 16),
                               )
                             else
                               const Icon(Icons.add, size: 20),
@@ -509,12 +514,13 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
   }
 
   Widget _buildSectionLabel(String text) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.bold,
-        color: Color(0xFF4A90E2),
+        color: colorScheme.primary,
       ),
     );
   }
@@ -527,40 +533,41 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
     int maxLines = 1,
     String? Function(String?)? validator,
   }) {
+    final colorScheme = Theme.of(context).colorScheme;
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
       textCapitalization: maxLines == 1
           ? (keyboardType == TextInputType.emailAddress
-                ? TextCapitalization.none
-                : TextCapitalization.words)
+              ? TextCapitalization.none
+              : TextCapitalization.words)
           : TextCapitalization.sentences,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: const Color(0xFF4A90E2)),
+        prefixIcon: Icon(icon, color: colorScheme.primary),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 2),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 1),
+          borderSide: BorderSide(color: colorScheme.error, width: 1),
         ),
         focusedErrorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Colors.red, width: 2),
+          borderSide: BorderSide(color: colorScheme.error, width: 2),
         ),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: colorScheme.surfaceContainerLowest,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,

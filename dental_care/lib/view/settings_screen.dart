@@ -1,15 +1,24 @@
 // ignore_for_file: unused_field, unused_element
 
 import 'dart:convert';
-import 'dart:typed_data';
+import 'dart:async';
+import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+import '../core/responsive/app_breakpoints.dart';
+import '../core/theme/app_semantic_colors.dart';
+import '../widgets/loaders/app_loader.dart';
+import '../widgets/loaders/skeletons.dart';
+import '../providers/theme_controller.dart';
 
-import 'firebase_debug_screen.dart';
+import '../utils/app_dialogs.dart';
+import '../utils/global_error_handler.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -62,18 +71,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   // Prominent card decoration matching your specification
   BoxDecoration get _prominentCardDecoration => BoxDecoration(
-    color: Colors.white,
-    borderRadius: BorderRadius.circular(12),
-    border: Border.all(color: Colors.grey.shade300, width: 1),
-    boxShadow: [
-      BoxShadow(
-        color: Colors.black.withOpacity(0.08),
-        blurRadius: 20,
-        spreadRadius: 1,
-        offset: const Offset(0, 6),
-      ),
-    ],
-  );
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: Theme.of(context).colorScheme.outlineVariant,
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.08),
+            blurRadius: 20,
+            spreadRadius: 1,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      );
 
   @override
   Widget build(BuildContext context) {
@@ -90,14 +102,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 Text(
                   'Settings',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF212121),
-                  ),
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).colorScheme.onSurface,
+                      ),
                 ),
                 const SizedBox(height: 32),
                 LayoutBuilder(
                   builder: (context, constraints) {
-                    final isWide = constraints.maxWidth > 1000;
+                    final isWide =
+                        AppBreakpoints.fromWidth(constraints.maxWidth) ==
+                                AppDeviceType.desktop ||
+                            AppBreakpoints.fromWidth(constraints.maxWidth) ==
+                                AppDeviceType.largeDesktop;
 
                     if (isWide) {
                       final columnWidth = (constraints.maxWidth - 24) / 2;
@@ -128,7 +144,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               const SizedBox(width: 24),
                               SizedBox(
                                 width: columnWidth,
-                                child: SizedBox.shrink(),
+                                child: _buildAppearanceCard(),
                               ),
                             ],
                           ),
@@ -148,6 +164,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _buildNotificationCard(),
                         const SizedBox(height: 24),
                         _buildPrivacyCard(),
+                        const SizedBox(height: 24),
+                        _buildAppearanceCard(),
                         if (const bool.fromEnvironment('dart.vm.product') ==
                             false) ...[
                           const SizedBox(height: 24),
@@ -175,17 +193,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Text(
             'Profile Information',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF212121),
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
           ),
           const SizedBox(height: 24),
-
           if (_isLoadingProfile || _isLoadingSettings) ...[
             const Center(
               child: Padding(
                 padding: EdgeInsets.all(32.0),
-                child: CircularProgressIndicator(color: Color(0xFF4A90E2)),
+                child: ProfileSkeleton(),
               ),
             ),
           ] else ...[
@@ -218,8 +235,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
               child: ElevatedButton(
                 onPressed: _isUpdatingProfile ? null : _updateProfile,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF4A90E2),
-                  foregroundColor: Colors.white,
+                  backgroundColor: Theme.of(context).colorScheme.primary,
+                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
@@ -230,12 +247,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ? const SizedBox(
                         height: 20,
                         width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
-                        ),
+                        child: AppLoader(size: 20),
                       )
                     : const Text(
                         'Update Profile',
@@ -262,9 +274,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Text(
             'Notifications',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF212121),
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
           ),
           const SizedBox(height: 16),
           SwitchListTile.adaptive(
@@ -289,6 +301,58 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Widget _buildAppearanceCard() {
+    return Container(
+      decoration: _prominentCardDecoration,
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Appearance',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
+          ),
+          const SizedBox(height: 16),
+          Builder(
+            builder: (context) {
+              final themeController = Provider.of<ThemeController?>(context);
+              if (themeController == null) {
+                return const Text(
+                    'Theme controls unavailable in this context.');
+              }
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  RadioListTile<AppThemeMode>(
+                    value: AppThemeMode.light,
+                    groupValue: themeController.mode,
+                    onChanged: (value) {
+                      if (value != null) {
+                        themeController.setMode(value);
+                      }
+                    },
+                    title: const Text('Light'),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Blue & white theme is enabled by default.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildPrivacyCard() {
     return Container(
       decoration: _prominentCardDecoration,
@@ -299,9 +363,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
           Text(
             'Privacy & Security',
             style: Theme.of(context).textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF212121),
-            ),
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
           ),
           const SizedBox(height: 16),
           SwitchListTile.adaptive(
@@ -316,6 +380,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildDeveloperCard() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
     return Container(
       decoration: _prominentCardDecoration,
       padding: const EdgeInsets.all(24),
@@ -324,14 +390,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
         children: [
           Row(
             children: [
-              Icon(Icons.bug_report, color: Colors.orange.shade700),
+              Icon(
+                Icons.bug_report,
+                color: semanticColors?.warning ?? colorScheme.tertiary,
+              ),
               const SizedBox(width: 12),
               Text(
                 'Developer Tools',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF212121),
-                ),
+                      fontWeight: FontWeight.bold,
+                      color: colorScheme.onSurface,
+                    ),
               ),
             ],
           ),
@@ -340,18 +409,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
             width: double.infinity,
             child: ElevatedButton.icon(
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const FirebaseDebugScreen(),
-                  ),
-                );
+                context.push('/debug/firebase');
               },
               icon: const Icon(Icons.cloud),
               label: const Text('Firebase Debug & Tests'),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.orange.shade700,
-                foregroundColor: Colors.white,
+                backgroundColor:
+                    semanticColors?.warning ?? colorScheme.tertiary,
+                foregroundColor: colorScheme.onTertiary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -363,7 +428,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
           const SizedBox(height: 8),
           Text(
             'Run connectivity, read/write, and storage validation in one place.',
-            style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+            style: TextStyle(
+              fontSize: 13,
+              color: colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -386,11 +454,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
         _userEmail = currentUser.email;
       });
 
-      // Load user data from Firestore
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUser.uid)
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 30));
 
       if (userDoc.exists) {
         final userData = userDoc.data() as Map<String, dynamic>;
@@ -408,10 +476,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             .collection('users')
             .doc(currentUser.uid)
             .set({
-              'name': currentUser.displayName ?? '',
-              'email': currentUser.email ?? '',
-              'settings': _defaultSettings,
-            });
+          'name': currentUser.displayName ?? '',
+          'email': currentUser.email ?? '',
+          'settings': _defaultSettings,
+        }).timeout(const Duration(seconds: 30));
 
         setState(() {
           _userName = currentUser.displayName ?? '';
@@ -419,15 +487,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
           _settings = _deepCopy(_defaultSettings);
         });
       }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to load profile: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
+    } on TimeoutException catch (_) {
+      _showDialogAfterBuild(() {
+        AppDialogs.showErrorDialog(context,
+            message:
+                "The request timed out. Check your connection and try again.");
+      });
+    } on SocketException catch (_) {
+      _showDialogAfterBuild(() {
+        AppDialogs.showNoInternetDialog(context);
+      });
+    } catch (e, stack) {
+      _showDialogAfterBuild(() {
+        GlobalErrorHandler.instance.handleError(e, stack);
+      });
     } finally {
       if (mounted) {
         setState(() {
@@ -441,9 +514,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _updateProfile() async {
     if (_nameController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Name cannot be empty'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: const Text('Name cannot be empty'),
+          backgroundColor:
+              Theme.of(context).extension<AppSemanticColors>()?.danger ??
+                  Theme.of(context).colorScheme.error,
         ),
       );
       return;
@@ -459,33 +534,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
         throw Exception('No authenticated user');
       }
 
-      // Update user document in Firestore
       await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUser.uid)
-          .update({'name': _nameController.text.trim()});
+          .update({'name': _nameController.text.trim()}).timeout(
+              const Duration(seconds: 30));
 
       setState(() {
         _userName = _nameController.text.trim();
       });
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated successfully!'),
-            backgroundColor: Colors.green,
-          ),
+        AppDialogs.showInfoDialog(
+          context,
+          title: 'Success',
+          message: 'Profile updated successfully!',
         );
       }
-    } catch (e) {
+    } on TimeoutException catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to update profile: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        AppDialogs.showErrorDialog(context,
+            message: "The request timed out. Check your connection.");
       }
+    } on SocketException catch (_) {
+      if (mounted) AppDialogs.showNoInternetDialog(context);
+    } catch (e, stack) {
+      if (mounted) GlobalErrorHandler.instance.handleError(e, stack);
     } finally {
       if (mounted) {
         setState(() {
@@ -511,9 +585,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUser.uid)
-          .set({'settings': _settings}, SetOptions(merge: true));
-    } catch (e) {
-      _showError('Failed to save setting: $e');
+          .set({'settings': _settings}, SetOptions(merge: true)).timeout(
+              const Duration(seconds: 30));
+    } on TimeoutException catch (_) {
+      _showError('The request timed out. Check your connection.');
+    } on SocketException catch (_) {
+      if (mounted) AppDialogs.showNoInternetDialog(context);
+    } catch (e, stack) {
+      if (mounted) GlobalErrorHandler.instance.handleError(e, stack);
     } finally {
       if (mounted) {
         setState(() {
@@ -541,15 +620,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           .set({'settings': _settings}, SetOptions(merge: true));
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Settings saved'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppDialogs.showInfoDialog(context,
+            title: 'Success', message: 'Settings saved');
       }
     } catch (e) {
-      _showError('Failed to save settings: $e');
+      _showError('Failed to save settings. Please try again.');
     } finally {
       if (mounted) {
         setState(() {
@@ -574,17 +649,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final userDoc = await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUser.uid)
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 30));
 
       final patientsSnap = await FirebaseFirestore.instance
           .collection('patients')
           .where('dentistUid', isEqualTo: currentUser.uid)
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 30));
 
       final casesSnap = await FirebaseFirestore.instance
           .collection('cases')
           .where('dentistUid', isEqualTo: currentUser.uid)
-          .get();
+          .get()
+          .timeout(const Duration(seconds: 30));
 
       final payload = {
         'exportedAt': DateTime.now().toIso8601String(),
@@ -601,15 +679,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await Clipboard.setData(ClipboardData(text: json));
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Snapshot copied to clipboard'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppDialogs.showInfoDialog(context,
+            title: 'Success', message: 'Data snapshot copied to clipboard!');
       }
     } catch (e) {
-      _showError('Failed to export data: $e');
+      _showError('Failed to export data. Please try again.');
     } finally {
       if (mounted) {
         setState(() {
@@ -651,9 +725,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
             .collection('health_checks')
             .doc(user.uid)
             .set({
-              'checkedAt': FieldValue.serverTimestamp(),
-              'device': 'settings_screen',
-            }, SetOptions(merge: true));
+          'checkedAt': FieldValue.serverTimestamp(),
+          'device': 'settings_screen',
+        }, SetOptions(merge: true));
 
         final doc = await FirebaseFirestore.instance
             .collection('health_checks')
@@ -664,12 +738,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ? 'Firestore read/write OK'
             : 'Firestore write/read failed';
       } catch (e) {
-        firestoreMsg = 'Firestore failed: $e';
+        firestoreMsg = 'Firestore check failed. Please try again.';
       }
 
       try {
         final supabase = Supabase.instance.client;
-        final bucket = 'uploads';
+        const bucket = 'uploads';
         final path = 'health_checks/${user.uid}_ping.txt';
         await supabase.storage
             .from(bucket)
@@ -678,7 +752,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
         storageOk = true;
         storageMsg = 'Supabase storage write/delete OK';
       } catch (e) {
-        storageMsg = 'Storage failed: $e';
+        storageMsg = 'Storage check failed. Please try again.';
       }
     }
 
@@ -704,12 +778,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
       _showError('Some checks failed. Review the status chips.');
     } else {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Firebase connectivity looks good'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppDialogs.showInfoDialog(context,
+            title: 'Connectivity Check',
+            message: 'All connections successful!');
       }
     }
   }
@@ -799,9 +870,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _showError(String message) {
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message), backgroundColor: Colors.red),
-      );
+      AppDialogs.showErrorDialog(context, message: message);
     }
+  }
+
+  void _showDialogAfterBuild(VoidCallback action) {
+    if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      action();
+    });
   }
 }

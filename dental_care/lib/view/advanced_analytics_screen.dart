@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../core/theme/app_semantic_colors.dart';
 import '../providers/analytics_provider.dart';
 import '../providers/case_provider.dart';
+import '../widgets/loaders/app_loader.dart';
 
 class AdvancedAnalyticsScreen extends StatefulWidget {
-  const AdvancedAnalyticsScreen({Key? key}) : super(key: key);
+  const AdvancedAnalyticsScreen({super.key});
 
   @override
   State<AdvancedAnalyticsScreen> createState() =>
@@ -18,16 +20,18 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
     Future.microtask(() {
       final cases = context.read<CaseProvider>().cases;
       context.read<AnalyticsProvider>().generateAnalytics(
-        'current_user_id', // Replace with actual user ID
-        cases,
-      );
+            'current_user_id', // Replace with actual user ID
+            cases,
+          );
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: colorScheme.surface,
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(32),
         child: Column(
@@ -37,14 +41,17 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
             Text(
               'Advanced Analytics',
               style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF212121),
-              ),
+                    fontWeight: FontWeight.bold,
+                    color: colorScheme.onSurface,
+                  ),
             ),
             const SizedBox(height: 8),
             Text(
               'Comprehensive insights into your dental practice',
-              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              style: TextStyle(
+                fontSize: 14,
+                color: colorScheme.onSurfaceVariant,
+              ),
             ),
             const SizedBox(height: 32),
 
@@ -54,7 +61,7 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
                   return const Center(
                     child: Padding(
                       padding: EdgeInsets.all(64.0),
-                      child: CircularProgressIndicator(),
+                      child: AppLoader(message: 'Loading analytics...'),
                     ),
                   );
                 }
@@ -64,11 +71,11 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
                   return Container(
                     padding: const EdgeInsets.all(64),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: colorScheme.surface,
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: colorScheme.shadow.withValues(alpha: 0.08),
                           blurRadius: 10,
                           offset: const Offset(0, 2),
                         ),
@@ -80,7 +87,7 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
                           Icon(
                             Icons.analytics_outlined,
                             size: 64,
-                            color: Colors.grey[300],
+                            color: colorScheme.outlineVariant,
                           ),
                           const SizedBox(height: 16),
                           Text(
@@ -88,7 +95,7 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
                             style: TextStyle(
                               fontSize: 18,
                               fontWeight: FontWeight.w600,
-                              color: Colors.grey[700],
+                              color: colorScheme.onSurface,
                             ),
                           ),
                         ],
@@ -112,25 +119,25 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
                         _buildMetricCard(
                           'Total Patients',
                           analytics.totalPatients.toString(),
-                          Colors.blue,
+                          semanticColors?.info ?? colorScheme.primary,
                           Icons.people,
                         ),
                         _buildMetricCard(
                           'Total Cases',
                           analytics.totalCases.toString(),
-                          Colors.green,
+                          semanticColors?.success ?? colorScheme.secondary,
                           Icons.folder,
                         ),
                         _buildMetricCard(
                           'Cavities Detected',
                           analytics.cavitiesDetected.toString(),
-                          Colors.orange,
+                          semanticColors?.warning ?? colorScheme.tertiary,
                           Icons.warning_amber,
                         ),
                         _buildMetricCard(
                           'Healthy Cases',
                           analytics.healthyCases.toString(),
-                          Colors.teal,
+                          semanticColors?.success ?? colorScheme.secondary,
                           Icons.check_circle,
                         ),
                       ],
@@ -141,12 +148,12 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: colorScheme.surface,
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade200),
+                        border: Border.all(color: colorScheme.outlineVariant),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: colorScheme.shadow.withValues(alpha: 0.08),
                             blurRadius: 10,
                             offset: const Offset(0, 4),
                           ),
@@ -160,22 +167,25 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
                               Container(
                                 padding: const EdgeInsets.all(10),
                                 decoration: BoxDecoration(
-                                  color: Colors.orange.shade50,
+                                  color: (semanticColors?.warning ??
+                                          colorScheme.tertiary)
+                                      .withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(10),
                                 ),
                                 child: Icon(
                                   Icons.trending_up,
-                                  color: Colors.orange.shade700,
+                                  color: semanticColors?.warning ??
+                                      colorScheme.tertiary,
                                   size: 24,
                                 ),
                               ),
                               const SizedBox(width: 16),
-                              const Text(
+                              Text(
                                 'Cavity Detection Rate',
                                 style: TextStyle(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
-                                  color: Color(0xFF212121),
+                                  color: colorScheme.onSurface,
                                 ),
                               ),
                             ],
@@ -189,7 +199,8 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
                                 style: TextStyle(
                                   fontSize: 36,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.orange.shade700,
+                                  color: semanticColors?.warning ??
+                                      colorScheme.tertiary,
                                 ),
                               ),
                               Container(
@@ -198,7 +209,9 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
                                   vertical: 6,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: Colors.orange.shade100,
+                                  color: (semanticColors?.warning ??
+                                          colorScheme.tertiary)
+                                      .withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Row(
@@ -206,7 +219,8 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
                                     Icon(
                                       Icons.arrow_upward,
                                       size: 16,
-                                      color: Colors.orange.shade700,
+                                      color: semanticColors?.warning ??
+                                          colorScheme.tertiary,
                                     ),
                                     const SizedBox(width: 4),
                                     Text(
@@ -214,7 +228,8 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
                                       style: TextStyle(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
-                                        color: Colors.orange.shade700,
+                                        color: semanticColors?.warning ??
+                                            colorScheme.tertiary,
                                       ),
                                     ),
                                   ],
@@ -228,9 +243,9 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
                             child: LinearProgressIndicator(
                               value: analytics.cavityDetectionRate / 100,
                               minHeight: 12,
-                              backgroundColor: Colors.grey[200],
+                              backgroundColor: colorScheme.outlineVariant,
                               valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.orange.shade600,
+                                semanticColors?.warning ?? colorScheme.tertiary,
                               ),
                             ),
                           ),
@@ -253,15 +268,16 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
     Color color,
     IconData icon,
   ) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
+        border: Border.all(color: colorScheme.outlineVariant),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: colorScheme.shadow.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -274,7 +290,7 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Icon(icon, color: color, size: 28),
@@ -293,7 +309,7 @@ class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
             title,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[600],
+              color: colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
           ),

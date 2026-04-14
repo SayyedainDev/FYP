@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../utils/firebase_test.dart';
 import '../provider/auth_provider.dart';
+import '../core/theme/app_semantic_colors.dart';
 
 /// Debug screen to test Firebase operations
 /// Access this from Settings or add to navigation for testing
@@ -116,10 +117,17 @@ class _FirebaseDebugScreenState extends State<FirebaseDebugScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semantic = Theme.of(context).extension<AppSemanticColors>();
+    final success = semantic?.success ?? colorScheme.primary;
+    final warning = semantic?.warning ?? colorScheme.secondary;
+    final danger = semantic?.danger ?? colorScheme.error;
+    final info = semantic?.info ?? colorScheme.tertiary;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Firebase Debug & Test'),
-        backgroundColor: Colors.blue.shade800,
+        backgroundColor: colorScheme.primary,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),
@@ -132,9 +140,9 @@ class _FirebaseDebugScreenState extends State<FirebaseDebugScreen> {
               style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
+            Text(
               'Test Firebase Auth, Firestore, and Storage connections',
-              style: TextStyle(color: Colors.grey),
+              style: TextStyle(color: colorScheme.onSurfaceVariant),
             ),
             const SizedBox(height: 24),
 
@@ -148,7 +156,8 @@ class _FirebaseDebugScreenState extends State<FirebaseDebugScreen> {
                   icon: const Icon(Icons.play_arrow),
                   label: const Text('Run All Tests'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue,
+                    backgroundColor: info,
+                    foregroundColor: colorScheme.onTertiary,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 16,
@@ -160,7 +169,8 @@ class _FirebaseDebugScreenState extends State<FirebaseDebugScreen> {
                   icon: const Icon(Icons.person),
                   label: const Text('Test Patient Ops'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green,
+                    backgroundColor: success,
+                    foregroundColor: colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 16,
@@ -172,7 +182,8 @@ class _FirebaseDebugScreenState extends State<FirebaseDebugScreen> {
                   icon: const Icon(Icons.medical_services),
                   label: const Text('Test Case Ops'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange,
+                    backgroundColor: warning,
+                    foregroundColor: colorScheme.onSecondary,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 16,
@@ -189,7 +200,8 @@ class _FirebaseDebugScreenState extends State<FirebaseDebugScreen> {
                   icon: const Icon(Icons.clear),
                   label: const Text('Clear'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey,
+                    backgroundColor: colorScheme.surfaceContainerHighest,
+                    foregroundColor: colorScheme.onSurface,
                     padding: const EdgeInsets.symmetric(
                       horizontal: 20,
                       vertical: 16,
@@ -223,7 +235,7 @@ class _FirebaseDebugScreenState extends State<FirebaseDebugScreen> {
                             children: [
                               Icon(
                                 entry.value ? Icons.check_circle : Icons.error,
-                                color: entry.value ? Colors.green : Colors.red,
+                                color: entry.value ? success : danger,
                                 size: 20,
                               ),
                               const SizedBox(width: 12),
@@ -231,9 +243,7 @@ class _FirebaseDebugScreenState extends State<FirebaseDebugScreen> {
                                 '${entry.key.toUpperCase()}: ${entry.value ? "PASSED" : "FAILED"}',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: entry.value
-                                      ? Colors.green
-                                      : Colors.red,
+                                  color: entry.value ? success : danger,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -255,7 +265,7 @@ class _FirebaseDebugScreenState extends State<FirebaseDebugScreen> {
                 height: 400,
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.black87,
+                  color: colorScheme.surfaceContainerHigh,
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: SingleChildScrollView(
@@ -263,8 +273,8 @@ class _FirebaseDebugScreenState extends State<FirebaseDebugScreen> {
                     _log.isEmpty
                         ? 'No logs yet. Run tests to see results.'
                         : _log,
-                    style: const TextStyle(
-                      color: Colors.greenAccent,
+                    style: TextStyle(
+                      color: success,
                       fontFamily: 'monospace',
                       fontSize: 13,
                     ),
@@ -275,21 +285,21 @@ class _FirebaseDebugScreenState extends State<FirebaseDebugScreen> {
             const SizedBox(height: 24),
 
             // Instructions
-            Card(
+            const Card(
               child: Padding(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                    Text(
                       'Instructions',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    const Divider(),
-                    const Text(
+                    Divider(),
+                    Text(
                       '1. Run All Tests - Tests Firebase connection\n'
                       '2. Test Patient Ops - Tests patient CRUD operations\n'
                       '3. Test Case Ops - Tests case CRUD operations\n'

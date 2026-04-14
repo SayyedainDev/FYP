@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/analytics.dart';
 import '../models/case.dart';
+import '../utils/provider_error_utils.dart';
 
 class AnalyticsProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -23,22 +24,22 @@ class AnalyticsProvider extends ChangeNotifier {
       final patients = await _firestore
           .collection('patients')
           .where('dentistUid', isEqualTo: dentistUid)
-          .get();
+          .get()
+          .timeout(ProviderErrorUtils.requestTimeout);
 
       final appointments = await _firestore
           .collection('appointments')
           .where('dentistUid', isEqualTo: dentistUid)
-          .get();
+          .get()
+          .timeout(ProviderErrorUtils.requestTimeout);
 
       // Calculate metrics
       final totalPatients = patients.docs.length;
       final totalCases = cases.length;
-      final cavitiesDetected = cases
-          .where((c) => c.hasCavity && c.isAnalysisComplete)
-          .length;
-      final healthyCases = cases
-          .where((c) => !c.hasCavity && c.isAnalysisComplete)
-          .length;
+      final cavitiesDetected =
+          cases.where((c) => c.hasCavity && c.isAnalysisComplete).length;
+      final healthyCases =
+          cases.where((c) => !c.hasCavity && c.isAnalysisComplete).length;
       final cavityDetectionRate = totalCases > 0
           ? (cavitiesDetected / totalCases * 100).toStringAsFixed(1)
           : '0.0';
@@ -49,9 +50,8 @@ class AnalyticsProvider extends ChangeNotifier {
         return date.year == now.year && date.month == now.month;
       }).length;
 
-      final completed = appointments.docs
-          .where((doc) => doc['status'] == 'completed')
-          .length;
+      final completed =
+          appointments.docs.where((doc) => doc['status'] == 'completed').length;
       final completionRate = appointments.docs.isNotEmpty
           ? (completed / appointments.docs.length * 100)
           : 0;
@@ -86,7 +86,10 @@ class AnalyticsProvider extends ChangeNotifier {
       _loading = false;
       notifyListeners();
     } catch (e) {
-      _error = 'Failed to generate analytics: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to generate analytics. Please try again.',
+      );
       _loading = false;
       notifyListeners();
       debugPrint('Error generating analytics: $e');
@@ -166,9 +169,8 @@ class AnalyticsProvider extends ChangeNotifier {
             toothNumber: e.key,
             toothName: 'Tooth ${e.key}',
             casesFound: e.value,
-            detectionFrequency: cases.isEmpty
-                ? 0
-                : (e.value / cases.length * 100),
+            detectionFrequency:
+                cases.isEmpty ? 0 : (e.value / cases.length * 100),
             mostCommonIssue: 'Carious lesion',
             treatmentSuccessRate: 85.0,
           ),

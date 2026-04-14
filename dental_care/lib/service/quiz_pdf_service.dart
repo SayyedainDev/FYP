@@ -195,9 +195,9 @@ class QuizPdfService {
                   horizontal: 8,
                   vertical: 4,
                 ),
-                decoration: pw.BoxDecoration(
+                decoration: const pw.BoxDecoration(
                   color: PdfColors.blue100,
-                  borderRadius: const pw.BorderRadius.all(
+                  borderRadius: pw.BorderRadius.all(
                     pw.Radius.circular(4),
                   ),
                 ),
@@ -215,9 +215,9 @@ class QuizPdfService {
                   horizontal: 8,
                   vertical: 4,
                 ),
-                decoration: pw.BoxDecoration(
+                decoration: const pw.BoxDecoration(
                   color: PdfColors.grey300,
-                  borderRadius: const pw.BorderRadius.all(
+                  borderRadius: pw.BorderRadius.all(
                     pw.Radius.circular(4),
                   ),
                 ),
@@ -232,9 +232,9 @@ class QuizPdfService {
                   horizontal: 8,
                   vertical: 4,
                 ),
-                decoration: pw.BoxDecoration(
+                decoration: const pw.BoxDecoration(
                   color: PdfColors.orange100,
-                  borderRadius: const pw.BorderRadius.all(
+                  borderRadius: pw.BorderRadius.all(
                     pw.Radius.circular(4),
                   ),
                 ),
@@ -250,9 +250,9 @@ class QuizPdfService {
                     horizontal: 8,
                     vertical: 4,
                   ),
-                  decoration: pw.BoxDecoration(
+                  decoration: const pw.BoxDecoration(
                     color: PdfColors.green100,
-                    borderRadius: const pw.BorderRadius.all(
+                    borderRadius: pw.BorderRadius.all(
                       pw.Radius.circular(4),
                     ),
                   ),
@@ -279,7 +279,7 @@ class QuizPdfService {
               final optIndex = entry.key;
               final option = entry.value;
               final isCorrect =
-                  includeAnswers && option == question.correctAnswer;
+                  includeAnswers && option == question.correctAnswerText;
               return pw.Padding(
                 padding: const pw.EdgeInsets.only(left: 16, bottom: 4),
                 child: pw.Row(
@@ -300,9 +300,8 @@ class QuizPdfService {
                           fontWeight: isCorrect
                               ? pw.FontWeight.bold
                               : pw.FontWeight.normal,
-                          color: isCorrect
-                              ? PdfColors.green900
-                              : PdfColors.black,
+                          color:
+                              isCorrect ? PdfColors.green900 : PdfColors.black,
                         ),
                       ),
                     ),
@@ -343,7 +342,7 @@ class QuizPdfService {
                   ),
                   pw.SizedBox(height: 4),
                   pw.Text(
-                    question.correctAnswer,
+                    question.correctAnswerText,
                     style: const pw.TextStyle(color: PdfColors.green900),
                   ),
                 ],
@@ -454,7 +453,7 @@ class QuizPdfService {
         text: 'Quiz: ${quiz.title}\n${quiz.description}',
       );
     } catch (e) {
-      throw Exception('Failed to share quiz: $e');
+      throw Exception('Failed to share quiz. Please try again.');
     }
   }
 }

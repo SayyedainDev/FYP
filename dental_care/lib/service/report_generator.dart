@@ -102,11 +102,11 @@ class ReportGenerator {
             pw.SizedBox(height: 10),
             pw.Text(
               'Total Cases: ${cases.length}',
-              style: pw.TextStyle(fontSize: 14),
+              style: const pw.TextStyle(fontSize: 14),
             ),
             pw.Text(
               'Cases with Cavity: ${cases.where((c) => c.hasCavity).length}',
-              style: pw.TextStyle(fontSize: 14),
+              style: const pw.TextStyle(fontSize: 14),
             ),
             pw.SizedBox(height: 20),
           ];
@@ -227,11 +227,11 @@ class ReportGenerator {
               pw.SizedBox(height: 10),
               pw.Text(
                 'Confidence: ${caseData.analysisResults['confidence']?.toString() ?? 'N/A'}',
-                style: pw.TextStyle(fontSize: 14),
+                style: const pw.TextStyle(fontSize: 14),
               ),
               pw.Text(
                 'Risk Label: ${caseData.analysisResults['riskLabel']?.toString() ?? 'N/A'}',
-                style: pw.TextStyle(fontSize: 14),
+                style: const pw.TextStyle(fontSize: 14),
               ),
             ],
           ];

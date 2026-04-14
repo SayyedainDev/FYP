@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../models/scan.dart';
+import '../../core/theme/app_semantic_colors.dart';
 
 class RecentScanCard extends StatelessWidget {
   final Scan scan;
@@ -9,57 +10,61 @@ class RecentScanCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isCavity = scan.hasCavity;
+    final colorScheme = Theme.of(context).colorScheme;
+    final semantic = Theme.of(context).extension<AppSemanticColors>();
+    final danger = semantic?.danger ?? colorScheme.error;
+    final success = semantic?.success ?? colorScheme.primary;
+    final statusColor = isCavity ? danger : success;
 
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        border: Border(bottom: BorderSide(color: Colors.grey[200]!, width: 1)),
+        border: Border(
+          bottom: BorderSide(color: colorScheme.outlineVariant, width: 1),
+        ),
       ),
       child: Row(
         children: [
           CircleAvatar(
             radius: 20,
-            backgroundColor: isCavity
-                ? Colors.red.withOpacity(0.1)
-                : Colors.green.withOpacity(0.1),
+            backgroundColor: statusColor.withValues(alpha: 0.1),
             child: Text(
               scan.patientName.split(' ').map((e) => e[0]).take(2).join(),
               style: TextStyle(
-                color: isCavity ? Colors.red[700] : Colors.green[700],
+                color: statusColor,
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),
             ),
           ),
           const SizedBox(width: 16),
-
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   scan.patientName,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: Colors.black87,
+                    color: colorScheme.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Tooth #${scan.toothNumber} • ${scan.timeAgo}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: colorScheme.onSurfaceVariant,
+                  ),
                 ),
               ],
             ),
           ),
-
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: isCavity
-                  ? Colors.red.withOpacity(0.1)
-                  : Colors.green.withOpacity(0.1),
+              color: statusColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -69,7 +74,7 @@ class RecentScanCard extends StatelessWidget {
                   width: 6,
                   height: 6,
                   decoration: BoxDecoration(
-                    color: isCavity ? Colors.red[600] : Colors.green[600],
+                    color: statusColor,
                     shape: BoxShape.circle,
                   ),
                 ),
@@ -79,7 +84,7 @@ class RecentScanCard extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
-                    color: isCavity ? Colors.red[700] : Colors.green[700],
+                    color: statusColor,
                   ),
                 ),
               ],

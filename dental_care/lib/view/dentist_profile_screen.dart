@@ -2,11 +2,16 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide User;
 import 'package:image_picker/image_picker.dart';
 import '../provider/auth_provider.dart';
+import '../core/animation_constants.dart';
+import '../core/theme/app_semantic_colors.dart';
+import '../utils/app_dialogs.dart';
+import '../widgets/loaders/app_loader.dart';
 
 class DentistProfileScreen extends StatefulWidget {
   const DentistProfileScreen({super.key});
@@ -35,15 +40,15 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 600),
+      duration: AppDurations.slow,
     );
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
+      CurvedAnimation(parent: _animationController, curve: AppCurves.smooth),
     );
     _slideAnimation =
         Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
-          CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
-        );
+      CurvedAnimation(parent: _animationController, curve: AppCurves.enter),
+    );
     _animationController.forward();
     _loadUserData();
   }
@@ -104,7 +109,7 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
 
       // Upload to Supabase Storage
       final supabase = Supabase.instance.client;
-      final bucket = 'profile_photos';
+      const bucket = 'profile_photos';
       final path = '${currentUser.uid}.jpg';
 
       if (kIsWeb) {
@@ -127,21 +132,15 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
           _profileImageUrl = downloadUrl;
           _isUploadingPhoto = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Profile photo updated successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppDialogs.showInfoDialog(context,
+            title: 'Success', message: 'Profile photo updated successfully');
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isUploadingPhoto = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Error uploading photo: $e'),
-            backgroundColor: Colors.red,
-          ),
+        AppDialogs.showErrorDialog(
+          context,
+          message: 'Unable to upload photo right now. Please try again.',
         );
       }
     }
@@ -154,38 +153,31 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
     try {
       final nameParts = _nameController.text.trim().split(' ');
       final firstName = nameParts.isNotEmpty ? nameParts.first : '';
-      final lastName = nameParts.length > 1
-          ? nameParts.sublist(1).join(' ')
-          : '';
+      final lastName =
+          nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
 
       await FirebaseFirestore.instance
           .collection('users')
           .doc(currentUser.uid)
           .update({
-            'firstName': firstName,
-            'lastName': lastName,
-            'specialization': _specializationController.text.trim(),
-            'phone': _phoneController.text.trim(),
-            'address': _addressController.text.trim(),
-          });
+        'firstName': firstName,
+        'lastName': lastName,
+        'specialization': _specializationController.text.trim(),
+        'phone': _phoneController.text.trim(),
+        'address': _addressController.text.trim(),
+      });
 
       if (mounted) {
         setState(() => _isEditingProfile = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ Profile updated successfully'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        AppDialogs.showInfoDialog(context,
+            title: 'Success', message: 'Profile updated successfully');
         _loadUserData();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Error updating profile: $e'),
-            backgroundColor: Colors.red,
-          ),
+        AppDialogs.showErrorDialog(
+          context,
+          message: 'Unable to update profile right now. Please try again.',
         );
       }
     }
@@ -195,262 +187,267 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
   Widget build(BuildContext context) {
     final currentUser = FirebaseAuth.instance.currentUser;
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
-      body: FadeTransition(
-        opacity: _fadeAnimation,
-        child: SlideTransition(
-          position: _slideAnimation,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(32),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      backgroundColor: colorScheme.surface,
+      body: RepaintBoundary(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: RepaintBoundary(
+            child: SlideTransition(
+              position: _slideAnimation,
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    // Header
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'Profile',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF212121),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Manage your account and preferences',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (!_isEditingProfile)
-                      ElevatedButton.icon(
-                        onPressed: () =>
-                            setState(() => _isEditingProfile = true),
-                        icon: const Icon(Icons.edit, size: 18),
-                        label: const Text('Edit Profile'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4A90E2),
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 12,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 32),
-
-                // Profile Info Card
-                Container(
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.04),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  child: Column(
-                    children: [
-                      // Avatar with edit button
-                      Stack(
-                        children: [
-                          Container(
-                            width: 120,
-                            height: 120,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFF4A90E2),
-                                width: 3,
-                              ),
-                            ),
-                            child: ClipOval(
-                              child: _isUploadingPhoto
-                                  ? const Center(
-                                      child: CircularProgressIndicator(),
-                                    )
-                                  : _profileImageUrl != null
-                                  ? Image.network(
-                                      _profileImageUrl!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, __, ___) =>
-                                          _buildAvatarFallback(),
-                                    )
-                                  : _buildAvatarFallback(),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: InkWell(
-                              onTap: _isUploadingPhoto
-                                  ? null
-                                  : _pickAndUploadImage,
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF4A90E2),
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withOpacity(0.2),
-                                      blurRadius: 4,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.camera_alt,
-                                  color: Colors.white,
-                                  size: 20,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Name and Email
-                      if (_isEditingProfile) ...[
-                        _buildEditField(
-                          'Full Name',
-                          _nameController,
-                          Icons.person,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildEditField(
-                          'Specialization',
-                          _specializationController,
-                          Icons.medical_services,
-                        ),
-                        const SizedBox(height: 16),
-                        _buildEditField('Phone', _phoneController, Icons.phone),
-                        const SizedBox(height: 16),
-                        _buildEditField(
-                          'Address',
-                          _addressController,
-                          Icons.location_on,
-                        ),
-                        const SizedBox(height: 24),
-                        Row(
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(
-                              child: OutlinedButton(
-                                onPressed: () {
-                                  setState(() => _isEditingProfile = false);
-                                  _loadUserData();
-                                },
-                                child: const Text('Cancel'),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: ElevatedButton(
-                                onPressed: _updateProfile,
-                                child: const Text('Save Changes'),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ] else ...[
-                        Text(
-                          _nameController.text.isNotEmpty
-                              ? 'Dr. ${_nameController.text}'
-                              : 'Dr. User',
-                          style: const TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF212121),
-                          ),
-                        ),
-                        if (_specializationController.text.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Text(
-                            _specializationController.text,
-                            style: TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey[600],
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                        const SizedBox(height: 16),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.email_outlined,
-                              size: 16,
-                              color: Colors.grey[600],
-                            ),
-                            const SizedBox(width: 8),
                             Text(
-                              currentUser?.email ?? 'No email',
+                              'Profile',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Manage your account and preferences',
                               style: TextStyle(
                                 fontSize: 14,
-                                color: Colors.grey[600],
+                                color: colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
                         ),
-                        if (_phoneController.text.isNotEmpty) ...[
-                          const SizedBox(height: 8),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.phone_outlined,
-                                size: 16,
-                                color: Colors.grey[600],
+                        if (!_isEditingProfile)
+                          ElevatedButton.icon(
+                            onPressed: () =>
+                                setState(() => _isEditingProfile = true),
+                            icon: const Icon(Icons.edit, size: 18),
+                            label: const Text('Edit Profile'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: colorScheme.primary,
+                              foregroundColor: colorScheme.onPrimary,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 20,
+                                vertical: 12,
                               ),
-                              const SizedBox(width: 8),
-                              Text(
-                                _phoneController.text,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  color: Colors.grey[600],
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 32),
+
+                    // Profile Info Card
+                    Container(
+                      padding: const EdgeInsets.all(32),
+                      decoration: BoxDecoration(
+                        color: colorScheme.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: colorScheme.shadow.withValues(alpha: 0.08),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        children: [
+                          // Avatar with edit button
+                          Stack(
+                            children: [
+                              Container(
+                                width: 120,
+                                height: 120,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: colorScheme.primary,
+                                    width: 3,
+                                  ),
+                                ),
+                                child: ClipOval(
+                                  child: _isUploadingPhoto
+                                      ? const Center(child: AppLoader(size: 56))
+                                      : _profileImageUrl != null
+                                          ? Image.network(
+                                              _profileImageUrl!,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) =>
+                                                  _buildAvatarFallback(),
+                                            )
+                                          : _buildAvatarFallback(),
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: InkWell(
+                                  onTap: _isUploadingPhoto
+                                      ? null
+                                      : _pickAndUploadImage,
+                                  child: Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: colorScheme.primary,
+                                      shape: BoxShape.circle,
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: colorScheme.shadow
+                                              .withValues(alpha: 0.2),
+                                          blurRadius: 4,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Icon(
+                                      Icons.camera_alt,
+                                      color: colorScheme.onPrimary,
+                                      size: 20,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ],
                           ),
+                          const SizedBox(height: 24),
+
+                          // Name and Email
+                          if (_isEditingProfile) ...[
+                            _buildEditField(
+                              'Full Name',
+                              _nameController,
+                              Icons.person,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildEditField(
+                              'Specialization',
+                              _specializationController,
+                              Icons.medical_services,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildEditField(
+                                'Phone', _phoneController, Icons.phone),
+                            const SizedBox(height: 16),
+                            _buildEditField(
+                              'Address',
+                              _addressController,
+                              Icons.location_on,
+                            ),
+                            const SizedBox(height: 24),
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton(
+                                    onPressed: () {
+                                      setState(() => _isEditingProfile = false);
+                                      _loadUserData();
+                                    },
+                                    child: const Text('Cancel'),
+                                  ),
+                                ),
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  child: ElevatedButton(
+                                    onPressed: _updateProfile,
+                                    child: const Text('Save Changes'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ] else ...[
+                            Text(
+                              _nameController.text.isNotEmpty
+                                  ? 'Dr. ${_nameController.text}'
+                                  : 'Dr. User',
+                              style: TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurface,
+                              ),
+                            ),
+                            if (_specializationController.text.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                _specializationController.text,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: colorScheme.onSurfaceVariant,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                            const SizedBox(height: 16),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.email_outlined,
+                                  size: 16,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  currentUser?.email ?? 'No email',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (_phoneController.text.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.phone_outlined,
+                                    size: 16,
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    _phoneController.text,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ],
                         ],
-                      ],
-                    ],
-                  ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Statistics Row
+                    _buildStatisticsSection(),
+                    const SizedBox(height: 24),
+
+                    // Account Information
+                    _buildAccountInfoSection(currentUser),
+                    const SizedBox(height: 24),
+
+                    // Actions Section
+                    _buildActionsSection(authProvider),
+                  ],
                 ),
-                const SizedBox(height: 24),
-
-                // Statistics Row
-                _buildStatisticsSection(),
-                const SizedBox(height: 24),
-
-                // Account Information
-                _buildAccountInfoSection(currentUser),
-                const SizedBox(height: 24),
-
-                // Actions Section
-                _buildActionsSection(authProvider),
-              ],
+              ),
             ),
           ),
         ),
@@ -459,17 +456,18 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
   }
 
   Widget _buildAvatarFallback() {
+    final colorScheme = Theme.of(context).colorScheme;
     return Consumer<AuthProvider>(
       builder: (context, authProvider, child) {
         return Container(
-          color: const Color(0xFF4A90E2).withOpacity(0.1),
+          color: colorScheme.primary.withValues(alpha: 0.1),
           child: Center(
             child: Text(
               authProvider.initials,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 48,
                 fontWeight: FontWeight.w600,
-                color: Color(0xFF4A90E2),
+                color: colorScheme.primary,
               ),
             ),
           ),
@@ -483,19 +481,20 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
     TextEditingController controller,
     IconData icon,
   ) {
+    final colorScheme = Theme.of(context).colorScheme;
     return TextField(
       controller: controller,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: const Color(0xFF4A90E2)),
+        prefixIcon: Icon(icon, color: colorScheme.primary),
         border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: colorScheme.outlineVariant),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 2),
+          borderSide: BorderSide(color: colorScheme.primary, width: 2),
         ),
       ),
     );
@@ -503,17 +502,19 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
 
   Widget _buildStatisticsSection() {
     final currentUser = FirebaseAuth.instance.currentUser;
+    final colorScheme = Theme.of(context).colorScheme;
+    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
     if (currentUser == null) return const SizedBox.shrink();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Statistics',
           style: TextStyle(
             fontSize: 20,
             fontWeight: FontWeight.bold,
-            color: Color(0xFF212121),
+            color: colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 16),
@@ -523,7 +524,7 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
               child: _buildStatCard(
                 'Patients',
                 Icons.people,
-                Colors.blue,
+                semanticColors?.info ?? colorScheme.primary,
                 StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection('patients')
@@ -533,10 +534,10 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
                     if (!snapshot.hasData) return const Text('...');
                     return Text(
                       '${snapshot.data!.docs.length}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
-                        color: Colors.blue,
+                        color: semanticColors?.info ?? colorScheme.primary,
                       ),
                     );
                   },
@@ -548,7 +549,7 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
               child: _buildStatCard(
                 'Cases',
                 Icons.folder,
-                Colors.orange,
+                semanticColors?.warning ?? colorScheme.tertiary,
                 StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection('cases')
@@ -558,10 +559,10 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
                     if (!snapshot.hasData) return const Text('...');
                     return Text(
                       '${snapshot.data!.docs.length}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
-                        color: Colors.orange,
+                        color: semanticColors?.warning ?? colorScheme.tertiary,
                       ),
                     );
                   },
@@ -573,7 +574,7 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
               child: _buildStatCard(
                 'Quizzes',
                 Icons.quiz,
-                Colors.green,
+                semanticColors?.success ?? colorScheme.secondary,
                 StreamBuilder<QuerySnapshot>(
                   stream: FirebaseFirestore.instance
                       .collection('quizzes')
@@ -583,10 +584,10 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
                     if (!snapshot.hasData) return const Text('...');
                     return Text(
                       '${snapshot.data!.docs.length}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
-                        color: Colors.green,
+                        color: semanticColors?.success ?? colorScheme.secondary,
                       ),
                     );
                   },
@@ -605,14 +606,15 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
     Color color,
     Widget valueWidget,
   ) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: colorScheme.shadow.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -628,7 +630,7 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
             label,
             style: TextStyle(
               fontSize: 14,
-              color: Colors.grey[600],
+              color: colorScheme.onSurfaceVariant,
               fontWeight: FontWeight.w500,
             ),
           ),
@@ -638,14 +640,15 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
   }
 
   Widget _buildAccountInfoSection(User? currentUser) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: colorScheme.shadow.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -654,12 +657,12 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Account Information',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF212121),
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),
@@ -685,14 +688,16 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
   }
 
   Widget _buildActionsSection(AuthProvider authProvider) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: colorScheme.shadow.withValues(alpha: 0.08),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -701,12 +706,12 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Actions',
             style: TextStyle(
               fontSize: 20,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF212121),
+              color: colorScheme.onSurface,
             ),
           ),
           const SizedBox(height: 16),
@@ -714,7 +719,7 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
             'Change Password',
             'Update your account password',
             Icons.lock_outline,
-            Colors.orange,
+            semanticColors?.warning ?? colorScheme.tertiary,
             () => _showChangePasswordDialog(),
           ),
           const SizedBox(height: 12),
@@ -722,7 +727,7 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
             'Export Data',
             'Download your account data',
             Icons.download,
-            Colors.blue,
+            semanticColors?.info ?? colorScheme.primary,
             () => _exportUserData(),
           ),
           const SizedBox(height: 12),
@@ -730,7 +735,7 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
             'Delete Account',
             'Permanently delete your account',
             Icons.delete_outline,
-            Colors.red,
+            semanticColors?.danger ?? colorScheme.error,
             () => _showDeleteAccountDialog(),
           ),
           const SizedBox(height: 24),
@@ -744,8 +749,8 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
+                backgroundColor: semanticColors?.danger ?? colorScheme.error,
+                foregroundColor: colorScheme.onError,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -766,22 +771,23 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
     Color color,
     VoidCallback onTap,
   ) {
+    final colorScheme = Theme.of(context).colorScheme;
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(8),
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8F9FA),
+          color: colorScheme.surfaceContainerLowest,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.grey.shade200),
+          border: Border.all(color: colorScheme.outlineVariant),
         ),
         child: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: color, size: 24),
@@ -793,21 +799,24 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF212121),
+                      color: colorScheme.onSurface,
                     ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: TextStyle(fontSize: 13, color: Colors.grey[600]),
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: Colors.grey[400]),
+            Icon(Icons.chevron_right, color: colorScheme.outline),
           ],
         ),
       ),
@@ -815,6 +824,7 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
   }
 
   Widget _buildInfoRow(String label, String value) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -822,15 +832,15 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
           label,
           style: TextStyle(
             fontSize: 14,
-            color: Colors.grey[700],
+            color: colorScheme.onSurfaceVariant,
             fontWeight: FontWeight.w500,
           ),
         ),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
-            color: Color(0xFF212121),
+            color: colorScheme.onSurface,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -844,6 +854,7 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
   }
 
   Future<void> _logout(AuthProvider authProvider) async {
+    final colorScheme = Theme.of(context).colorScheme;
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
@@ -856,7 +867,10 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorScheme.error,
+              foregroundColor: colorScheme.onError,
+            ),
             child: const Text('Logout'),
           ),
         ],
@@ -866,7 +880,7 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
     if (confirm == true) {
       await authProvider.logout();
       if (mounted) {
-        Navigator.of(context).pushReplacementNamed('/');
+        Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
       }
     }
   }
@@ -948,20 +962,14 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
         await currentUser.updatePassword(newPasswordController.text);
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('✅ Password changed successfully'),
-              backgroundColor: Colors.green,
-            ),
-          );
+          AppDialogs.showInfoDialog(context,
+              title: 'Success', message: 'Password changed successfully');
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('❌ Error: ${e.toString()}'),
-              backgroundColor: Colors.red,
-            ),
+          AppDialogs.showErrorDialog(
+            context,
+            message: 'Unable to change password right now. Please try again.',
           );
         }
       }
@@ -1012,27 +1020,23 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
       };
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('✅ Data exported: ${exportData.toString()}'),
-            backgroundColor: Colors.green,
-            duration: const Duration(seconds: 4),
-          ),
-        );
+        AppDialogs.showInfoDialog(context,
+            title: 'Success',
+            message: 'Data exported: ${exportData.toString()}');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ Error exporting data: $e'),
-            backgroundColor: Colors.red,
-          ),
+        AppDialogs.showErrorDialog(
+          context,
+          message: 'Unable to export data right now. Please try again.',
         );
       }
     }
   }
 
   Future<void> _showDeleteAccountDialog() async {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
     final passwordController = TextEditingController();
 
     final confirm = await showDialog<bool>(
@@ -1042,9 +1046,9 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
+            Text(
               '⚠️ This action is irreversible. All your data will be permanently deleted.',
-              style: TextStyle(color: Colors.red),
+              style: TextStyle(color: colorScheme.error),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -1064,7 +1068,10 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
           ),
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: semanticColors?.danger ?? colorScheme.error,
+              foregroundColor: colorScheme.onError,
+            ),
             child: const Text('Delete Account'),
           ),
         ],
@@ -1093,15 +1100,13 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
         await currentUser.delete();
 
         if (mounted) {
-          Navigator.of(context).pushReplacementNamed('/');
+          Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false);
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('❌ Error: ${e.toString()}'),
-              backgroundColor: Colors.red,
-            ),
+          AppDialogs.showErrorDialog(
+            context,
+            message: 'Unable to delete account right now. Please try again.',
           );
         }
       }

@@ -3,9 +3,10 @@ import 'package:provider/provider.dart';
 import '../models/case.dart';
 import '../models/case_comparison.dart';
 import '../providers/case_provider.dart';
+import '../core/theme/app_semantic_colors.dart';
 
 class CaseComparisonScreen extends StatefulWidget {
-  const CaseComparisonScreen({Key? key}) : super(key: key);
+  const CaseComparisonScreen({super.key});
 
   @override
   State<CaseComparisonScreen> createState() => _CaseComparisonScreenState();
@@ -17,6 +18,7 @@ class _CaseComparisonScreenState extends State<CaseComparisonScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(title: const Text('Case Comparison'), elevation: 0),
       body: Consumer<CaseProvider>(
@@ -71,7 +73,7 @@ class _CaseComparisonScreenState extends State<CaseComparisonScreen> {
                   child: Center(
                     child: Text(
                       'Select two cases to compare',
-                      style: TextStyle(color: Colors.grey[600]),
+                      style: TextStyle(color: colorScheme.onSurfaceVariant),
                     ),
                   ),
                 ),
@@ -111,6 +113,7 @@ class _CaseComparisonScreenState extends State<CaseComparisonScreen> {
   }
 
   Widget _buildComparisonView(Case case1, Case case2) {
+    final colorScheme = Theme.of(context).colorScheme;
     final comparison = _generateComparison(case1, case2);
 
     return SingleChildScrollView(
@@ -191,7 +194,7 @@ class _CaseComparisonScreenState extends State<CaseComparisonScreen> {
                     decoration: BoxDecoration(
                       color: _getStatusColor(
                         comparison.overallStatus,
-                      ).withOpacity(0.2),
+                      ).withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -222,10 +225,10 @@ class _CaseComparisonScreenState extends State<CaseComparisonScreen> {
                   const SizedBox(height: 12),
                   Text(
                     '${comparison.progressScore.toStringAsFixed(1)}%',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
-                      color: Colors.green,
+                      color: _getStatusColor('improved'),
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -234,9 +237,9 @@ class _CaseComparisonScreenState extends State<CaseComparisonScreen> {
                     child: LinearProgressIndicator(
                       value: comparison.progressScore / 100,
                       minHeight: 8,
-                      backgroundColor: Colors.grey[300],
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Colors.green,
+                      backgroundColor: colorScheme.surfaceContainerHighest,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        _getStatusColor('improved'),
                       ),
                     ),
                   ),
@@ -270,9 +273,9 @@ class _CaseComparisonScreenState extends State<CaseComparisonScreen> {
                         padding: const EdgeInsets.symmetric(vertical: 4),
                         child: Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.check_circle,
-                              color: Colors.green,
+                              color: _getStatusColor('improved'),
                               size: 20,
                             ),
                             const SizedBox(width: 12),
@@ -317,15 +320,17 @@ class _CaseComparisonScreenState extends State<CaseComparisonScreen> {
   }
 
   Color _getStatusColor(String status) {
+    final semantic = Theme.of(context).extension<AppSemanticColors>();
+    final colorScheme = Theme.of(context).colorScheme;
     switch (status) {
       case 'improved':
-        return Colors.green;
+        return semantic?.success ?? colorScheme.primary;
       case 'stable':
-        return Colors.blue;
+        return semantic?.info ?? colorScheme.tertiary;
       case 'declined':
-        return Colors.red;
+        return semantic?.danger ?? colorScheme.error;
       default:
-        return Colors.grey;
+        return colorScheme.onSurfaceVariant;
     }
   }
 }

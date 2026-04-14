@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/patient.dart';
+import '../utils/provider_error_utils.dart';
 
 class PatientProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -43,23 +44,27 @@ class PatientProvider extends ChangeNotifier {
       try {
         querySnapshot = await query
             .orderBy('createdAt', descending: true)
-            .get();
+            .get()
+            .timeout(ProviderErrorUtils.requestTimeout);
       } catch (e) {
         // Fallback without orderBy if index missing (web may need composite index)
         debugPrint('OrderBy failed, falling back without ordering: $e');
-        querySnapshot = await query.get();
+        querySnapshot =
+            await query.get().timeout(ProviderErrorUtils.requestTimeout);
       }
 
-      _patients = querySnapshot.docs
-          .map((doc) => Patient.fromFirestore(doc))
-          .toList();
+      _patients =
+          querySnapshot.docs.map((doc) => Patient.fromFirestore(doc)).toList();
 
       _patients.sort((a, b) => b.createdAt.compareTo(a.createdAt));
 
       _loading = false;
       notifyListeners();
     } catch (e) {
-      _error = 'Failed to fetch patients: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to fetch patients. Please try again.',
+      );
       _loading = false;
       notifyListeners();
       debugPrint('Error fetching patients: $e');
@@ -74,21 +79,26 @@ class PatientProvider extends ChangeNotifier {
           .where('dentistUid', isEqualTo: dentistUid)
           .snapshots()
           .listen(
-            (snapshot) {
-              _patients = snapshot.docs
-                  .map((doc) => Patient.fromFirestore(doc))
-                  .toList();
-              _patients.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-              notifyListeners();
-            },
-            onError: (e) {
-              _error = 'Error listening to patients: $e';
-              notifyListeners();
-              debugPrint('Error listening to patients: $e');
-            },
+        (snapshot) {
+          _patients =
+              snapshot.docs.map((doc) => Patient.fromFirestore(doc)).toList();
+          _patients.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          notifyListeners();
+        },
+        onError: (e) {
+          _error = ProviderErrorUtils.mapErrorMessage(
+            e,
+            fallback: 'Unable to sync patients right now.',
           );
+          notifyListeners();
+          debugPrint('Error listening to patients: $e');
+        },
+      );
     } catch (e) {
-      _error = 'Failed to initialize patient listener: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to initialize patient updates.',
+      );
       notifyListeners();
       debugPrint('Failed to initialize patient listener: $e');
     }
@@ -106,7 +116,8 @@ class PatientProvider extends ChangeNotifier {
       // Add patient to patients collection
       final patientDocRef = await _firestore
           .collection('patients')
-          .add(newPatient.toFirestore());
+          .add(newPatient.toFirestore())
+          .timeout(ProviderErrorUtils.requestTimeout);
 
       final patientId = patientDocRef.id;
 
@@ -121,7 +132,10 @@ class PatientProvider extends ChangeNotifier {
 
       return patientId;
     } catch (e) {
-      _error = 'Failed to add patient: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to add patient. Please try again.',
+      );
       _loading = false;
       notifyListeners();
       debugPrint('Error adding patient: $e');
@@ -142,19 +156,19 @@ class PatientProvider extends ChangeNotifier {
         // Add patient ID to user's patientIds array
         await userRef.update({
           'patientIds': FieldValue.arrayUnion([patientId]),
-        });
+        }).timeout(ProviderErrorUtils.requestTimeout);
       } else {
         // Remove patient ID from user's patientIds array
         await userRef.update({
           'patientIds': FieldValue.arrayRemove([patientId]),
-        });
+        }).timeout(ProviderErrorUtils.requestTimeout);
       }
     } catch (e) {
       // If patientIds field doesn't exist, create it
       if (isAdd) {
         await _firestore.collection('users').doc(dentistUid).set({
           'patientIds': [patientId],
-        }, SetOptions(merge: true));
+        }, SetOptions(merge: true)).timeout(ProviderErrorUtils.requestTimeout);
       }
       debugPrint('Updated user patients list: $e');
     }
@@ -170,7 +184,8 @@ class PatientProvider extends ChangeNotifier {
       await _firestore
           .collection('patients')
           .doc(patient.id)
-          .update(patient.toFirestore());
+          .update(patient.toFirestore())
+          .timeout(ProviderErrorUtils.requestTimeout);
 
       _loading = false;
       notifyListeners();
@@ -178,7 +193,10 @@ class PatientProvider extends ChangeNotifier {
       // Refresh the list
       await fetchPatients(dentistUid);
     } catch (e) {
-      _error = 'Failed to update patient: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to update patient. Please try again.',
+      );
       _loading = false;
       notifyListeners();
       debugPrint('Error updating patient: $e');
@@ -194,7 +212,11 @@ class PatientProvider extends ChangeNotifier {
       notifyListeners();
 
       // Delete patient document
-      await _firestore.collection('patients').doc(patientId).delete();
+      await _firestore
+          .collection('patients')
+          .doc(patientId)
+          .delete()
+          .timeout(ProviderErrorUtils.requestTimeout);
 
       // Remove patient ID from user's patientIds array
       await _updateUserPatientsList(dentistUid, patientId, isAdd: false);
@@ -205,7 +227,10 @@ class PatientProvider extends ChangeNotifier {
       // Refresh the list
       await fetchPatients(dentistUid);
     } catch (e) {
-      _error = 'Failed to delete patient: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to delete patient. Please try again.',
+      );
       _loading = false;
       notifyListeners();
       debugPrint('Error deleting patient: $e');
@@ -233,7 +258,8 @@ class PatientProvider extends ChangeNotifier {
       final userDoc = await _firestore
           .collection('users')
           .doc(dentistUid)
-          .get();
+          .get()
+          .timeout(ProviderErrorUtils.requestTimeout);
       if (userDoc.exists && userDoc.data() != null) {
         final data = userDoc.data()!;
         final patientIds = data['patientIds'] as List<dynamic>?;

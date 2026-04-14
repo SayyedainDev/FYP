@@ -16,31 +16,33 @@ class _PatientListCardState extends State<PatientListCard> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final primary = colorScheme.primary;
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: _isHovered
-                ? const Color(0xFF4A90E2).withOpacity(0.3)
-                : Colors.grey[200]!,
+                ? primary.withValues(alpha: 0.3)
+                : colorScheme.outlineVariant,
             width: _isHovered ? 2 : 1,
           ),
           boxShadow: _isHovered
               ? [
                   BoxShadow(
-                    color: const Color(0xFF4A90E2).withOpacity(0.1),
+                    color: primary.withValues(alpha: 0.1),
                     blurRadius: 16,
                     spreadRadius: 2,
                   ),
                 ]
               : [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.04),
+                    color: colorScheme.shadow.withValues(alpha: 0.04),
                     blurRadius: 8,
                     spreadRadius: 0,
                   ),
@@ -51,6 +53,9 @@ class _PatientListCardState extends State<PatientListCard> {
           child: InkWell(
             onTap: widget.onTap,
             borderRadius: BorderRadius.circular(12),
+            splashColor: primary.withValues(alpha: 0.16),
+            highlightColor: primary.withValues(alpha: 0.08),
+            hoverColor: primary.withValues(alpha: 0.06),
             child: Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -61,7 +66,8 @@ class _PatientListCardState extends State<PatientListCard> {
                     height: 60,
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
-                        colors: _getAvatarGradient(widget.patient.initials),
+                        colors: _getAvatarGradient(
+                            context, widget.patient.initials),
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -69,8 +75,9 @@ class _PatientListCardState extends State<PatientListCard> {
                       boxShadow: [
                         BoxShadow(
                           color: _getAvatarColor(
+                            context,
                             widget.patient.initials,
-                          ).withOpacity(0.3),
+                          ).withValues(alpha: 0.3),
                           blurRadius: 12,
                           spreadRadius: 0,
                         ),
@@ -79,8 +86,8 @@ class _PatientListCardState extends State<PatientListCard> {
                     child: Center(
                       child: Text(
                         widget.patient.initials,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: colorScheme.onPrimary,
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                         ),
@@ -95,10 +102,10 @@ class _PatientListCardState extends State<PatientListCard> {
                       children: [
                         Text(
                           widget.patient.name,
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
-                            color: Color(0xFF212121),
+                            color: colorScheme.onSurface,
                           ),
                         ),
                         const SizedBox(height: 6),
@@ -110,19 +117,19 @@ class _PatientListCardState extends State<PatientListCard> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF5F7FA),
+                                color: colorScheme.surfaceContainerLowest,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: const Color(0xFFE0E6ED),
+                                  color: colorScheme.outlineVariant,
                                   width: 0.5,
                                 ),
                               ),
                               child: Text(
                                 '${widget.patient.age} yrs',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: Color(0xFF4A90E2),
+                                  color: primary,
                                 ),
                               ),
                             ),
@@ -133,10 +140,10 @@ class _PatientListCardState extends State<PatientListCard> {
                                 vertical: 4,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(0xFFF5F7FA),
+                                color: colorScheme.surfaceContainerLowest,
                                 borderRadius: BorderRadius.circular(16),
                                 border: Border.all(
-                                  color: const Color(0xFFE0E6ED),
+                                  color: colorScheme.outlineVariant,
                                   width: 0.5,
                                 ),
                               ),
@@ -148,15 +155,15 @@ class _PatientListCardState extends State<PatientListCard> {
                                         ? Icons.female
                                         : Icons.male,
                                     size: 14,
-                                    color: const Color(0xFF4A90E2),
+                                    color: primary,
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
                                     widget.patient.gender,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
-                                      color: Color(0xFF4A90E2),
+                                      color: primary,
                                     ),
                                   ),
                                 ],
@@ -170,7 +177,7 @@ class _PatientListCardState extends State<PatientListCard> {
                                 child: Icon(
                                   Icons.phone,
                                   size: 16,
-                                  color: Colors.grey[400],
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             if (widget.patient.contactEmail.isNotEmpty) ...[
@@ -180,7 +187,7 @@ class _PatientListCardState extends State<PatientListCard> {
                                 child: Icon(
                                   Icons.email,
                                   size: 16,
-                                  color: Colors.grey[400],
+                                  color: colorScheme.onSurfaceVariant,
                                 ),
                               ),
                             ],
@@ -194,19 +201,19 @@ class _PatientListCardState extends State<PatientListCard> {
                     Container(
                       padding: const EdgeInsets.all(8),
                       decoration: BoxDecoration(
-                        color: const Color(0xFF4A90E2),
+                        color: primary,
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.arrow_forward,
-                        color: Colors.white,
+                        color: colorScheme.onPrimary,
                         size: 18,
                       ),
                     )
                   else
                     Icon(
                       Icons.arrow_forward,
-                      color: Colors.grey[300],
+                      color: colorScheme.outline,
                       size: 18,
                     ),
                 ],
@@ -218,36 +225,24 @@ class _PatientListCardState extends State<PatientListCard> {
     );
   }
 
-  Color _getAvatarColor(String initials) {
+  Color _getAvatarColor(BuildContext context, String initials) {
+    final colorScheme = Theme.of(context).colorScheme;
     final colors = [
-      const Color(0xFF4A90E2),
-      const Color(0xFFE91E63),
-      const Color(0xFF9C27B0),
-      const Color(0xFF673AB7),
-      const Color(0xFF3F51B5),
-      const Color(0xFF00BCD4),
-      const Color(0xFF009688),
-      const Color(0xFF4CAF50),
+      colorScheme.primary,
+      colorScheme.secondary,
+      colorScheme.tertiary,
+      colorScheme.primary.withValues(alpha: 0.85),
+      colorScheme.secondary.withValues(alpha: 0.85),
+      colorScheme.tertiary.withValues(alpha: 0.85),
+      colorScheme.primaryContainer,
+      colorScheme.secondaryContainer,
     ];
     final index = initials.hashCode % colors.length;
     return colors[index.abs()];
   }
 
-  List<Color> _getAvatarGradient(String initials) {
-    final gradients = [
-      [const Color(0xFF4A90E2), const Color(0xFF357ABD)],
-      [const Color(0xFFE91E63), const Color(0xFFC2185B)],
-      [const Color(0xFF9C27B0), const Color(0xFF7B1FA2)],
-      [const Color(0xFF673AB7), const Color(0xFF512DA8)],
-      [const Color(0xFF3F51B5), const Color(0xFF3949AB)],
-      [const Color(0xFF00BCD4), const Color(0xFF0097A7)],
-      [const Color(0xFF009688), const Color(0xFF00796B)],
-      [const Color(0xFF4CAF50), const Color(0xFF388E3C)],
-    ];
-    final index = initials.hashCode % gradients.length;
-    return [
-      Color.fromARGB(255, 0, 0, 0),
-      Color.fromARGB(255, 0, 0, 0),
-    ].asMap().entries.map((e) => gradients[index.abs()][e.key]).toList();
+  List<Color> _getAvatarGradient(BuildContext context, String initials) {
+    final base = _getAvatarColor(context, initials);
+    return [base.withValues(alpha: 0.9), base.withValues(alpha: 0.7)];
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/appointment.dart';
+import '../utils/provider_error_utils.dart';
 
 class AppointmentProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -28,9 +29,8 @@ class AppointmentProvider extends ChangeNotifier {
 
   int get completionRate {
     if (_appointments.isEmpty) return 0;
-    final completed = _appointments
-        .where((a) => a.status == 'completed')
-        .length;
+    final completed =
+        _appointments.where((a) => a.status == 'completed').length;
     return ((completed / _appointments.length) * 100).toInt();
   }
 
@@ -44,7 +44,8 @@ class AppointmentProvider extends ChangeNotifier {
           .collection('appointments')
           .where('dentistUid', isEqualTo: dentistUid)
           .orderBy('appointmentDate', descending: true)
-          .get();
+          .get()
+          .timeout(ProviderErrorUtils.requestTimeout);
 
       _appointments = querySnapshot.docs
           .map((doc) => Appointment.fromFirestore(doc))
@@ -53,7 +54,10 @@ class AppointmentProvider extends ChangeNotifier {
       _loading = false;
       notifyListeners();
     } catch (e) {
-      _error = 'Failed to fetch appointments: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to fetch appointments. Please try again.',
+      );
       _loading = false;
       notifyListeners();
       debugPrint('Error fetching appointments: $e');
@@ -68,13 +72,17 @@ class AppointmentProvider extends ChangeNotifier {
       await _firestore
           .collection('appointments')
           .doc(appointment.id)
-          .set(appointment.toFirestore());
+          .set(appointment.toFirestore())
+          .timeout(ProviderErrorUtils.requestTimeout);
 
       _appointments.add(appointment);
       _loading = false;
       notifyListeners();
     } catch (e) {
-      _error = 'Failed to create appointment: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to create appointment. Please try again.',
+      );
       _loading = false;
       notifyListeners();
     }
@@ -85,7 +93,8 @@ class AppointmentProvider extends ChangeNotifier {
       await _firestore
           .collection('appointments')
           .doc(appointment.id)
-          .update(appointment.toFirestore());
+          .update(appointment.toFirestore())
+          .timeout(ProviderErrorUtils.requestTimeout);
 
       final index = _appointments.indexWhere((a) => a.id == appointment.id);
       if (index != -1) {
@@ -93,7 +102,10 @@ class AppointmentProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      _error = 'Failed to update appointment: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to update appointment. Please try again.',
+      );
       notifyListeners();
     }
   }
@@ -103,7 +115,7 @@ class AppointmentProvider extends ChangeNotifier {
       await _firestore.collection('appointments').doc(appointmentId).update({
         'status': 'cancelled',
         'updatedAt': DateTime.now(),
-      });
+      }).timeout(ProviderErrorUtils.requestTimeout);
 
       final index = _appointments.indexWhere((a) => a.id == appointmentId);
       if (index != -1) {
@@ -113,7 +125,10 @@ class AppointmentProvider extends ChangeNotifier {
         notifyListeners();
       }
     } catch (e) {
-      _error = 'Failed to cancel appointment: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to cancel appointment. Please try again.',
+      );
       notifyListeners();
     }
   }

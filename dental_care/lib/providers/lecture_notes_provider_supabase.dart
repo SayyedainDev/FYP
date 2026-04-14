@@ -1,13 +1,16 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/lecture_note.dart';
+import '../utils/provider_error_utils.dart';
 
 class LectureNotesProvider with ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final SupabaseClient _supabase = Supabase.instance.client;
   static const String _bucketName = 'lecture_notes';
+  static const Duration _requestTimeout = Duration(seconds: 30);
 
   List<LectureNote> _lectureNotes = [];
   bool _isLoading = false;
@@ -21,6 +24,10 @@ class LectureNotesProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   double get uploadProgress => _uploadProgress;
   LectureNote? get currentNote => _currentNote;
+
+  Future<T> _withTimeout<T>(Future<T> future) {
+    return future.timeout(_requestTimeout);
+  }
 
   // Stream of lecture notes for a specific dentist
   Stream<List<LectureNote>> getLectureNotesStream(String dentistUid) {
@@ -47,15 +54,18 @@ class LectureNotesProvider with ChangeNotifier {
           .collection('lecture_notes')
           .where('dentistUid', isEqualTo: dentistUid)
           .orderBy('createdAt', descending: true)
-          .get();
+          .get()
+          .timeout(_requestTimeout);
 
-      _lectureNotes = snapshot.docs
-          .map((doc) => LectureNote.fromFirestore(doc))
-          .toList();
+      _lectureNotes =
+          snapshot.docs.map((doc) => LectureNote.fromFirestore(doc)).toList();
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      _errorMessage = 'Failed to fetch lecture notes: $e';
+      _errorMessage = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to fetch lecture notes. Please try again.',
+      );
       _isLoading = false;
       notifyListeners();
     }
@@ -76,28 +86,28 @@ class LectureNotesProvider with ChangeNotifier {
       final filePath = '$dentistUid/$noteId/$fileName';
 
       // Read file bytes
-      final bytes = await file.readAsBytes();
+      final bytes = await _withTimeout(file.readAsBytes());
 
       // Upload to Supabase Storage
-      await _supabase.storage
-          .from(_bucketName)
-          .uploadBinary(
+      await _withTimeout(_supabase.storage.from(_bucketName).uploadBinary(
             filePath,
             bytes,
             fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-          );
+          ));
 
       // Get public URL
-      final publicUrl = _supabase.storage
-          .from(_bucketName)
-          .getPublicUrl(filePath);
+      final publicUrl =
+          _supabase.storage.from(_bucketName).getPublicUrl(filePath);
 
       _uploadProgress = 1.0;
       notifyListeners();
 
       return publicUrl;
     } catch (e) {
-      _errorMessage = 'Failed to upload file: $e';
+      _errorMessage = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to upload file. Please try again.',
+      );
       _uploadProgress = 0.0;
       notifyListeners();
       return null;
@@ -119,25 +129,25 @@ class LectureNotesProvider with ChangeNotifier {
       final filePath = '$dentistUid/$noteId/$fileName';
 
       // Upload to Supabase Storage
-      await _supabase.storage
-          .from(_bucketName)
-          .uploadBinary(
+      await _withTimeout(_supabase.storage.from(_bucketName).uploadBinary(
             filePath,
             bytes,
             fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-          );
+          ));
 
       // Get public URL
-      final publicUrl = _supabase.storage
-          .from(_bucketName)
-          .getPublicUrl(filePath);
+      final publicUrl =
+          _supabase.storage.from(_bucketName).getPublicUrl(filePath);
 
       _uploadProgress = 1.0;
       notifyListeners();
 
       return publicUrl;
     } catch (e) {
-      _errorMessage = 'Failed to upload file: $e';
+      _errorMessage = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to upload file. Please try again.',
+      );
       _uploadProgress = 0.0;
       notifyListeners();
       return null;
@@ -197,14 +207,18 @@ class LectureNotesProvider with ChangeNotifier {
       await _firestore
           .collection('lecture_notes')
           .doc(noteId)
-          .set(lectureNote.toFirestore());
+          .set(lectureNote.toFirestore())
+          .timeout(_requestTimeout);
 
       _lectureNotes.insert(0, lectureNote);
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = 'Failed to create lecture note: $e';
+      _errorMessage = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to create lecture note. Please try again.',
+      );
       _isLoading = false;
       notifyListeners();
       return false;
@@ -226,7 +240,7 @@ class LectureNotesProvider with ChangeNotifier {
 
     try {
       final noteId = _firestore.collection('lecture_notes').doc().id;
-      final fileSize = file.lengthSync();
+      final fileSize = await _withTimeout(file.length());
 
       // Determine file type
       final ext = fileName.toLowerCase().split('.').last;
@@ -264,14 +278,18 @@ class LectureNotesProvider with ChangeNotifier {
       await _firestore
           .collection('lecture_notes')
           .doc(noteId)
-          .set(lectureNote.toFirestore());
+          .set(lectureNote.toFirestore())
+          .timeout(_requestTimeout);
 
       _lectureNotes.insert(0, lectureNote);
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = 'Failed to create lecture note: $e';
+      _errorMessage = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to create lecture note. Please try again.',
+      );
       _isLoading = false;
       notifyListeners();
       return false;
@@ -308,14 +326,18 @@ class LectureNotesProvider with ChangeNotifier {
       await _firestore
           .collection('lecture_notes')
           .doc(noteId)
-          .set(lectureNote.toFirestore());
+          .set(lectureNote.toFirestore())
+          .timeout(_requestTimeout);
 
       _lectureNotes.insert(0, lectureNote);
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = 'Failed to create custom notes: $e';
+      _errorMessage = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to create custom notes. Please try again.',
+      );
       _isLoading = false;
       notifyListeners();
       return false;
@@ -333,21 +355,29 @@ class LectureNotesProvider with ChangeNotifier {
       if (note.fileUrl != null && note.fileName != null) {
         try {
           final filePath = '${note.dentistUid}/${note.id}/${note.fileName}';
-          await _supabase.storage.from(_bucketName).remove([filePath]);
+          await _withTimeout(
+              _supabase.storage.from(_bucketName).remove([filePath]));
         } catch (e) {
           // File might already be deleted, continue anyway
         }
       }
 
       // Delete document from Firestore
-      await _firestore.collection('lecture_notes').doc(note.id).delete();
+      await _firestore
+          .collection('lecture_notes')
+          .doc(note.id)
+          .delete()
+          .timeout(_requestTimeout);
 
       _lectureNotes.removeWhere((n) => n.id == note.id);
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = 'Failed to delete lecture note: $e';
+      _errorMessage = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to delete lecture note. Please try again.',
+      );
       _isLoading = false;
       notifyListeners();
       return false;
@@ -364,7 +394,8 @@ class LectureNotesProvider with ChangeNotifier {
       await _firestore
           .collection('lecture_notes')
           .doc(note.id)
-          .update(note.toFirestore());
+          .update(note.toFirestore())
+          .timeout(_requestTimeout);
 
       final index = _lectureNotes.indexWhere((n) => n.id == note.id);
       if (index >= 0) {
@@ -374,7 +405,10 @@ class LectureNotesProvider with ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = 'Failed to update lecture note: $e';
+      _errorMessage = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to update lecture note. Please try again.',
+      );
       _isLoading = false;
       notifyListeners();
       return false;

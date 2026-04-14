@@ -1,11 +1,9 @@
 import 'dart:io';
-import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/rendering.dart';
 
 import '../../providers/case_provider.dart';
 import '../../providers/patient_provider.dart';
@@ -57,10 +55,11 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
       });
     } catch (e) {
       if (mounted) {
+        final colorScheme = Theme.of(context).colorScheme;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to pick images: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: colorScheme.error,
           ),
         );
       }
@@ -68,12 +67,13 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
   }
 
   Future<void> _submit() async {
+    final colorScheme = Theme.of(context).colorScheme;
     if (!_formKey.currentState!.validate()) return;
     if (_selectedPatientId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a patient'),
-          backgroundColor: Colors.orange,
+        SnackBar(
+          content: const Text('Please select a patient'),
+          backgroundColor: colorScheme.secondary,
         ),
       );
       return;
@@ -82,9 +82,9 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
     final auth = Provider.of<AuthProvider>(context, listen: false);
     if (auth.currentUserId == null && auth.uid == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('You must be signed in to create a case'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: const Text('You must be signed in to create a case'),
+          backgroundColor: colorScheme.error,
         ),
       );
       return;
@@ -102,9 +102,9 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
           final missing = _pickedFiles!.where((f) => f.path == null).toList();
           if (missing.isNotEmpty) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Selected files are not accessible'),
-                backgroundColor: Colors.red,
+              SnackBar(
+                content: const Text('Selected files are not accessible'),
+                backgroundColor: colorScheme.error,
               ),
             );
             return;
@@ -115,8 +115,7 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
 
       final caseId = await caseProvider.createCase(
         patientId: _selectedPatientId!,
-        patientName:
-            Provider.of<PatientProvider>(
+        patientName: Provider.of<PatientProvider>(
               context,
               listen: false,
             ).getPatientById(_selectedPatientId!)?.name ??
@@ -129,9 +128,9 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
       if (mounted) {
         if (caseId != null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Case created successfully'),
-              backgroundColor: Colors.green,
+            SnackBar(
+              content: const Text('Case created successfully'),
+              backgroundColor: colorScheme.primary,
             ),
           );
           Navigator.pop(context);
@@ -140,7 +139,7 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Failed to create case: $msg'),
-              backgroundColor: Colors.red,
+              backgroundColor: colorScheme.error,
             ),
           );
         }
@@ -150,7 +149,7 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error creating case: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: colorScheme.error,
           ),
         );
       }
@@ -161,6 +160,7 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
   Widget build(BuildContext context) {
     final patientProvider = Provider.of<PatientProvider>(context);
     final patients = patientProvider.patients;
+    final colorScheme = Theme.of(context).colorScheme;
 
     return Dialog(
       insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
@@ -179,13 +179,13 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
                   Container(
                     padding: const EdgeInsets.all(10),
                     decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
+                      color: colorScheme.primaryContainer,
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.medical_services,
                       size: 28,
-                      color: Color(0xFF0F75BC),
+                      color: colorScheme.primary,
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -195,14 +195,18 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
                       children: [
                         Text(
                           'Create New Case',
-                          style: Theme.of(context).textTheme.titleLarge
+                          style: Theme.of(context)
+                              .textTheme
+                              .titleLarge
                               ?.copyWith(fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 6),
                         Text(
                           'Add clinical images and notes to create a new patient case',
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(color: Colors.grey[700]),
+                          style: Theme.of(context)
+                              .textTheme
+                              .bodyMedium
+                              ?.copyWith(color: colorScheme.onSurfaceVariant),
                         ),
                       ],
                     ),
@@ -243,13 +247,13 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
                           icon: const Icon(Icons.image),
                           label: const Text('Pick Images'),
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0F75BC),
+                            backgroundColor: colorScheme.primary,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child:
-                              _pickedFiles != null && _pickedFiles!.isNotEmpty
+                          child: _pickedFiles != null &&
+                                  _pickedFiles!.isNotEmpty
                               ? SizedBox(
                                   height: 80,
                                   child: ListView.separated(
@@ -286,17 +290,18 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
                                         width: 96,
                                         height: 80,
                                         decoration: BoxDecoration(
-                                          color: Colors.grey.shade100,
+                                          color: colorScheme
+                                              .surfaceContainerLowest,
                                           borderRadius: BorderRadius.circular(
                                             8,
                                           ),
                                           border: Border.all(
-                                            color: Colors.grey.shade200,
+                                            color: colorScheme.outlineVariant,
                                           ),
                                         ),
-                                        child: const Icon(
+                                        child: Icon(
                                           Icons.image_not_supported,
-                                          color: Colors.grey,
+                                          color: colorScheme.onSurfaceVariant,
                                         ),
                                       );
                                     },
@@ -307,7 +312,9 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
                                 )
                               : Text(
                                   'No images selected',
-                                  style: TextStyle(color: Colors.grey.shade600),
+                                  style: TextStyle(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
                                 ),
                         ),
                       ],
@@ -337,13 +344,12 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
                   ),
                   const SizedBox(width: 12),
                   ElevatedButton(
-                    onPressed:
-                        (_selectedPatientId == null ||
+                    onPressed: (_selectedPatientId == null ||
                             (_pickedFiles == null || _pickedFiles!.isEmpty))
                         ? null
                         : _submit,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0F75BC),
+                      backgroundColor: colorScheme.primary,
                       padding: const EdgeInsets.symmetric(
                         horizontal: 20,
                         vertical: 14,

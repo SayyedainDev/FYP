@@ -1,8 +1,15 @@
 import 'dart:math' as math;
-import 'package:dental_care/view/register.dart';
+import 'dart:async';
+import 'dart:io';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'student_dashboard_screen.dart';
+import 'student_auth_flow_screens.dart';
 import '../provider/auth_provider.dart';
+import '../utils/app_dialogs.dart';
+import '../utils/global_error_handler.dart';
+import '../widgets/loaders/app_loader.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -52,8 +59,9 @@ class _LoginPageState extends State<LoginPage> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F8FF), // Example background
+      backgroundColor: colorScheme.surfaceContainerLowest,
       body: Consumer<AuthProvider>(
         builder: (context, auth, child) {
           return Stack(
@@ -104,10 +112,15 @@ class _LoginCard extends StatefulWidget {
 
 class _LoginCardState extends State<_LoginCard> {
   bool _obscurePassword = true;
+  bool _rememberMe = false;
+  String _selectedRole = 'Student';
+  bool _isSubmitting = false;
+  String? _emailInlineError;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
     return AnimatedBuilder(
       animation: widget.floating,
       builder: (context, child) {
@@ -116,13 +129,13 @@ class _LoginCardState extends State<_LoginCard> {
       },
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(28),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Color(0x26000000),
+              color: colorScheme.shadow.withValues(alpha: 0.15),
               blurRadius: 28,
-              offset: Offset(0, 22),
+              offset: const Offset(0, 22),
             ),
           ],
         ),
@@ -143,30 +156,30 @@ class _LoginCardState extends State<_LoginCard> {
                       Container(
                         width: 64,
                         height: 64,
-                        decoration: const BoxDecoration(
-                          color: Color(0xFF0F75BC),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary,
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.medical_services_outlined,
-                          color: Colors.white,
+                          color: colorScheme.onPrimary,
                           size: 32,
                         ),
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Welcome back, Doctor',
+                        'Welcome to PalPath',
                         style: theme.textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF0E3D7E),
+                          color: colorScheme.primary,
                         ),
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Log in to review cases and collaborate across your network.',
+                        'Sign in to access quizzes, cases, and your dental learning network.',
                         textAlign: TextAlign.center,
                         style: theme.textTheme.bodyMedium?.copyWith(
-                          color: Colors.blueGrey.shade600,
+                          color: colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],
@@ -176,21 +189,29 @@ class _LoginCardState extends State<_LoginCard> {
 
                 TextFormField(
                   controller: widget.email,
+                  onChanged: (_) {
+                    if (_emailInlineError != null) {
+                      setState(() => _emailInlineError = null);
+                    }
+                  },
                   keyboardType: TextInputType.emailAddress,
                   textInputAction: TextInputAction.next,
                   decoration: InputDecoration(
-                    labelText: 'Professional email',
+                    labelText: _selectedRole == 'Student'
+                        ? 'Student email'
+                        : 'Professional email',
+                    errorText: _emailInlineError,
                     prefixIcon: const Icon(Icons.alternate_email_outlined),
                     filled: true,
-                    fillColor: const Color(0xFFF5F8FF),
+                    fillColor: colorScheme.surfaceContainerLowest,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(18),
                       borderSide: BorderSide.none,
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(18),
-                      borderSide: const BorderSide(
-                        color: Color(0xFF0F75BC),
+                      borderSide: BorderSide(
+                        color: colorScheme.primary,
                         width: 1.6,
                       ),
                     ),
@@ -227,15 +248,15 @@ class _LoginCardState extends State<_LoginCard> {
                       ),
                     ),
                     filled: true,
-                    fillColor: const Color(0xFFF5F8FF),
+                    fillColor: colorScheme.surfaceContainerLowest,
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(18),
                       borderSide: BorderSide.none,
                     ),
                     focusedBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(18),
-                      borderSide: const BorderSide(
-                        color: Color(0xFF0F75BC),
+                      borderSide: BorderSide(
+                        color: colorScheme.primary,
                         width: 1.6,
                       ),
                     ),
@@ -251,15 +272,68 @@ class _LoginCardState extends State<_LoginCard> {
                 ),
                 const SizedBox(height: 12),
 
+                Container(
+                  decoration: BoxDecoration(
+                    color: colorScheme.surfaceContainerLowest,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: colorScheme.outlineVariant),
+                  ),
+                  padding: const EdgeInsets.all(4),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _RoleChip(
+                          icon: Icons.school_outlined,
+                          label: 'Student',
+                          isSelected: _selectedRole == 'Student',
+                          color: colorScheme.tertiary,
+                          onTap: () =>
+                              setState(() => _selectedRole = 'Student'),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: _RoleChip(
+                          icon: Icons.medical_services_outlined,
+                          label: 'Doctor/Dentist',
+                          isSelected: _selectedRole == 'Dentist',
+                          color: colorScheme.primary,
+                          onTap: () =>
+                              setState(() => _selectedRole = 'Dentist'),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                Row(
+                  children: [
+                    Checkbox(
+                      value: _rememberMe,
+                      onChanged: _isSubmitting
+                          ? null
+                          : (value) {
+                              setState(() => _rememberMe = value ?? false);
+                            },
+                    ),
+                    Text(
+                      'Remember me',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+
                 Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
                     onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Password recovery is coming soon.'),
-                        ),
-                      );
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (_) =>
+                                  const ForgotPasswordFlowScreen()));
                     },
                     child: const Text('Forgot password?'),
                   ),
@@ -268,56 +342,142 @@ class _LoginCardState extends State<_LoginCard> {
 
                 // Sign In Button
                 ElevatedButton.icon(
-                  onPressed: widget.auth.loading
+                  onPressed: _isSubmitting
                       ? null
                       : () async {
                           FocusScope.of(context).unfocus();
                           if (!widget.formKey.currentState!.validate()) {
+                            AppDialogs.showWarningDialog(
+                              context,
+                              title: 'Missing Fields',
+                              message: 'Please fill in all required fields.',
+                              confirmLabel: 'OK',
+                              onConfirm: () {},
+                            );
                             return;
                           }
                           try {
+                            setState(() => _isSubmitting = true);
                             // Call the provider to log in
-                            await widget.auth.login(
-                              widget.email.text.trim(),
-                              widget.password.text.trim(),
-                            );
+                            await widget.auth
+                                .login(
+                                  widget.email.text.trim(),
+                                  widget.password.text.trim(),
+                                  rememberMe: _rememberMe,
+                                  studentOnly: _selectedRole == 'Student',
+                                )
+                                .timeout(const Duration(seconds: 30));
 
                             // Check login success *after* await
                             if (widget.auth.uid != null && mounted) {
-                              Navigator.pushReplacementNamed(
-                                context,
-                                '/dashboard',
-                              );
+                              if (_selectedRole == 'Student') {
+                                Navigator.pushReplacement(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (_) =>
+                                            const StudentDashboardScreen()));
+                              } else {
+                                Navigator.pushReplacementNamed(
+                                    context, '/dashboard');
+                              }
                             }
-                          } catch (e) {
+                          } on TimeoutException catch (_) {
                             if (!mounted) return;
-                            final msg = e is Exception
-                                ? e.toString().replaceFirst('Exception: ', '')
-                                : 'Login failed';
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              SnackBar(
-                                content: Text(msg),
-                                backgroundColor: Colors.red.shade600,
-                              ),
+                            AppDialogs.showErrorDialog(context,
+                                message:
+                                    "The request timed out. Check your connection and try again.");
+                          } on SocketException catch (_) {
+                            if (!mounted) return;
+                            AppDialogs.showNoInternetDialog(context);
+                          } on FirebaseAuthException catch (e) {
+                            if (!mounted) return;
+                            if (e.code == 'user-not-found') {
+                              setState(() {
+                                _emailInlineError =
+                                    'No account found with this email';
+                              });
+                              return;
+                            }
+                            if (e.code == 'wrong-password' ||
+                                e.code == 'invalid-credential') {
+                              AppDialogs.showErrorDialog(
+                                context,
+                                message:
+                                    'Incorrect email or password. Please try again.',
+                              );
+                              return;
+                            }
+                            if (e.code == 'too-many-requests') {
+                              AppDialogs.showErrorDialog(
+                                context,
+                                message:
+                                    'Account temporarily locked. Try again in 15 minutes.',
+                              );
+                              return;
+                            }
+                            if (e.code == 'network-request-failed') {
+                              AppDialogs.showNoInternetDialog(context);
+                              return;
+                            }
+                            AppDialogs.showErrorDialog(
+                              context,
+                              message: e.message ?? 'Login failed',
                             );
+                          } catch (e, stack) {
+                            if (!mounted) return;
+                            if (e
+                                .toString()
+                                .contains('teacher_account_detected')) {
+                              AppDialogs.showErrorDialog(
+                                context,
+                                message:
+                                    'This is a teacher account. Please switch role to Doctor/Dentist.',
+                              );
+                              return;
+                            }
+                            if (e
+                                .toString()
+                                .contains('student_account_detected')) {
+                              AppDialogs.showErrorDialog(
+                                context,
+                                message:
+                                    'This is a student account. Please switch role to Student.',
+                              );
+                              return;
+                            }
+                            // Check if it's a known auth exception message string
+                            final errStr = e.toString();
+                            if (errStr.contains('firebase_auth') ||
+                                errStr.contains('Exception:')) {
+                              final msg = e is Exception
+                                  ? errStr.replaceFirst('Exception: ', '')
+                                  : 'Login failed';
+                              AppDialogs.showErrorDialog(context, message: msg);
+                            } else {
+                              GlobalErrorHandler.instance.handleError(e, stack);
+                            }
+                          } finally {
+                            if (mounted) {
+                              setState(() => _isSubmitting = false);
+                            }
                           }
                         },
-                  icon: widget.auth.loading
+                  icon: _isSubmitting
                       ? const SizedBox(
                           width: 18,
                           height: 18,
-                          child: CircularProgressIndicator(strokeWidth: 2.2),
+                          child: AppLoader(size: 18),
                         )
                       : const Icon(Icons.login_rounded),
                   label: Padding(
                     padding: const EdgeInsets.symmetric(vertical: 4),
                     child: Text(
-                      widget.auth.loading ? 'Signing you in...' : 'Sign in',
+                      _isSubmitting ? 'Signing you in...' : 'Sign in',
                     ),
                   ),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F75BC),
-                    foregroundColor: Colors.white,
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18),
                     ),
@@ -331,31 +491,93 @@ class _LoginCardState extends State<_LoginCard> {
                 const SizedBox(height: 20),
 
                 OutlinedButton(
-                  onPressed: widget.auth.loading
+                  onPressed: _isSubmitting
                       ? null
-                      : () => Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => RegisterPage(),
-                          ),
-                        ),
+                      : () => Navigator.pushNamed(context, '/register',
+                          arguments: {'role': _selectedRole}),
                   style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFF0F75BC)),
+                    side: BorderSide(color: colorScheme.primary),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(18),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    foregroundColor: const Color(0xFF0F75BC),
+                    foregroundColor: colorScheme.primary,
                     textStyle: const TextStyle(
                       fontWeight: FontWeight.w600,
                       fontSize: 16,
                     ),
                   ),
-                  child: const Text('Create account'),
+                  child: Text(
+                    _selectedRole == 'Student'
+                        ? 'Sign up as Student'
+                        : 'Sign up as Doctor/Dentist',
+                  ),
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RoleChip extends StatelessWidget {
+  const _RoleChip({
+    required this.icon,
+    required this.label,
+    required this.isSelected,
+    required this.color,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool isSelected;
+  final Color color;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(10),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          color:
+              isSelected ? color.withValues(alpha: 0.12) : Colors.transparent,
+          border: Border.all(
+            color: isSelected ? color : Colors.transparent,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected
+                  ? color
+                  : Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected
+                      ? color
+                      : Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -395,6 +617,7 @@ class _PasswordFieldState extends State<_PasswordField> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return TextFormField(
       controller: widget.controller,
       obscureText: _obscure,
@@ -415,14 +638,14 @@ class _PasswordFieldState extends State<_PasswordField> {
           ),
         ),
         filled: true,
-        fillColor: const Color(0xFFF5F8FF),
+        fillColor: colorScheme.surfaceContainerLowest,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
           borderSide: BorderSide.none,
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(18),
-          borderSide: const BorderSide(color: Color(0xFF0F75BC), width: 1.6),
+          borderSide: BorderSide(color: colorScheme.primary, width: 1.6),
         ),
       ),
       validator: (value) {

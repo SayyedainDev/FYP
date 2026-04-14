@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import '../../providers/scan_provider.dart';
 import '../../providers/patient_provider.dart';
 import '../../providers/case_provider.dart';
+import '../../widgets/loaders/app_loader.dart';
+import '../../core/theme/app_semantic_colors.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class UploadScanDialog extends StatefulWidget {
@@ -31,15 +32,17 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
   }
 
   Future<void> _submit() async {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semantic = Theme.of(context).extension<AppSemanticColors>();
     if (!_formKey.currentState!.validate()) {
       return;
     }
 
     if (_selectedPatientId == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a patient'),
-          backgroundColor: Colors.orange,
+        SnackBar(
+          content: const Text('Please select a patient'),
+          backgroundColor: semantic?.warning ?? colorScheme.secondary,
         ),
       );
       return;
@@ -54,9 +57,9 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
     if (patient == null) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Patient not found'),
-            backgroundColor: Colors.red,
+          SnackBar(
+            content: const Text('Patient not found'),
+            backgroundColor: semantic?.danger ?? colorScheme.error,
           ),
         );
       }
@@ -77,9 +80,9 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
       if (mounted) {
         if (result != null) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Scan uploaded and analyzed successfully!'),
-              backgroundColor: Colors.green,
+            SnackBar(
+              content: const Text('Scan uploaded and analyzed successfully!'),
+              backgroundColor: semantic?.success ?? colorScheme.primary,
             ),
           );
 
@@ -93,7 +96,7 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Upload failed: ${scanProvider.error}'),
-              backgroundColor: Colors.red,
+              backgroundColor: semantic?.danger ?? colorScheme.error,
             ),
           );
         }
@@ -104,7 +107,7 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error uploading scan: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: semantic?.danger ?? colorScheme.error,
           ),
         );
       }
@@ -116,6 +119,8 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
     Map<String, String> uploadResult,
     dynamic imagePayload,
   ) async {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semantic = Theme.of(context).extension<AppSemanticColors>();
     final caseProvider = Provider.of<CaseProvider>(context, listen: false);
     final patientProvider = Provider.of<PatientProvider>(
       context,
@@ -164,7 +169,9 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
               content: Text(
                 newCaseId != null ? 'Case created' : 'Failed to create case',
               ),
-              backgroundColor: newCaseId != null ? Colors.green : Colors.red,
+              backgroundColor: newCaseId != null
+                  ? (semantic?.success ?? colorScheme.primary)
+                  : (semantic?.danger ?? colorScheme.error),
             ),
           );
         }
@@ -176,9 +183,9 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
                 .collection('scans')
                 .doc(scanId)
                 .update({
-                  'caseId': newCaseId,
-                  'updatedAt': FieldValue.serverTimestamp(),
-                });
+              'caseId': newCaseId,
+              'updatedAt': FieldValue.serverTimestamp(),
+            });
           }
         } catch (e) {
           debugPrint('Failed to link scan to case: $e');
@@ -188,7 +195,7 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Error creating case: $e'),
-              backgroundColor: Colors.red,
+              backgroundColor: semantic?.danger ?? colorScheme.error,
             ),
           );
         }
@@ -208,15 +215,15 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
                   ),
                 ]
               : cases
-                    .map(
-                      (c) => SimpleDialogOption(
-                        onPressed: () => Navigator.pop(context, c.id),
-                        child: Text(
-                          '${c.toothNumber.isNotEmpty ? c.toothNumber + ' • ' : ''}${c.caseDate.toLocal().toIso8601String().split('T').first}',
-                        ),
+                  .map(
+                    (c) => SimpleDialogOption(
+                      onPressed: () => Navigator.pop(context, c.id),
+                      child: Text(
+                        '${c.toothNumber.isNotEmpty ? '${c.toothNumber} • ' : ''}${c.caseDate.toLocal().toIso8601String().split('T').first}',
                       ),
-                    )
-                    .toList(),
+                    ),
+                  )
+                  .toList(),
         ),
       );
 
@@ -230,9 +237,9 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
             });
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Attached to case'),
-                  backgroundColor: Colors.green,
+                SnackBar(
+                  content: const Text('Attached to case'),
+                  backgroundColor: semantic?.success ?? colorScheme.primary,
                 ),
               );
             }
@@ -242,7 +249,7 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('Failed to attach to case: $e'),
-                backgroundColor: Colors.red,
+                backgroundColor: semantic?.danger ?? colorScheme.error,
               ),
             );
           }
@@ -253,6 +260,8 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final semantic = Theme.of(context).extension<AppSemanticColors>();
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Container(
@@ -268,12 +277,12 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue.shade100,
+                    color: colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Icon(
                     Icons.upload_file,
-                    color: Colors.blue.shade700,
+                    color: colorScheme.primary,
                     size: 28,
                   ),
                 ),
@@ -281,9 +290,9 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
                 Text(
                   'Upload Dental Scan',
                   style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue.shade800,
-                  ),
+                        fontWeight: FontWeight.bold,
+                        color: colorScheme.primary,
+                      ),
                 ),
               ],
             ),
@@ -360,7 +369,8 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('Failed to pick image: $e'),
-                                backgroundColor: Colors.red,
+                                backgroundColor:
+                                    semantic?.danger ?? colorScheme.error,
                               ),
                             );
                           }
@@ -369,12 +379,12 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
                           height: 200,
                           decoration: BoxDecoration(
                             border: Border.all(
-                              color: Colors.grey.shade300,
+                              color: colorScheme.outlineVariant,
                               width: 2,
                               style: BorderStyle.solid,
                             ),
                             borderRadius: BorderRadius.circular(8),
-                            color: Colors.grey.shade50,
+                            color: colorScheme.surfaceContainerLowest,
                           ),
                           child: Center(
                             child: Column(
@@ -386,8 +396,9 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
                                       : Icons.cloud_upload,
                                   size: 64,
                                   color: _imagePath != null
-                                      ? Colors.green
-                                      : Colors.grey.shade400,
+                                      ? (semantic?.success ??
+                                          colorScheme.primary)
+                                      : colorScheme.onSurfaceVariant,
                                 ),
                                 const SizedBox(height: 12),
                                 Text(
@@ -395,7 +406,7 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
                                       ? 'Image selected'
                                       : 'Click to upload dental scan image',
                                   style: TextStyle(
-                                    color: Colors.grey.shade600,
+                                    color: colorScheme.onSurfaceVariant,
                                     fontSize: 16,
                                   ),
                                 ),
@@ -404,7 +415,7 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
                                   Text(
                                     _imagePath!,
                                     style: TextStyle(
-                                      color: Colors.grey.shade500,
+                                      color: colorScheme.onSurfaceVariant,
                                       fontSize: 12,
                                     ),
                                   ),
@@ -454,19 +465,15 @@ class _UploadScanDialogState extends State<UploadScanDialog> {
                           ? const SizedBox(
                               width: 16,
                               height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation(
-                                  Colors.white,
-                                ),
-                              ),
+                              child: AppLoader(size: 16),
                             )
                           : const Icon(Icons.analytics),
                       label: Text(
                         provider.loading ? 'Analyzing...' : 'Upload & Analyze',
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue,
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
                       ),
                     );
                   },

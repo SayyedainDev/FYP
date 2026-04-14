@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/scan.dart';
+import '../utils/provider_error_utils.dart';
 
 class ScanProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -52,16 +53,19 @@ class ScanProvider extends ChangeNotifier {
       final querySnapshot = await _firestore
           .collection('scans')
           .orderBy('scanDate', descending: true)
-          .get();
+          .get()
+          .timeout(ProviderErrorUtils.requestTimeout);
 
-      _scans = querySnapshot.docs
-          .map((doc) => Scan.fromFirestore(doc))
-          .toList();
+      _scans =
+          querySnapshot.docs.map((doc) => Scan.fromFirestore(doc)).toList();
 
       _loading = false;
       notifyListeners();
     } catch (e) {
-      _error = 'Failed to fetch scans: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to fetch scans. Please try again.',
+      );
       _loading = false;
       notifyListeners();
       debugPrint('Error fetching scans: $e');
@@ -76,20 +80,24 @@ class ScanProvider extends ChangeNotifier {
           .orderBy('scanDate', descending: true)
           .snapshots()
           .listen(
-            (snapshot) {
-              _scans = snapshot.docs
-                  .map((doc) => Scan.fromFirestore(doc))
-                  .toList();
-              notifyListeners();
-            },
-            onError: (e) {
-              _error = 'Error listening to scans: $e';
-              notifyListeners();
-              debugPrint('Error listening to scans: $e');
-            },
+        (snapshot) {
+          _scans = snapshot.docs.map((doc) => Scan.fromFirestore(doc)).toList();
+          notifyListeners();
+        },
+        onError: (e) {
+          _error = ProviderErrorUtils.mapErrorMessage(
+            e,
+            fallback: 'Unable to sync scans right now.',
           );
+          notifyListeners();
+          debugPrint('Error listening to scans: $e');
+        },
+      );
     } catch (e) {
-      _error = 'Failed to initialize scan listener: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to initialize scan updates.',
+      );
       notifyListeners();
       debugPrint('Failed to initialize scan listener: $e');
     }
@@ -116,18 +124,22 @@ class ScanProvider extends ChangeNotifier {
       // Upload image to Supabase Storage if provided
       if (imageFile != null) {
         final fileName = 'scan_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        final bucket = 'scans';
+        const bucket = 'scans';
         final path = '$patientId/$fileName';
 
         Uint8List bytes;
         if (imageFile is Uint8List) {
           bytes = imageFile;
         } else if (imageFile is File) {
-          bytes = await imageFile.readAsBytes();
+          bytes = await imageFile
+              .readAsBytes()
+              .timeout(ProviderErrorUtils.requestTimeout);
         } else if (imageFile is String) {
           final file = File(imageFile);
-          if (await file.exists()) {
-            bytes = await file.readAsBytes();
+          if (await file.exists().timeout(ProviderErrorUtils.requestTimeout)) {
+            bytes = await file
+                .readAsBytes()
+                .timeout(ProviderErrorUtils.requestTimeout);
           } else {
             throw Exception('File path does not exist');
           }
@@ -139,7 +151,10 @@ class ScanProvider extends ChangeNotifier {
           }
         }
 
-        await supabase.storage.from(bucket).uploadBinary(path, bytes);
+        await supabase.storage
+            .from(bucket)
+            .uploadBinary(path, bytes)
+            .timeout(ProviderErrorUtils.requestTimeout);
         imageUrl = supabase.storage.from(bucket).getPublicUrl(path);
       }
 
@@ -161,7 +176,8 @@ class ScanProvider extends ChangeNotifier {
 
       final docRef = await _firestore
           .collection('scans')
-          .add(newScan.toFirestore());
+          .add(newScan.toFirestore())
+          .timeout(ProviderErrorUtils.requestTimeout);
 
       _loading = false;
       notifyListeners();
@@ -171,7 +187,10 @@ class ScanProvider extends ChangeNotifier {
 
       return {'scanId': docRef.id, 'imageUrl': imageUrl};
     } catch (e) {
-      _error = 'Failed to upload scan: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to upload scan. Please try again.',
+      );
       _loading = false;
       notifyListeners();
       debugPrint('Error uploading scan: $e');
@@ -186,7 +205,8 @@ class ScanProvider extends ChangeNotifier {
           .collection('scans')
           .where('patientId', isEqualTo: patientId)
           .orderBy('scanDate', descending: true)
-          .get();
+          .get()
+          .timeout(ProviderErrorUtils.requestTimeout);
 
       return querySnapshot.docs.map((doc) => Scan.fromFirestore(doc)).toList();
     } catch (e) {
@@ -199,16 +219,14 @@ class ScanProvider extends ChangeNotifier {
     var filtered = List<Scan>.from(_scans);
 
     if (_filterPatientId != null) {
-      filtered = filtered
-          .where((scan) => scan.patientId == _filterPatientId)
-          .toList();
+      filtered =
+          filtered.where((scan) => scan.patientId == _filterPatientId).toList();
     }
 
     if (_filterCavityStatus != null) {
       final statusString = _filterCavityStatus! ? 'Cavity' : 'Healthy';
-      filtered = filtered
-          .where((scan) => scan.cavityStatus == statusString)
-          .toList();
+      filtered =
+          filtered.where((scan) => scan.cavityStatus == statusString).toList();
     }
 
     if (_filterStartDate != null) {

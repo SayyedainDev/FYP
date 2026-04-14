@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/audit_log.dart';
+import '../utils/provider_error_utils.dart';
 
 class AuditLogProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -24,16 +25,19 @@ class AuditLogProvider extends ChangeNotifier {
           .where('userId', isEqualTo: dentistUid)
           .orderBy('timestamp', descending: true)
           .limit(limit)
-          .get();
+          .get()
+          .timeout(ProviderErrorUtils.requestTimeout);
 
-      _logs = querySnapshot.docs
-          .map((doc) => AuditLog.fromFirestore(doc))
-          .toList();
+      _logs =
+          querySnapshot.docs.map((doc) => AuditLog.fromFirestore(doc)).toList();
 
       _loading = false;
       notifyListeners();
     } catch (e) {
-      _error = 'Failed to fetch audit logs: $e';
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to fetch audit logs. Please try again.',
+      );
       _loading = false;
       notifyListeners();
       debugPrint('Error fetching audit logs: $e');
@@ -68,11 +72,17 @@ class AuditLogProvider extends ChangeNotifier {
       await _firestore
           .collection('audit_logs')
           .doc(docId)
-          .set(log.toFirestore());
+          .set(log.toFirestore())
+          .timeout(ProviderErrorUtils.requestTimeout);
 
       _logs.insert(0, log);
       notifyListeners();
     } catch (e) {
+      _error = ProviderErrorUtils.mapErrorMessage(
+        e,
+        fallback: 'Failed to record audit log. Please try again.',
+      );
+      notifyListeners();
       debugPrint('Error logging action: $e');
     }
   }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../provider/auth_provider.dart';
 import '../../providers/patient_provider.dart';
+import '../../widgets/loaders/app_loader.dart';
 
 class EditPatientDialog extends StatefulWidget {
   final Patient patient;
@@ -43,6 +44,7 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
   }
 
   Future<void> _selectDate() async {
+    final colorScheme = Theme.of(context).colorScheme;
     final picked = await showDatePicker(
       context: context,
       initialDate: _selectedDate,
@@ -51,13 +53,13 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
-            colorScheme: ColorScheme.light(
-              primary: const Color(0xFF4A90E2),
-              onPrimary: Colors.white,
-              surface: Colors.white,
-              onSurface: Colors.black87,
-            ),
-            dialogBackgroundColor: Colors.white,
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+                  primary: colorScheme.primary,
+                  onPrimary: colorScheme.onPrimary,
+                  surface: colorScheme.surface,
+                  onSurface: colorScheme.onSurface,
+                ),
+            dialogTheme: DialogThemeData(backgroundColor: colorScheme.surface),
           ),
           child: child!,
         );
@@ -84,9 +86,9 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
     final uid = Provider.of<AuthProvider>(context, listen: false).uid;
     if (uid == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Error: No authenticated user found'),
-          backgroundColor: Colors.red,
+        SnackBar(
+          content: const Text('Error: No authenticated user found'),
+          backgroundColor: Theme.of(context).colorScheme.error,
         ),
       );
       return;
@@ -110,12 +112,15 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.check_circle, color: Colors.white),
+              Icon(
+                Icons.check_circle,
+                color: Theme.of(context).colorScheme.onPrimary,
+              ),
               const SizedBox(width: 12),
               const Text('Patient updated successfully!'),
             ],
           ),
-          backgroundColor: Colors.green.shade600,
+          backgroundColor: Theme.of(context).colorScheme.primary,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           margin: const EdgeInsets.all(16),
@@ -130,12 +135,15 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
         SnackBar(
           content: Row(
             children: [
-              const Icon(Icons.error, color: Colors.white),
+              Icon(
+                Icons.error,
+                color: Theme.of(context).colorScheme.onError,
+              ),
               const SizedBox(width: 12),
               Expanded(child: Text('Error: ${e.toString()}')),
             ],
           ),
-          backgroundColor: Colors.red.shade600,
+          backgroundColor: Theme.of(context).colorScheme.error,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
           margin: const EdgeInsets.all(16),
@@ -146,6 +154,7 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       elevation: 8,
@@ -153,11 +162,11 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
         width: 650,
         constraints: const BoxConstraints(maxHeight: 750),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha: 0.1),
               blurRadius: 20,
               spreadRadius: 5,
             ),
@@ -171,7 +180,7 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
-                  colors: [const Color(0xFF4A90E2), const Color(0xFF357ABD)],
+                  colors: [colorScheme.primary, colorScheme.secondary],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
@@ -185,12 +194,12 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
+                      color: colorScheme.onPrimary.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.edit,
-                      color: Colors.white,
+                      color: colorScheme.onPrimary,
                       size: 28,
                     ),
                   ),
@@ -199,12 +208,12 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Edit Patient Information',
                           style: TextStyle(
                             fontSize: 22,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: colorScheme.onPrimary,
                           ),
                         ),
                         const SizedBox(height: 4),
@@ -212,7 +221,7 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
                           'Update patient details below',
                           style: TextStyle(
                             fontSize: 14,
-                            color: Colors.white.withOpacity(0.9),
+                            color: colorScheme.onPrimary.withValues(alpha: 0.9),
                           ),
                         ),
                       ],
@@ -220,7 +229,7 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close, color: Colors.white),
+                    icon: Icon(Icons.close, color: colorScheme.onPrimary),
                   ),
                 ],
               ),
@@ -263,7 +272,7 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.grey[700],
+                                    color: colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                                 const SizedBox(height: 8),
@@ -277,24 +286,24 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
                                     ),
                                     decoration: BoxDecoration(
                                       border: Border.all(
-                                        color: Colors.grey.shade300,
+                                        color: colorScheme.outline,
                                       ),
                                       borderRadius: BorderRadius.circular(12),
-                                      color: Colors.grey.shade50,
+                                      color: colorScheme.surfaceContainerLowest,
                                     ),
                                     child: Row(
                                       children: [
                                         Icon(
                                           Icons.calendar_today,
                                           size: 20,
-                                          color: const Color(0xFF4A90E2),
+                                          color: colorScheme.primary,
                                         ),
                                         const SizedBox(width: 12),
                                         Text(
                                           '${_selectedDate.day.toString().padLeft(2, '0')}/${_selectedDate.month.toString().padLeft(2, '0')}/${_selectedDate.year}',
                                           style: TextStyle(
                                             fontSize: 16,
-                                            color: Colors.grey[800],
+                                            color: colorScheme.onSurface,
                                           ),
                                         ),
                                       ],
@@ -314,17 +323,17 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.grey[700],
+                                    color: colorScheme.onSurfaceVariant,
                                   ),
                                 ),
                                 const SizedBox(height: 8),
                                 Container(
                                   decoration: BoxDecoration(
                                     border: Border.all(
-                                      color: Colors.grey.shade300,
+                                      color: colorScheme.outline,
                                     ),
                                     borderRadius: BorderRadius.circular(12),
-                                    color: Colors.grey.shade50,
+                                    color: colorScheme.surfaceContainerLowest,
                                   ),
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 16,
@@ -335,7 +344,7 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
                                       isExpanded: true,
                                       icon: Icon(
                                         Icons.arrow_drop_down,
-                                        color: const Color(0xFF4A90E2),
+                                        color: colorScheme.primary,
                                       ),
                                       items: ['Male', 'Female', 'Other']
                                           .map(
@@ -346,9 +355,7 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
                                                   Icon(
                                                     Icons.person_outline,
                                                     size: 20,
-                                                    color: const Color(
-                                                      0xFF4A90E2,
-                                                    ),
+                                                    color: colorScheme.primary,
                                                   ),
                                                   const SizedBox(width: 12),
                                                   Text(gender),
@@ -417,7 +424,7 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: colorScheme.surfaceContainerLowest,
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(20),
                   bottomRight: Radius.circular(20),
@@ -436,7 +443,7 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      side: BorderSide(color: Colors.grey.shade400),
+                      side: BorderSide(color: colorScheme.outline),
                     ),
                     child: const Text('Cancel', style: TextStyle(fontSize: 16)),
                   ),
@@ -446,8 +453,8 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
                       return ElevatedButton(
                         onPressed: provider.loading ? null : _submit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF4A90E2),
-                          foregroundColor: Colors.white,
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: colorScheme.onPrimary,
                           padding: const EdgeInsets.symmetric(
                             horizontal: 32,
                             vertical: 16,
@@ -463,12 +470,7 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
                               const SizedBox(
                                 width: 16,
                                 height: 16,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation(
-                                    Colors.white,
-                                  ),
-                                ),
+                                child: AppLoader(size: 16),
                               )
                             else
                               const Icon(Icons.save, size: 20),
@@ -497,10 +499,10 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
   Widget _buildSectionLabel(String text) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 16,
         fontWeight: FontWeight.bold,
-        color: Color(0xFF4A90E2),
+        color: Theme.of(context).colorScheme.primary,
       ),
     );
   }
@@ -519,21 +521,24 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
       maxLines: maxLines,
       decoration: InputDecoration(
         labelText: label,
-        prefixIcon: Icon(icon, color: const Color(0xFF4A90E2)),
+        prefixIcon: Icon(icon, color: Theme.of(context).colorScheme.primary),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(color: Theme.of(context).colorScheme.outline),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFF4A90E2), width: 2),
+          borderSide: BorderSide(
+            color: Theme.of(context).colorScheme.primary,
+            width: 2,
+          ),
         ),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: Theme.of(context).colorScheme.surfaceContainerLowest,
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
