@@ -8,7 +8,7 @@ import '../models/quiz_attempt.dart';
 import '../provider/auth_provider.dart';
 import '../providers/quiz_attempt_provider.dart';
 import '../core/adaptive_modal.dart';
-import '../core/app_page_route.dart';
+
 import '../core/animation_constants.dart';
 import '../core/responsive/app_breakpoints.dart';
 import '../core/theme/app_semantic_colors.dart';
@@ -1407,7 +1407,6 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
   Widget _buildBottomNav(
       int totalQuestions, QuizAttemptProvider attemptProvider) {
     final colorScheme = Theme.of(context).colorScheme;
-    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(

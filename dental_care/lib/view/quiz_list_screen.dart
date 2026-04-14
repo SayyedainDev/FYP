@@ -1,6 +1,5 @@
 import 'quiz_detail_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/quiz.dart';
 import '../provider/auth_provider.dart';

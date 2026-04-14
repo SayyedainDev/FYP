@@ -5,7 +5,6 @@ import 'student_analytics_screen.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
@@ -228,11 +227,8 @@ class _Header extends StatelessWidget {
         ),
         const SizedBox(width: 8),
         GestureDetector(
-          onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) =>
-                      const StudentProfileScreen())),
+          onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => const StudentProfileScreen())),
           child: CircleAvatar(
             radius: 20,
             child: Text(firstName.isEmpty ? 'S' : firstName[0].toUpperCase()),

@@ -112,12 +112,6 @@ class QuizAttemptProvider with ChangeNotifier {
     return 'Request failed. Please try again.';
   }
 
-  bool _isAttemptGraded(QuizAttempt attempt) {
-    if (!attempt.isSubmitted) return false;
-    if (attempt.responses.isEmpty) return false;
-    return attempt.responses.every((r) => r.isCorrect != null);
-  }
-
   /// Generate a deterministic question order using attemptId as seed
   List<int> generateQuestionOrder(int questionCount, String attemptId) {
     final seed = attemptId.hashCode;

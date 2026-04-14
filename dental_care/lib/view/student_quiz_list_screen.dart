@@ -1,5 +1,5 @@
-import 'student_quiz_result_screen.dart';
 import 'student_quiz_taking_screen.dart';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
@@ -61,7 +61,8 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
       _showDialogAfterBuild(() {
         AppDialogs.showSessionExpiredDialog(
           context,
-          onLoginAgain: () => Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
+          onLoginAgain: () =>
+              Navigator.pushNamedAndRemoveUntil(context, '/', (route) => false),
         );
       });
       return;
@@ -206,9 +207,9 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                    const Text(
-                      'Available Quizzes',
-                      style: TextStyle(
+                  const Text(
+                    'Available Quizzes',
+                    style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w800,
                     ),
@@ -722,7 +723,11 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
       );
     } else if (existingAttempt != null && !existingAttempt.isSubmitted) {
       // Resume directly
-      Navigator.push(context, MaterialPageRoute(builder: (_) => StudentQuizTakingScreen(quiz: quiz))).then((_) => _loadData());
+      Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => StudentQuizTakingScreen(quiz: quiz)))
+          .then((_) => _loadData());
     } else {
       // Show start confirmation
       _showStartConfirmation(quiz);

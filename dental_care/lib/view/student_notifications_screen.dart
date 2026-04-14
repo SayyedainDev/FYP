@@ -1,7 +1,6 @@
 import 'student_my_results_screen.dart';
 import 'student_quiz_detail_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -100,7 +99,10 @@ class _StudentNotificationsScreenState
                 '${attempt.quizTitle}: ${attempt.score}/${attempt.totalMarks} (${attempt.grade})',
             time: attempt.endTime ?? attempt.startTime,
             icon: Icons.assignment_turned_in_outlined,
-            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const StudentMyResultsScreen())),
+            onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                    builder: (_) => const StudentMyResultsScreen())),
           ),
         );
       } else {
