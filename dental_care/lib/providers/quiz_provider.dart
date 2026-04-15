@@ -6,6 +6,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/quiz.dart';
+import '../models/quiz_attempt.dart';
 import '../service/groq_service.dart';
 import '../service/rag_service.dart';
 
@@ -30,6 +31,7 @@ class QuizProvider with ChangeNotifier {
   bool _isGeneratingWithAI = false;
   String? _groqError;
   bool _isFetchingPublishedQuizzes = false;
+  List<QuizAttempt> _quizAttempts = [];
 
   // Getters
   List<Quiz> get quizzes => _quizzes;
@@ -46,6 +48,7 @@ class QuizProvider with ChangeNotifier {
   String? get extractedText => _extractedText;
   bool get isGeneratingWithAI => _isGeneratingWithAI;
   String? get groqError => _groqError;
+  List<QuizAttempt> get quizAttempts => _quizAttempts;
 
   Future<T> _withTimeout<T>(Future<T> future) {
     return future.timeout(_requestTimeout);
@@ -56,20 +59,38 @@ class QuizProvider with ChangeNotifier {
   }
 
   Future<T> _runAiRequestWithRetry<T>(Future<T> Function() request) async {
-    const maxAttempts = 2;
+    const maxAttempts = 8;
     for (int attempt = 1; attempt <= maxAttempts; attempt++) {
       try {
         return await request();
       } on TimeoutException {
         if (attempt == maxAttempts) rethrow;
-        await Future.delayed(Duration(seconds: attempt * 2));
+        debugPrint(
+            '⏱️ Timeout on attempt $attempt/$maxAttempts. Retrying in ${attempt * 3}s...');
+        await Future.delayed(Duration(seconds: attempt * 3));
       } on SocketException {
         if (attempt == maxAttempts) rethrow;
-        await Future.delayed(Duration(seconds: attempt * 2));
+        debugPrint(
+            '🌐 Network error on attempt $attempt/$maxAttempts. Retrying in ${attempt * 3}s...');
+        await Future.delayed(Duration(seconds: attempt * 3));
+      } on GroqException catch (e) {
+        // Retry if it's a 404 "knowledge base not found" error (document still processing)
+        if (e.statusCode == 404 &&
+            (e.message.contains('knowledge base') ||
+                e.message.contains('not found'))) {
+          if (attempt == maxAttempts) rethrow;
+          debugPrint(
+              '⏳ Knowledge base not ready on attempt $attempt/$maxAttempts. Waiting for indexing... (${attempt * 3}s delay)');
+          // Exponential backoff: 3s, 6s, 9s, 12s, 15s, 18s, 21s, 24s
+          await Future.delayed(Duration(seconds: attempt * 3));
+          continue;
+        }
+        // For other GroqExceptions, don't retry
+        rethrow;
       }
     }
 
-    throw TimeoutException('AI request failed after retries.');
+    throw TimeoutException('AI request failed after $maxAttempts retries.');
   }
 
   String _mapErrorMessage(
@@ -99,7 +120,15 @@ class QuizProvider with ChangeNotifier {
       }
     }
 
+    // Handle GroqException (includes backend API errors)
+    if (error is GroqException) {
+      return error.message;
+    }
+
     final raw = error.toString().toLowerCase();
+    if (raw.contains('groqexception')) {
+      return 'AI generation failed. Please check your PDF content and try again.';
+    }
     if (raw.contains('401') ||
         raw.contains('unauthorized') ||
         raw.contains('token')) {
@@ -112,6 +141,9 @@ class QuizProvider with ChangeNotifier {
     }
     if (raw.contains('404') || raw.contains('not found')) {
       return 'The requested item could not be found.';
+    }
+    if (raw.contains('429') || raw.contains('rate limit')) {
+      return 'Too many requests. Please wait a moment and try again.';
     }
     if (raw.contains('socketexception') || raw.contains('network')) {
       return 'No internet connection. Check your network and try again.';
@@ -666,11 +698,11 @@ class QuizProvider with ChangeNotifier {
         notifyListeners();
         return questions;
       } on GroqException catch (e) {
-        debugPrint('❌ RAG API error: $e');
-        _groqError = e.message;
+        debugPrint('❌ RAG API error: ${e.message} (Status: ${e.statusCode})');
+        _groqError = e.message; // Show actual error from backend
         _isLoading = false;
         _isGeneratingWithAI = false;
-        _errorMessage = 'AI generation failed. Please try again.';
+        _errorMessage = e.message; // Use backend error message
         notifyListeners();
         return null;
       } catch (e) {
@@ -678,7 +710,8 @@ class QuizProvider with ChangeNotifier {
         _groqError = _mapErrorMessage(e, fallback: 'AI generation failed.');
         _isLoading = false;
         _isGeneratingWithAI = false;
-        _errorMessage = 'AI response parsing failed. Please try again.';
+        _errorMessage = _mapErrorMessage(e,
+            fallback: 'AI response parsing failed. Please try again.');
         notifyListeners();
         return null;
       }
@@ -689,9 +722,118 @@ class QuizProvider with ChangeNotifier {
         e,
         fallback: 'Failed to generate quiz. Please try again.',
       );
+      _groqError = _mapErrorMessage(e,
+          fallback: 'An unexpected error occurred during quiz generation.');
       debugPrint('❌ Error in generateQuestionsWithAI: $e');
+      debugPrint('🐛 Stack trace: ${StackTrace.current}');
       notifyListeners();
       return null;
+    }
+  }
+
+  /// Fetch all quiz attempts for a specific quiz
+  Future<void> fetchQuizAttempts(String quizId) async {
+    try {
+      debugPrint('🔍 Fetching attempts for quiz: $quizId');
+      _isLoading = true;
+      notifyListeners();
+
+      final snapshot = await _withTimeout(
+        _firestore
+            .collection('quizzes')
+            .doc(quizId)
+            .collection('attempts')
+            .orderBy('endTime', descending: true)
+            .get(),
+      );
+
+      _quizAttempts =
+          snapshot.docs.map((doc) => QuizAttempt.fromFirestore(doc)).toList();
+
+      debugPrint('✅ Fetched ${_quizAttempts.length} attempts for quiz $quizId');
+      _isLoading = false;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('❌ Error fetching quiz attempts: $e');
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Save a quiz attempt to Firestore
+  Future<bool> saveQuizAttempt(String quizId, QuizAttempt attempt) async {
+    try {
+      debugPrint('💾 Saving quiz attempt for student: ${attempt.studentId}');
+
+      await _withTimeout(
+        _firestore
+            .collection('quizzes')
+            .doc(quizId)
+            .collection('attempts')
+            .doc(attempt.id)
+            .set(attempt.toFirestore()),
+      );
+
+      // Add to local list
+      final index = _quizAttempts.indexWhere((a) => a.id == attempt.id);
+      if (index >= 0) {
+        _quizAttempts[index] = attempt;
+      } else {
+        _quizAttempts.insert(
+            0, attempt); // Add to beginning (most recent first)
+      }
+
+      debugPrint('✅ Quiz attempt saved successfully');
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('❌ Error saving quiz attempt: $e');
+      _errorMessage = _mapErrorMessage(
+        e,
+        fallback: 'Failed to save quiz attempt. Please try again.',
+      );
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Fetch all attempts by a specific student across all quizzes
+  Future<List<QuizAttempt>> fetchStudentAttempts(String studentId) async {
+    try {
+      debugPrint('🔍 Fetching attempts for student: $studentId');
+
+      // Query all published quizzes and their attempts for this student
+      final quizzesSnapshot = await _withTimeout(
+        _firestore
+            .collection('quizzes')
+            .where('status', isEqualTo: QuizStatus.published.name)
+            .get(),
+      );
+
+      List<QuizAttempt> allAttempts = [];
+
+      for (var quizDoc in quizzesSnapshot.docs) {
+        final attemptsSnapshot = await _withTimeout(
+          _firestore
+              .collection('quizzes')
+              .doc(quizDoc.id)
+              .collection('attempts')
+              .where('studentId', isEqualTo: studentId)
+              .orderBy('endTime', descending: true)
+              .get(),
+        );
+
+        allAttempts.addAll(
+          attemptsSnapshot.docs.map((doc) => QuizAttempt.fromFirestore(doc)),
+        );
+      }
+
+      debugPrint(
+          '✅ Fetched ${allAttempts.length} attempts for student $studentId');
+      return allAttempts;
+    } catch (e) {
+      debugPrint('❌ Error fetching student attempts: $e');
+      return [];
     }
   }
 }

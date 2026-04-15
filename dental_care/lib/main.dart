@@ -20,6 +20,8 @@ import 'package:dental_care/providers/treatment_plan_provider.dart';
 import 'package:dental_care/providers/medical_history_provider.dart';
 import 'package:dental_care/providers/analytics_provider.dart';
 import 'package:dental_care/providers/audit_log_provider.dart';
+import 'package:dental_care/providers/performance_provider.dart';
+import 'package:dental_care/providers/assignment_provider.dart';
 import 'package:dental_care/utils/firebase_test.dart';
 import 'firebase_options.dart';
 
@@ -82,6 +84,8 @@ void main() async {
         ChangeNotifierProvider(create: (_) => MedicalHistoryProvider()),
         ChangeNotifierProvider(create: (_) => AnalyticsProvider()),
         ChangeNotifierProvider(create: (_) => AuditLogProvider()),
+        ChangeNotifierProvider(create: (_) => PerformanceProvider()),
+        ChangeNotifierProvider(create: (_) => AssignmentProvider()),
       ],
       child: const MyApp(),
     ),

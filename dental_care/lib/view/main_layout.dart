@@ -5,7 +5,7 @@ import '../providers/navigation_provider.dart';
 import '../provider/auth_provider.dart';
 import '../features/analytics/view/analytics_dashboard_screen.dart';
 import 'dashboard_screen.dart';
-import 'student_dashboard_screen.dart';
+import 'student_lms_dashboard.dart';
 import 'history_screen.dart';
 import 'dental_detection_screen.dart';
 import 'dentist_profile_screen.dart';
@@ -59,47 +59,47 @@ class _MainLayoutState extends State<MainLayout>
 
   Widget _getCurrentScreen(String page, bool isStudent) {
     if (isStudent && !_studentPages.contains(page)) {
-      return const StudentDashboardScreen(key: ValueKey('Student Overview'));
+      return const StudentLMSDashboard(key: ValueKey('Student Overview'));
     }
 
     switch (page) {
       case 'Overview':
         return isStudent
-            ? const StudentDashboardScreen(key: ValueKey('Student Overview'))
+            ? const StudentLMSDashboard(key: ValueKey('Student Overview'))
             : const DashboardScreen(key: ValueKey('Overview'));
       case 'Patients':
         if (isStudent) {
-          return const StudentDashboardScreen(
+          return const StudentLMSDashboard(
               key: ValueKey('Student Overview'));
         }
         return const PatientsScreen(key: ValueKey('Patients'));
       case 'Scan History':
         if (isStudent) {
-          return const StudentDashboardScreen(
+          return const StudentLMSDashboard(
               key: ValueKey('Student Overview'));
         }
         return const HistoryScreen(key: ValueKey('Scan History'));
       case 'Create Quiz':
         if (isStudent) {
-          return const StudentDashboardScreen(
+          return const StudentLMSDashboard(
               key: ValueKey('Student Overview'));
         }
         return const AIQuizScreen(key: ValueKey('Create Quiz'));
       case 'My Quizzes':
         if (isStudent) {
-          return const StudentDashboardScreen(
+          return const StudentLMSDashboard(
               key: ValueKey('Student Overview'));
         }
         return const QuizListScreen(key: ValueKey('My Quizzes'));
       case 'Lecture Notes':
         if (isStudent) {
-          return const StudentDashboardScreen(
+          return const StudentLMSDashboard(
               key: ValueKey('Student Overview'));
         }
         return const LectureNotesScreen(key: ValueKey('Lecture Notes'));
       case 'Quiz Results':
         if (isStudent) {
-          return const StudentDashboardScreen(
+          return const StudentLMSDashboard(
               key: ValueKey('Student Overview'));
         }
         return const AnalyticsDashboardScreen(key: ValueKey('Quiz Results'));
@@ -109,7 +109,7 @@ class _MainLayoutState extends State<MainLayout>
         return const DentistProfileScreen(key: ValueKey('Profile'));
       case 'Disease Detection':
         if (isStudent) {
-          return const StudentDashboardScreen(
+          return const StudentLMSDashboard(
               key: ValueKey('Student Overview'));
         }
         return const DentalDetectionScreen(key: ValueKey('Disease Detection'));
@@ -124,7 +124,7 @@ class _MainLayoutState extends State<MainLayout>
         return const StudentNotificationsScreen(key: ValueKey('Notifications'));
       default:
         return isStudent
-            ? const StudentDashboardScreen(key: ValueKey('Student Overview'))
+            ? const StudentLMSDashboard(key: ValueKey('Student Overview'))
             : const DashboardScreen(key: ValueKey('Overview'));
     }
   }
