@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'student_dashboard_screen.dart';
+import 'student_lms_dashboard.dart' as student_dashboard;
 import 'student_auth_flow_screens.dart';
 import '../provider/auth_provider.dart';
 import '../utils/app_dialogs.dart';
@@ -374,8 +374,8 @@ class _LoginCardState extends State<_LoginCard> {
                                 Navigator.pushReplacement(
                                     context,
                                     MaterialPageRoute(
-                                        builder: (_) =>
-                                            const StudentDashboardScreen()));
+                                        builder: (_) => const student_dashboard
+                                            .StudentLMSDashboard()));
                               } else {
                                 Navigator.pushReplacementNamed(
                                     context, '/dashboard');

@@ -6,8 +6,10 @@ import 'dart:io';
 
 import '../models/patient.dart';
 import '../models/scan.dart';
+import '../models/case.dart';
 import '../providers/patient_provider.dart';
 import '../providers/scan_provider.dart';
+import '../providers/case_provider.dart';
 import '../provider/auth_provider.dart';
 import '../core/animation_constants.dart';
 import '../core/theme/app_semantic_colors.dart';
@@ -17,6 +19,8 @@ import 'widgets/add_patient_dialog.dart';
 import 'widgets/edit_patient_dialog.dart';
 import '../widgets/loaders/app_loader.dart';
 import 'widgets/create_case_dialog.dart';
+import 'widgets/write_prescription_dialog.dart';
+import 'widgets/prescription_list_view.dart';
 
 class PatientsScreen extends StatefulWidget {
   const PatientsScreen({super.key});
@@ -122,6 +126,112 @@ class _PatientsScreenState extends State<PatientsScreen> {
                         foregroundColor: colorScheme.onPrimary,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    // Prescription quick-action button
+                    ElevatedButton.icon(
+                      onPressed: () async {
+                        // Open a simple patient selector then the write prescription dialog
+                        final selected = await showDialog<Patient?>(
+                          context: context,
+                          builder: (ctx) {
+                            final patients =
+                                Provider.of<PatientProvider>(context).patients;
+                            return Dialog(
+                              child: Container(
+                                constraints:
+                                    const BoxConstraints(maxWidth: 600),
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text(
+                                        'Select Patient for Prescription',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.bold)),
+                                    const SizedBox(height: 12),
+                                    SizedBox(
+                                      height: 300,
+                                      child: ListView.builder(
+                                        shrinkWrap: true,
+                                        itemCount: patients.length,
+                                        itemBuilder: (_, i) {
+                                          final p = patients[i];
+                                          return ListTile(
+                                            title: Text(p.name),
+                                            subtitle: Text(p.contactPhone),
+                                            onTap: () =>
+                                                Navigator.of(ctx).pop(p),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.of(ctx).pop(null),
+                                      child: const Text('Cancel'),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        );
+
+                        if (selected != null) {
+                          // find latest case for this patient
+                          final caseProv =
+                              Provider.of<CaseProvider>(context, listen: false);
+                          final cases = caseProv.allCases
+                              .where((c) => c.patientId == selected.id)
+                              .toList();
+                          Case caseData;
+                          if (cases.isNotEmpty) {
+                            caseData = cases.first;
+                          } else {
+                            caseData = Case(
+                              id: '',
+                              patientId: selected.id,
+                              patientName: selected.name,
+                              toothNumber: '',
+                              caseDate: DateTime.now(),
+                              imageUrls: const [],
+                              analysisResults: const {
+                                'status': 'Pending AI Analysis'
+                              },
+                              notes: '',
+                            );
+                          }
+
+                          showDialog<bool>(
+                            context: context,
+                            builder: (_) => WritePrescriptionDialog(
+                                patient: selected, caseData: caseData),
+                          ).then((created) {
+                            if (created == true) {
+                              // optionally refresh patients or show snackbar
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                      content: Text('Prescription created')));
+                            }
+                          });
+                        }
+                      },
+                      icon: const Icon(Icons.description),
+                      label: const Text('Write Prescription'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.secondaryContainer,
+                        foregroundColor: colorScheme.onSecondaryContainer,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
                           vertical: 12,
                         ),
                         shape: RoundedRectangleBorder(
@@ -249,24 +359,47 @@ class _PatientsScreenState extends State<PatientsScreen> {
                           );
                         }
 
-                        return GridView.builder(
-                          shrinkWrap: true,
-                          physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate:
-                              const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 24,
-                            mainAxisSpacing: 24,
-                            childAspectRatio: 1.2,
-                          ),
-                          itemCount: patients.length,
-                          itemBuilder: (context, index) {
-                            final patient = patients[index];
-                            return _PatientCard(
-                              patient: patient,
-                              decoration: _prominentCardDecoration,
-                              onTap: () =>
-                                  _showPatientDetails(context, patient),
+                        // Responsive grid: adjust columns and aspect ratio by width
+                        return LayoutBuilder(
+                          builder: (context, constraints) {
+                            final width = constraints.maxWidth;
+                            int crossAxisCount = 3;
+                            double childAspect = 1.2;
+
+                            if (width < 600) {
+                              crossAxisCount = 1;
+                              childAspect = 2.4;
+                            } else if (width < 900) {
+                              crossAxisCount = 2;
+                              childAspect = 1.8;
+                            } else if (width < 1200) {
+                              crossAxisCount = 3;
+                              childAspect = 1.3;
+                            } else {
+                              crossAxisCount = 4;
+                              childAspect = 1.2;
+                            }
+
+                            return GridView.builder(
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: crossAxisCount,
+                                crossAxisSpacing: 24,
+                                mainAxisSpacing: 24,
+                                childAspectRatio: childAspect,
+                              ),
+                              itemCount: patients.length,
+                              itemBuilder: (context, index) {
+                                final patient = patients[index];
+                                return _PatientCard(
+                                  patient: patient,
+                                  decoration: _prominentCardDecoration,
+                                  onTap: () =>
+                                      _showPatientDetails(context, patient),
+                                );
+                              },
                             );
                           },
                         );
@@ -613,6 +746,16 @@ class _PatientsScreenState extends State<PatientsScreen> {
                         },
                       ),
 
+                      // Prescriptions Section
+                      const SizedBox(height: 20),
+                      const _SectionHeader('Prescriptions'),
+                      const SizedBox(height: 12),
+                      PrescriptionListView(
+                        patientId: patient.id,
+                        patientName: patient.name,
+                        patientPhone: patient.contactPhone,
+                      ),
+
                       // Metadata
                       const SizedBox(height: 20),
                       Divider(color: colorScheme.outlineVariant),
@@ -655,73 +798,124 @@ class _PatientsScreenState extends State<PatientsScreen> {
                         BorderSide(color: colorScheme.outlineVariant, width: 1),
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                        ),
+                        child: Text(
+                          'Close',
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                      child: Text(
-                        'Close',
-                        style: TextStyle(
-                          color: colorScheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          // Open create case dialog with this patient preselected
+                          await showDialog(
+                            context: context,
+                            builder: (context) =>
+                                CreateCaseDialog(initialPatientId: patient.id),
+                          );
+                        },
+                        icon: const Icon(Icons.add_box, size: 18),
+                        label: const Text('New Case'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: success,
+                          foregroundColor: colorScheme.onPrimary,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        Navigator.pop(context);
-                        // Open create case dialog with this patient preselected
-                        await showDialog(
-                          context: context,
-                          builder: (context) =>
-                              CreateCaseDialog(initialPatientId: patient.id),
-                        );
-                      },
-                      icon: const Icon(Icons.add_box, size: 18),
-                      label: const Text('New Case'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: success,
-                        foregroundColor: colorScheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 12,
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          // Get the latest case for this patient to link prescription
+                          final caseProvider =
+                              Provider.of<CaseProvider>(context, listen: false);
+                          final patientCases = caseProvider.cases
+                              .where((c) => c.patientId == patient.id)
+                              .toList();
+
+                          if (patientCases.isEmpty) {
+                            AppDialogs.showErrorDialog(
+                              context,
+                              message:
+                                  'Please create a case first before writing a prescription.',
+                            );
+                            return;
+                          }
+
+                          // Use the most recent case
+                          final latestCase = patientCases.last;
+
+                          if (mounted) {
+                            Navigator.pop(context);
+                            await showDialog(
+                              context: context,
+                              builder: (context) => WritePrescriptionDialog(
+                                patient: patient,
+                                caseData: latestCase,
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.description, size: 18),
+                        label: const Text('Write Prescription'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: colorScheme.secondary,
+                          foregroundColor: colorScheme.onSecondary,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 20,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        elevation: 0,
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    ElevatedButton.icon(
-                      onPressed: () async {
-                        Navigator.pop(context);
-                        await _showEditPatientDialog(context, patient);
-                      },
-                      icon: const Icon(Icons.edit, size: 18),
-                      label: const Text('Edit Patient'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: colorScheme.primary,
-                        foregroundColor: colorScheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        onPressed: () async {
+                          Navigator.pop(context);
+                          await _showEditPatientDialog(context, patient);
+                        },
+                        icon: const Icon(Icons.edit, size: 18),
+                        label: const Text('Edit Patient'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: colorScheme.primary,
+                          foregroundColor: colorScheme.onPrimary,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
                         ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        elevation: 0,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],

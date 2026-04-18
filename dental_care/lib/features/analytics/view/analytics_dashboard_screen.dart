@@ -184,8 +184,8 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: a.isPassed
-                        ? Colors.green.withOpacity(0.1)
-                        : Colors.red.withOpacity(0.1),
+                        ? Colors.green.withValues(alpha: 0.1)
+                        : Colors.red.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(a.grade,
@@ -201,7 +201,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
                     color: violationCount > 0
-                        ? Colors.orange.withOpacity(0.1)
+                        ? Colors.orange.withValues(alpha: 0.1)
                         : Colors.transparent,
                     borderRadius: BorderRadius.circular(8),
                   ),

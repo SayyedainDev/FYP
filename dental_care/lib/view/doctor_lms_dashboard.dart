@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:dental_care/providers/performance_provider.dart';
 import 'package:dental_care/provider/auth_provider.dart';
+import 'package:dental_care/core/theme/app_tokens.dart';
 import 'doctor_student_list_screen.dart';
 import 'doctor_create_assignment_screen.dart';
 import 'doctor_assignments_management_screen.dart';
@@ -45,7 +46,7 @@ class _DoctorLMSDashboardState extends State<DoctorLMSDashboard> {
             expandedHeight: 200,
             floating: false,
             pinned: true,
-            backgroundColor: Colors.green.shade700,
+            backgroundColor: AppColors.brandPrimary,
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
                 'Dr. $instructorName',
@@ -60,7 +61,10 @@ class _DoctorLMSDashboardState extends State<DoctorLMSDashboard> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [Colors.green.shade700, Colors.green.shade900],
+                    colors: [
+                      AppColors.brandPrimary,
+                      AppColors.brandSecondary,
+                    ],
                   ),
                 ),
                 child: Padding(
@@ -193,7 +197,7 @@ class _DoctorLMSDashboardState extends State<DoctorLMSDashboard> {
               context,
               title: 'My Students',
               icon: Icons.group,
-              color: Colors.blue,
+              color: AppColors.brandPrimary,
               onTap: () {
                 Navigator.push(
                   context,
@@ -207,7 +211,7 @@ class _DoctorLMSDashboardState extends State<DoctorLMSDashboard> {
               context,
               title: 'Create Assignment',
               icon: Icons.assignment_add,
-              color: Colors.purple,
+              color: AppColors.brandSecondary,
               onTap: () {
                 Navigator.push(
                   context,
@@ -221,7 +225,7 @@ class _DoctorLMSDashboardState extends State<DoctorLMSDashboard> {
               context,
               title: 'Manage Assignments',
               icon: Icons.assignment,
-              color: Colors.orange,
+              color: AppColors.warning,
               onTap: () {
                 Navigator.push(
                   context,
@@ -235,7 +239,7 @@ class _DoctorLMSDashboardState extends State<DoctorLMSDashboard> {
               context,
               title: 'Class Analytics',
               icon: Icons.bar_chart,
-              color: Colors.green,
+              color: AppColors.success,
               onTap: () {
                 Navigator.push(
                   context,
@@ -269,7 +273,10 @@ class _DoctorLMSDashboardState extends State<DoctorLMSDashboard> {
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [color.withOpacity(0.3), color.withOpacity(0.1)],
+              colors: [
+                color.withValues(alpha: 0.3),
+                color.withValues(alpha: 0.1)
+              ],
             ),
           ),
           child: Column(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:dental_care/providers/assignment_provider.dart';
 import 'package:dental_care/provider/auth_provider.dart';
+import 'package:dental_care/core/theme/app_tokens.dart';
 import 'student_assignment_detail_screen.dart';
 
 class StudentAssignmentsScreen extends StatefulWidget {
@@ -37,9 +38,10 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
     return Scaffold(
       appBar: AppBar(
         title: const Text('Assignments'),
-        backgroundColor: Colors.blue.shade700,
+        backgroundColor: AppColors.brandPrimary,
         bottom: TabBar(
           controller: _tabController,
+          indicatorColor: Colors.white,
           tabs: const [
             Tab(text: 'Pending'),
             Tab(text: 'Submitted'),
@@ -187,7 +189,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.blue.shade700,
+                      backgroundColor: AppColors.brandPrimary,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: const Text('View Details'),

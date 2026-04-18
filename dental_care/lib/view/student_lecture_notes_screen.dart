@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:dental_care/providers/lecture_notes_provider.dart';
+import 'package:dental_care/core/theme/app_tokens.dart';
 
 class StudentLectureNotesScreen extends StatefulWidget {
   const StudentLectureNotesScreen({Key? key}) : super(key: key);
@@ -22,7 +23,7 @@ class _StudentLectureNotesScreenState extends State<StudentLectureNotesScreen> {
       appBar: AppBar(
         title: const Text('Lecture Notes'),
         elevation: 0,
-        backgroundColor: Colors.blue.shade700,
+        backgroundColor: AppColors.brandPrimary,
       ),
       body: Consumer<LectureNotesProvider>(
         builder: (context, lectureProvider, _) {

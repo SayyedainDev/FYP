@@ -247,6 +247,42 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  /// Update user profile fields in Firestore and Firebase Auth displayName.
+  Future<void> updateProfile(Map<String, dynamic> data) async {
+    final userId = currentUserId ?? this.uid;
+    if (userId == null) throw Exception('No authenticated user');
+
+    try {
+      _loading = true;
+      notifyListeners();
+
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .set(data, SetOptions(merge: true));
+
+      final firstName = data['firstName'] as String?;
+      final lastName = data['lastName'] as String?;
+      if (firstName != null && firstName.isNotEmpty) {
+        final displayName = (lastName != null && lastName.isNotEmpty)
+            ? '$firstName $lastName'
+            : firstName;
+        await FirebaseAuth.instance.currentUser?.updateDisplayName(displayName);
+        _userName = displayName;
+      }
+
+      // Update cached email if provided
+      if (data['email'] is String) {
+        _userEmail = data['email'] as String;
+      }
+
+      notifyListeners();
+    } finally {
+      _loading = false;
+      notifyListeners();
+    }
+  }
+
   Future<void> sendPasswordResetEmail(String email) async {
     final target = email.trim();
     if (target.isEmpty) throw Exception('Email is required');

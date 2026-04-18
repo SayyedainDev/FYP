@@ -1,10 +1,11 @@
 import 'package:dental_care/view/login.dart';
 import 'package:dental_care/view/register.dart';
 import 'package:dental_care/view/main_layout.dart';
+import 'package:dental_care/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// Supabase removed from project — using Firebase for storage
 import 'package:dental_care/service/firebase_service.dart';
 import 'package:dental_care/provider/auth_provider.dart';
 import 'package:dental_care/providers/app_provider.dart';
@@ -22,6 +23,7 @@ import 'package:dental_care/providers/analytics_provider.dart';
 import 'package:dental_care/providers/audit_log_provider.dart';
 import 'package:dental_care/providers/performance_provider.dart';
 import 'package:dental_care/providers/assignment_provider.dart';
+import 'package:dental_care/providers/prescription_provider.dart';
 import 'package:dental_care/utils/firebase_test.dart';
 import 'firebase_options.dart';
 
@@ -29,27 +31,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // Initialize Supabase (storage)
-    await Supabase.initialize(
-      url: 'https://trectmuwolzkdalsrmud.supabase.co',
-      anonKey: 'sb_publishable_ogLajv5OEo4WrjV_Pyaoug_hnVaXpyB',
-    );
-    debugPrint('✅ Supabase Initialized Successfully');
-
     // Initialize Firebase (auth, firestore)
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
     debugPrint('✅ Firebase Initialized Successfully');
-
-    // Initialize Supabase for lecture notes storage
-    // TODO: Replace with your actual Supabase URL and Anon Key
-    // await Supabase.initialize(
-    //   url: 'https://your-project.supabase.co',
-    //   anonKey: 'your-anon-key',
-    //   authCallbackUrlScheme: 'io.supabase.flutter-examples',
-    // );
-    // debugPrint('✅ Supabase Initialized Successfully');
 
     // Run Firebase connection tests (in debug mode only)
     assert(() {
@@ -86,6 +72,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => AuditLogProvider()),
         ChangeNotifierProvider(create: (_) => PerformanceProvider()),
         ChangeNotifierProvider(create: (_) => AssignmentProvider()),
+        ChangeNotifierProvider(create: (_) => PrescriptionProvider()),
       ],
       child: const MyApp(),
     ),
@@ -99,38 +86,10 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Dental Care',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        scaffoldBackgroundColor: const Color(0xFFF8F9FA),
-        cardTheme: CardThemeData(
-          color: Colors.white,
-          elevation: 2,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.blue,
-          elevation: 1,
-        ),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
-            ),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-          filled: true,
-          fillColor: const Color(0xFFF8F9FA),
-        ),
-      ),
+      title: 'PalPath',
+      theme: AppTheme.light(),
+      darkTheme: AppTheme.dark(),
+      themeMode: ThemeMode.light,
       initialRoute: '/',
       routes: {
         '/': (_) => const LoginPage(),

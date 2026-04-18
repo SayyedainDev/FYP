@@ -12,7 +12,7 @@ class NavDestination {
   });
 }
 
-class AdaptiveNavShell extends StatelessWidget {
+class AdaptiveNavShell extends StatefulWidget {
   final String currentPage;
   final List<NavDestination> destinations;
   final ValueChanged<String> onSelect;
@@ -30,9 +30,94 @@ class AdaptiveNavShell extends StatelessWidget {
     this.actions = const [],
   });
 
+  @override
+  State<AdaptiveNavShell> createState() => _AdaptiveNavShellState();
+}
+
+class _AdaptiveNavShellState extends State<AdaptiveNavShell> {
   int get _currentIndex {
-    final index = destinations.indexWhere((item) => item.label == currentPage);
+    final index = widget.destinations
+        .indexWhere((item) => item.label == widget.currentPage);
     return index < 0 ? 0 : index;
+  }
+
+  Widget _buildDrawer() {
+    return Drawer(
+      backgroundColor: AppColors.sidebarDark,
+      child: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.medication_outlined,
+                    color: AppColors.sidebarAccent,
+                    size: 32,
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'PalPath',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          color: AppColors.sidebarOnDark,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(color: Colors.transparent, height: 8),
+            Expanded(
+              child: ListView.builder(
+                itemCount: widget.destinations.length,
+                itemBuilder: (context, index) {
+                  final destination = widget.destinations[index];
+                  final selected = destination.label == widget.currentPage;
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
+                    ),
+                    child: ListTile(
+                      selected: selected,
+                      tileColor: selected
+                          ? AppColors.sidebarDarkSoft
+                          : Colors.transparent,
+                      selectedTileColor: AppColors.sidebarDarkSoft,
+                      iconColor: selected
+                          ? AppColors.sidebarAccent
+                          : AppColors.sidebarOnDark.withValues(alpha: 0.95),
+                      textColor: selected
+                          ? AppColors.sidebarOnDark
+                          : AppColors.sidebarOnDark.withValues(alpha: 0.95),
+                      selectedColor: AppColors.sidebarAccent,
+                      leading: Icon(destination.icon,
+                          color: selected
+                              ? AppColors.sidebarAccent
+                              : AppColors.sidebarOnDark
+                                  .withValues(alpha: 0.95)),
+                      title: Text(destination.label,
+                          style: TextStyle(
+                              color: selected
+                                  ? AppColors.sidebarOnDark
+                                  : AppColors.sidebarOnDark
+                                      .withValues(alpha: 0.95))),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      onTap: () {
+                        widget.onSelect(destination.label);
+                        Navigator.pop(context);
+                      },
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -43,22 +128,11 @@ class AdaptiveNavShell extends StatelessWidget {
     if (isMobile) {
       return Scaffold(
         appBar: AppBar(
-          title: Text(title),
-          actions: actions,
+          title: Text(widget.title),
+          actions: widget.actions,
         ),
-        body: child,
-        bottomNavigationBar: NavigationBar(
-          selectedIndex: _currentIndex,
-          onDestinationSelected: (index) => onSelect(destinations[index].label),
-          destinations: destinations
-              .map(
-                (item) => NavigationDestination(
-                  icon: Icon(item.icon),
-                  label: item.label,
-                ),
-              )
-              .toList(),
-        ),
+        drawer: _buildDrawer(),
+        body: widget.child,
       );
     }
 
@@ -97,10 +171,11 @@ class AdaptiveNavShell extends StatelessWidget {
                     const SizedBox(height: 16),
                     Expanded(
                       child: ListView.builder(
-                        itemCount: destinations.length,
+                        itemCount: widget.destinations.length,
                         itemBuilder: (context, index) {
-                          final destination = destinations[index];
-                          final selected = destination.label == currentPage;
+                          final destination = widget.destinations[index];
+                          final selected =
+                              destination.label == widget.currentPage;
                           return Padding(
                             padding: const EdgeInsets.symmetric(
                               horizontal: 12,
@@ -126,7 +201,7 @@ class AdaptiveNavShell extends StatelessWidget {
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              onTap: () => onSelect(destination.label),
+                              onTap: () => widget.onSelect(destination.label),
                             ),
                           );
                         },
@@ -148,17 +223,17 @@ class AdaptiveNavShell extends StatelessWidget {
                         child: Row(
                           children: [
                             Text(
-                              title,
+                              widget.title,
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
                             const Spacer(),
-                            ...actions,
+                            ...widget.actions,
                           ],
                         ),
                       ),
                     ),
                   ),
-                  Expanded(child: child),
+                  Expanded(child: widget.child),
                 ],
               ),
             ),
@@ -169,17 +244,17 @@ class AdaptiveNavShell extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(title),
-        actions: actions,
+        title: Text(widget.title),
+        actions: widget.actions,
       ),
       body: Row(
         children: [
           NavigationRail(
             selectedIndex: _currentIndex,
             onDestinationSelected: (index) =>
-                onSelect(destinations[index].label),
+                widget.onSelect(widget.destinations[index].label),
             labelType: NavigationRailLabelType.all,
-            destinations: destinations
+            destinations: widget.destinations
                 .map(
                   (item) => NavigationRailDestination(
                     icon: Icon(item.icon),
@@ -189,7 +264,7 @@ class AdaptiveNavShell extends StatelessWidget {
                 .toList(),
           ),
           const VerticalDivider(width: 1),
-          Expanded(child: child),
+          Expanded(child: widget.child),
         ],
       ),
     );

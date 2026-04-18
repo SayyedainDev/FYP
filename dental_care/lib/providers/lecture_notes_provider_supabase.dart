@@ -2,14 +2,14 @@ import 'dart:io';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// Supabase removed — use Firebase Storage instead
 import '../models/lecture_note.dart';
 import '../utils/provider_error_utils.dart';
 
 class LectureNotesProvider with ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final SupabaseClient _supabase = Supabase.instance.client;
-  static const String _bucketName = 'lecture_notes';
+  // Supabase storage removed. Use Firebase Storage (`firebase_storage`) when
+  // implementing file uploads. For now, uploads return null.
   static const Duration _requestTimeout = Duration(seconds: 30);
 
   List<LectureNote> _lectureNotes = [];
@@ -82,27 +82,11 @@ class LectureNotesProvider with ChangeNotifier {
       _uploadProgress = 0.0;
       notifyListeners();
 
-      // Path: lecture_notes/{dentistUid}/{noteId}/{fileName}
-      final filePath = '$dentistUid/$noteId/$fileName';
-
-      // Read file bytes
-      final bytes = await _withTimeout(file.readAsBytes());
-
-      // Upload to Supabase Storage
-      await _withTimeout(_supabase.storage.from(_bucketName).uploadBinary(
-            filePath,
-            bytes,
-            fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-          ));
-
-      // Get public URL
-      final publicUrl =
-          _supabase.storage.from(_bucketName).getPublicUrl(filePath);
-
-      _uploadProgress = 1.0;
+      // Supabase storage removed. Implement Firebase Storage upload here.
+      debugPrint('uploadLectureNoteFileFromBytes called but Supabase removed.');
+      _uploadProgress = 0.0;
       notifyListeners();
-
-      return publicUrl;
+      return null;
     } catch (e) {
       _errorMessage = ProviderErrorUtils.mapErrorMessage(
         e,
@@ -125,24 +109,11 @@ class LectureNotesProvider with ChangeNotifier {
       _uploadProgress = 0.0;
       notifyListeners();
 
-      // Path: lecture_notes/{dentistUid}/{noteId}/{fileName}
-      final filePath = '$dentistUid/$noteId/$fileName';
-
-      // Upload to Supabase Storage
-      await _withTimeout(_supabase.storage.from(_bucketName).uploadBinary(
-            filePath,
-            bytes,
-            fileOptions: const FileOptions(cacheControl: '3600', upsert: false),
-          ));
-
-      // Get public URL
-      final publicUrl =
-          _supabase.storage.from(_bucketName).getPublicUrl(filePath);
-
-      _uploadProgress = 1.0;
+      // Supabase storage removed. Implement Firebase Storage upload here.
+      debugPrint('uploadLectureNoteFile called but Supabase removed.');
+      _uploadProgress = 0.0;
       notifyListeners();
-
-      return publicUrl;
+      return null;
     } catch (e) {
       _errorMessage = ProviderErrorUtils.mapErrorMessage(
         e,
@@ -351,16 +322,8 @@ class LectureNotesProvider with ChangeNotifier {
     notifyListeners();
 
     try {
-      // Delete file from Supabase Storage if it exists
-      if (note.fileUrl != null && note.fileName != null) {
-        try {
-          final filePath = '${note.dentistUid}/${note.id}/${note.fileName}';
-          await _withTimeout(
-              _supabase.storage.from(_bucketName).remove([filePath]));
-        } catch (e) {
-          // File might already be deleted, continue anyway
-        }
-      }
+      // File deletion from Supabase removed. If you used Firebase Storage,
+      // implement deletion there. Proceed to remove Firestore document.
 
       // Delete document from Firestore
       await _firestore

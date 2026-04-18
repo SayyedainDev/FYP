@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// Supabase removed
 import '../models/scan.dart';
 import '../utils/provider_error_utils.dart';
 
 class ScanProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final supabase = Supabase.instance.client;
+  // Supabase removed — implement Firebase Storage uploads when needed
 
   List<Scan> _scans = [];
   bool _loading = false;
@@ -121,13 +121,15 @@ class ScanProvider extends ChangeNotifier {
 
       String imageUrl = '';
 
-      // Upload image to Supabase Storage if provided
+      // Upload image to storage if provided.
+      // NOTE: Supabase support was removed; implement Firebase Storage upload here.
       if (imageFile != null) {
         final fileName = 'scan_${DateTime.now().millisecondsSinceEpoch}.jpg';
-        const bucket = 'scans';
-        final path = '$patientId/$fileName';
 
-        Uint8List bytes;
+        // Normalize image bytes for potential upload (actual upload to be
+        // implemented with Firebase Storage). We only read bytes here so
+        // downstream code can use them when upload is implemented.
+        final Uint8List bytes;
         if (imageFile is Uint8List) {
           bytes = imageFile;
         } else if (imageFile is File) {
@@ -151,11 +153,9 @@ class ScanProvider extends ChangeNotifier {
           }
         }
 
-        await supabase.storage
-            .from(bucket)
-            .uploadBinary(path, bytes)
-            .timeout(ProviderErrorUtils.requestTimeout);
-        imageUrl = supabase.storage.from(bucket).getPublicUrl(path);
+        debugPrint(
+            'ScanProvider: upload requested but Supabase removed. Implement Firebase Storage upload. file=$fileName bytes=${bytes.length}');
+        imageUrl = '';
       }
 
       // Use real detection results when provided; otherwise mark as pending

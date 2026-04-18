@@ -6,10 +6,10 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// Supabase removed — using Firebase storage
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
+// removed unused import
 import 'package:provider/provider.dart';
 import '../core/responsive/app_breakpoints.dart';
 import '../core/theme/app_semantic_colors.dart';
@@ -148,11 +148,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ],
                           ),
-                          if (const bool.fromEnvironment('dart.vm.product') ==
-                              false) ...[
-                            const SizedBox(height: 24),
-                            _buildDeveloperCard(),
-                          ],
+                          const SizedBox(height: 24),
+                          _buildAccountSecurityCard(),
                         ],
                       );
                     }
@@ -166,11 +163,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         _buildPrivacyCard(),
                         const SizedBox(height: 24),
                         _buildAppearanceCard(),
-                        if (const bool.fromEnvironment('dart.vm.product') ==
-                            false) ...[
-                          const SizedBox(height: 24),
-                          _buildDeveloperCard(),
-                        ],
+                        const SizedBox(height: 24),
+                        _buildAccountSecurityCard(),
                       ],
                     );
                   },
@@ -379,44 +373,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildDeveloperCard() {
+  Widget _buildAccountSecurityCard() {
     final colorScheme = Theme.of(context).colorScheme;
-    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
+    final semantic = Theme.of(context).extension<AppSemanticColors>();
+    final danger = semantic?.danger ?? colorScheme.error;
+
     return Container(
       decoration: _prominentCardDecoration,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Icon(
-                Icons.bug_report,
-                color: semanticColors?.warning ?? colorScheme.tertiary,
-              ),
-              const SizedBox(width: 12),
-              Text(
-                'Developer Tools',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: colorScheme.onSurface,
-                    ),
-              ),
-            ],
+          Text(
+            'Account & Security',
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: Theme.of(context).colorScheme.onSurface,
+                ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 24),
+          // Logout Button
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () {
-                context.push('/debug/firebase');
-              },
-              icon: const Icon(Icons.cloud),
-              label: const Text('Firebase Debug & Tests'),
+              onPressed: _logout,
+              icon: const Icon(Icons.logout, size: 18),
+              label: const Text('Log Out'),
               style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    semanticColors?.warning ?? colorScheme.tertiary,
-                foregroundColor: colorScheme.onTertiary,
+                backgroundColor: colorScheme.primary,
+                foregroundColor: colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(8),
@@ -425,15 +410,405 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ),
             ),
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Run connectivity, read/write, and storage validation in one place.',
-            style: TextStyle(
-              fontSize: 13,
-              color: colorScheme.onSurfaceVariant,
+          const SizedBox(height: 16),
+          // Delete Account Button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: _deleteAccount,
+              icon: const Icon(Icons.delete_forever, size: 18),
+              label: const Text('Delete Account'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: danger,
+                foregroundColor: colorScheme.onError,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: danger.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: danger.withValues(alpha: 0.2),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.warning_amber,
+                  size: 16,
+                  color: danger,
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Deleting your account is permanent and cannot be undone. All your data will be deleted.',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: colorScheme.onSurface,
+                      height: 1.4,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _logout() async {
+    final confirmed = await AppDialogs.showConfirmDialog(
+      context,
+      title: 'Log Out',
+      message: 'Are you sure you want to log out?',
+    );
+
+    if (confirmed == true) {
+      try {
+        await FirebaseAuth.instance.signOut();
+        if (mounted) {
+          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+        }
+      } catch (e) {
+        if (mounted) {
+          AppDialogs.showErrorDialog(
+            context,
+            message: 'Error logging out: $e',
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _deleteAccount() async {
+    final confirmed = await AppDialogs.showConfirmDialog(
+      context,
+      title: 'Delete Account',
+      message:
+          'This action is permanent and cannot be undone. All your data will be deleted. Enter your password to confirm.',
+    );
+
+    if (confirmed != true) return;
+
+    if (!mounted) return;
+
+    // Show password verification dialog
+    final passwordController = TextEditingController();
+    final emailController = TextEditingController();
+    bool isDeleting = false;
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) {
+          return Dialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            elevation: 0,
+            backgroundColor: Colors.transparent,
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: 500),
+              decoration: BoxDecoration(
+                color: Theme.of(context).colorScheme.surface,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Theme.of(context)
+                        .colorScheme
+                        .shadow
+                        .withValues(alpha: 0.15),
+                    blurRadius: 40,
+                    spreadRadius: 10,
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Header
+                  Container(
+                    padding: const EdgeInsets.all(28),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.error,
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(20),
+                        topRight: Radius.circular(20),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.warning,
+                          color: Theme.of(context).colorScheme.onError,
+                          size: 28,
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Confirm Account Deletion',
+                                style: TextStyle(
+                                  color: Theme.of(context).colorScheme.onError,
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'This cannot be undone',
+                                style: TextStyle(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onError
+                                      .withValues(alpha: 0.9),
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Content
+                  Padding(
+                    padding: const EdgeInsets.all(28),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Please enter your email and password to confirm account deletion:',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Theme.of(context).colorScheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        // Email field
+                        TextField(
+                          controller: emailController,
+                          enabled: !isDeleting,
+                          decoration: InputDecoration(
+                            labelText: 'Email Address',
+                            hintText: 'Enter your email',
+                            prefixIcon: const Icon(Icons.email),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .outlineVariant,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        // Password field
+                        TextField(
+                          controller: passwordController,
+                          enabled: !isDeleting,
+                          obscureText: true,
+                          decoration: InputDecoration(
+                            labelText: 'Password',
+                            hintText: 'Enter your password',
+                            prefixIcon: const Icon(Icons.lock),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .outlineVariant,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  // Action Buttons
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color:
+                          Theme.of(context).colorScheme.surfaceContainerLowest,
+                      borderRadius: const BorderRadius.only(
+                        bottomLeft: Radius.circular(20),
+                        bottomRight: Radius.circular(20),
+                      ),
+                      border: Border(
+                        top: BorderSide(
+                          color: Theme.of(context).colorScheme.outlineVariant,
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        TextButton(
+                          onPressed: isDeleting
+                              ? null
+                              : () {
+                                  Navigator.pop(context);
+                                  passwordController.dispose();
+                                  emailController.dispose();
+                                },
+                          child: Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: isDeleting
+                                  ? Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant
+                                      .withValues(alpha: 0.5)
+                                  : Theme.of(context)
+                                      .colorScheme
+                                      .onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton(
+                          onPressed: isDeleting
+                              ? null
+                              : () async {
+                                  final email = emailController.text.trim();
+                                  final password = passwordController.text;
+
+                                  if (email.isEmpty || password.isEmpty) {
+                                    AppDialogs.showErrorDialog(
+                                      context,
+                                      message:
+                                          'Please enter both email and password',
+                                    );
+                                    return;
+                                  }
+
+                                  setState(() => isDeleting = true);
+
+                                  try {
+                                    final currentUser =
+                                        FirebaseAuth.instance.currentUser;
+                                    if (currentUser == null) {
+                                      throw Exception('No authenticated user');
+                                    }
+
+                                    // Re-authenticate user
+                                    final credential =
+                                        EmailAuthProvider.credential(
+                                      email: email,
+                                      password: password,
+                                    );
+
+                                    await currentUser
+                                        .reauthenticateWithCredential(
+                                            credential);
+
+                                    // Delete Firestore user document
+                                    await FirebaseFirestore.instance
+                                        .collection('users')
+                                        .doc(currentUser.uid)
+                                        .delete();
+
+                                    // Delete user account
+                                    await currentUser.delete();
+
+                                    if (mounted) {
+                                      Navigator.pop(context);
+                                      AppDialogs.showSuccessDialog(
+                                        context,
+                                        message:
+                                            'Your account has been deleted successfully.',
+                                      ).then((_) {
+                                        if (mounted) {
+                                          Navigator.of(context)
+                                              .pushNamedAndRemoveUntil(
+                                            '/',
+                                            (route) => false,
+                                          );
+                                        }
+                                      });
+                                    }
+                                  } on FirebaseAuthException catch (e) {
+                                    setState(() => isDeleting = false);
+                                    if (mounted) {
+                                      String message =
+                                          'Error deleting account: ${e.message}';
+                                      if (e.code == 'wrong-password') {
+                                        message =
+                                            'Incorrect password. Please try again.';
+                                      } else if (e.code == 'user-mismatch') {
+                                        message =
+                                            'Email does not match the logged-in account.';
+                                      } else if (e.code == 'invalid-email') {
+                                        message = 'Invalid email address.';
+                                      }
+                                      AppDialogs.showErrorDialog(
+                                        context,
+                                        message: message,
+                                      );
+                                    }
+                                  } catch (e) {
+                                    setState(() => isDeleting = false);
+                                    if (mounted) {
+                                      AppDialogs.showErrorDialog(
+                                        context,
+                                        message: 'Error: $e',
+                                      );
+                                    }
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor:
+                                Theme.of(context).colorScheme.error,
+                            foregroundColor:
+                                Theme.of(context).colorScheme.onError,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: isDeleting
+                              ? SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Theme.of(context).colorScheme.onError,
+                                    ),
+                                  ),
+                                )
+                              : const Text('Delete Account'),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -742,17 +1117,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       }
 
       try {
-        final supabase = Supabase.instance.client;
-        const bucket = 'uploads';
-        final path = 'health_checks/${user.uid}_ping.txt';
-        await supabase.storage
-            .from(bucket)
-            .uploadBinary(path, Uint8List.fromList('ok'.codeUnits));
-        await supabase.storage.from(bucket).remove([path]);
+        // Supabase storage checks removed. Use Firebase Storage if needed.
         storageOk = true;
-        storageMsg = 'Supabase storage write/delete OK';
+        storageMsg = 'Storage checks skipped (Supabase removed)';
       } catch (e) {
-        storageMsg = 'Storage check failed. Please try again.';
+        storageMsg = 'Storage check skipped.';
       }
     }
 

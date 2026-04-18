@@ -2,13 +2,13 @@ import 'dart:io';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../service/firebase_service.dart';
 import '../models/lecture_note.dart';
 import '../utils/provider_error_utils.dart';
 
 class LectureNotesProvider with ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final supabase = Supabase.instance.client;
+  final _service = FirebaseService();
   static const Duration _requestTimeout = Duration(seconds: 30);
 
   List<LectureNote> _lectureNotes = [];
@@ -87,13 +87,10 @@ class LectureNotesProvider with ChangeNotifier {
     try {
       _uploadProgress = 0.0;
       notifyListeners();
-      const bucket = 'lecture-notes';
       final path = '$dentistUid/$noteId/$fileName';
       final bytes = await _withTimeout(file.readAsBytes());
-
-      await _withTimeout(
-          supabase.storage.from(bucket).uploadBinary(path, bytes));
-      final downloadUrl = supabase.storage.from(bucket).getPublicUrl(path);
+      final downloadUrl =
+          await _withTimeout(_service.uploadImage(dentistUid, path, bytes));
 
       _uploadProgress = 0.0;
       notifyListeners();
@@ -119,12 +116,9 @@ class LectureNotesProvider with ChangeNotifier {
     try {
       _uploadProgress = 0.0;
       notifyListeners();
-      const bucket = 'lecture-notes';
       final path = '$dentistUid/$noteId/$fileName';
-
-      await _withTimeout(
-          supabase.storage.from(bucket).uploadBinary(path, bytes));
-      final downloadUrl = supabase.storage.from(bucket).getPublicUrl(path);
+      final downloadUrl =
+          await _withTimeout(_service.uploadImage(dentistUid, path, bytes));
 
       _uploadProgress = 0.0;
       notifyListeners();
@@ -389,9 +383,7 @@ class LectureNotesProvider with ChangeNotifier {
       // Delete file from Supabase storage if it exists
       if (fileName != null) {
         try {
-          const bucket = 'lecture-notes';
-          final path = '$dentistUid/$noteId/$fileName';
-          await _withTimeout(supabase.storage.from(bucket).remove([path]));
+          await _withTimeout(_service.deleteFile(dentistUid, fileName));
         } catch (e) {
           // File might not exist, continue anyway
         }

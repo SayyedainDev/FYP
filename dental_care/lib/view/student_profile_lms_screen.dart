@@ -48,7 +48,7 @@ class _StudentProfileLMSScreenState extends State<StudentProfileLMSScreen> {
                         child: user.photoURL == null
                             ? Icon(Icons.person, size: 50, color: Colors.white)
                             : null,
-                        backgroundColor: Colors.white.withOpacity(0.3),
+                        backgroundColor: Colors.white.withValues(alpha: 0.3),
                       ),
                       const SizedBox(height: 16),
                       Text(
@@ -64,7 +64,7 @@ class _StudentProfileLMSScreenState extends State<StudentProfileLMSScreen> {
                         user.email ?? 'student@email.com',
                         style: TextStyle(
                           fontSize: 14,
-                          color: Colors.white.withOpacity(0.8),
+                          color: Colors.white.withValues(alpha: 0.8),
                         ),
                       ),
                     ],

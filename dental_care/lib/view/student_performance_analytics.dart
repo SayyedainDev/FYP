@@ -112,7 +112,7 @@ class _StudentPerformanceAnalyticsState
                       performance.performanceStatus,
                       style: TextStyle(
                         fontSize: 16,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -123,7 +123,7 @@ class _StudentPerformanceAnalyticsState
                   height: 80,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.2),
+                    color: Colors.white.withValues(alpha: 0.2),
                   ),
                   child: Center(
                     child: Text(

@@ -23,7 +23,8 @@ class AppDurations {
 }
 
 class AppColors {
-  static const Color brandPrimary = Color(0xFF2563EB);
+  // Soft pastel sky-blue for a calmer UI (was a bright blue)
+  static const Color brandPrimary = Color(0xFF7FB3FF);
   static const Color brandSecondary = Color(0xFF3B82F6);
 
   static const Color lightBackground = Color(0xFFF2F4F7);

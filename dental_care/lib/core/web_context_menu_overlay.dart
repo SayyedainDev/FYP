@@ -50,7 +50,7 @@ class _WebContextMenuOverlayState extends State<WebContextMenuOverlay> {
                         borderRadius: BorderRadius.circular(10),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.14),
+                            color: Colors.black.withValues(alpha: 0.14),
                             blurRadius: 20,
                             offset: const Offset(0, 6),
                           ),

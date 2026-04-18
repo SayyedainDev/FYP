@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:dental_care/providers/quiz_provider.dart';
+import 'package:dental_care/core/theme/app_tokens.dart';
 import 'student_quiz_taking_screen.dart';
 
 class StudentQuizAvailableScreen extends StatefulWidget {
-  const StudentQuizAvailableScreen({Key? key}) : super(key: key);
+  final String? quizId;
+  const StudentQuizAvailableScreen({Key? key, this.quizId}) : super(key: key);
 
   @override
   State<StudentQuizAvailableScreen> createState() =>
@@ -16,6 +18,9 @@ class _StudentQuizAvailableScreenState
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<QuizProvider>().fetchPublishedQuizzes();
+    });
   }
 
   @override
@@ -23,7 +28,7 @@ class _StudentQuizAvailableScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Available Quizzes'),
-        backgroundColor: Colors.blue.shade700,
+        backgroundColor: AppColors.brandPrimary,
       ),
       body: Consumer<QuizProvider>(
         builder: (context, quizProvider, _) {
@@ -31,7 +36,7 @@ class _StudentQuizAvailableScreenState
             return const Center(child: CircularProgressIndicator());
           }
 
-          final quizzes = quizProvider.quizzes;
+          final quizzes = quizProvider.publishedQuizzes;
 
           if (quizzes.isEmpty) {
             return Center(
@@ -122,7 +127,7 @@ class _StudentQuizAvailableScreenState
                             );
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue.shade700,
+                            backgroundColor: AppColors.brandPrimary,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           child: const Text('Start Quiz'),

@@ -3,8 +3,9 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+// Supabase removed
 import 'package:path_provider/path_provider.dart';
+import '../service/firebase_service.dart';
 import '../models/quiz.dart';
 import '../models/quiz_attempt.dart';
 import '../service/groq_service.dart';
@@ -12,7 +13,8 @@ import '../service/rag_service.dart';
 
 class QuizProvider with ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final supabase = Supabase.instance.client;
+  final _service = FirebaseService();
+  // Supabase removed — file uploads now use Firebase Storage
   static const Duration _requestTimeout = Duration(seconds: 30);
   static const Duration _aiRequestTimeout = Duration(minutes: 3);
 
@@ -254,13 +256,10 @@ class QuizProvider with ChangeNotifier {
       _uploadProgress = 0.0;
       notifyListeners();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      const bucket = 'quizzes';
       final path = '$dentistUid/notes/${timestamp}_$fileName';
       final bytes = await _withTimeout(file.readAsBytes());
-
-      await _withTimeout(
-          supabase.storage.from(bucket).uploadBinary(path, bytes));
-      final downloadUrl = supabase.storage.from(bucket).getPublicUrl(path);
+      final downloadUrl =
+          await _withTimeout(_service.uploadImage(dentistUid, path, bytes));
 
       _isLoading = false;
       _uploadProgress = 1.0;
@@ -289,12 +288,9 @@ class QuizProvider with ChangeNotifier {
       _uploadProgress = 0.0;
       notifyListeners();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      const bucket = 'quizzes';
       final path = '$dentistUid/notes/${timestamp}_$fileName';
-
-      await _withTimeout(
-          supabase.storage.from(bucket).uploadBinary(path, bytes));
-      final downloadUrl = supabase.storage.from(bucket).getPublicUrl(path);
+      final downloadUrl =
+          await _withTimeout(_service.uploadImage(dentistUid, path, bytes));
 
       _isLoading = false;
       _uploadProgress = 1.0;

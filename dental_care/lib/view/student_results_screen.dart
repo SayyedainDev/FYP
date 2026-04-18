@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:dental_care/providers/quiz_provider.dart';
+import 'package:dental_care/providers/quiz_attempt_provider.dart';
+import 'package:dental_care/provider/auth_provider.dart';
+import 'package:dental_care/core/theme/app_tokens.dart';
 
 class StudentResultsScreen extends StatefulWidget {
   const StudentResultsScreen({Key? key}) : super(key: key);
@@ -18,6 +20,12 @@ class _StudentResultsScreenState extends State<StudentResultsScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final uid = context.read<AuthProvider>().user?.uid;
+      if (uid != null && uid.isNotEmpty) {
+        context.read<QuizAttemptProvider>().fetchStudentAttempts(uid);
+      }
+    });
   }
 
   @override
@@ -28,76 +36,59 @@ class _StudentResultsScreenState extends State<StudentResultsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: CustomScrollView(
-        slivers: [
-          // Header with tabs
-          SliverAppBar(
-            expandedHeight: 140,
-            floating: false,
-            pinned: true,
-            backgroundColor: Colors.blue.shade700,
-            flexibleSpace: FlexibleSpaceBar(
-              title: const Text(
-                'Quiz Results',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.white,
-                ),
-              ),
-              background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [Colors.blue.shade700, Colors.blue.shade900],
-                  ),
-                ),
-              ),
+    return Column(
+      children: [
+        Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF3D79F2), Color(0xFF5B97FF)],
             ),
-            bottom: TabBar(
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: TabBar(
               controller: _tabController,
               labelColor: Colors.white,
               unselectedLabelColor: Colors.white70,
               indicatorColor: Colors.white,
-              indicatorSize: TabBarIndicatorSize.tab,
+              indicatorSize: TabBarIndicatorSize.label,
               tabs: const [
-                Tab(
-                  icon: Icon(Icons.history),
-                  text: 'All Attempts',
-                ),
-                Tab(
-                  icon: Icon(Icons.bar_chart),
-                  text: 'Statistics',
-                ),
+                Tab(icon: Icon(Icons.history), text: 'All Attempts'),
+                Tab(icon: Icon(Icons.bar_chart), text: 'Statistics'),
               ],
             ),
           ),
-
-          // Tab content
-          SliverFillRemaining(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                // Tab 1: All Attempts
-                _buildAttemptsTab(),
-
-                // Tab 2: Statistics
-                _buildStatisticsTab(),
-              ],
-            ),
+        ),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildAttemptsTab(),
+              _buildStatisticsTab(),
+            ],
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildAttemptsTab() {
-    return Consumer<QuizProvider>(
-      builder: (context, quizProvider, _) {
-        // In a real app, you'd fetch student attempts from the provider
-        // For now, we'll show a message about loading attempts
+    return Consumer<QuizAttemptProvider>(
+      builder: (context, attemptsProvider, _) {
+        final attempts = attemptsProvider.studentAttempts
+            .where((a) => a.isSubmitted)
+            .toList(growable: false);
+
+        if (_sortBy == 'score') {
+          attempts.sort((a, b) => b.score.compareTo(a.score));
+        } else if (_sortBy == 'title') {
+          attempts.sort((a, b) => a.quizTitle.compareTo(b.quizTitle));
+        } else {
+          attempts.sort((a, b) => b.startTime.compareTo(a.startTime));
+        }
+
         return SingleChildScrollView(
           child: Padding(
             padding: const EdgeInsets.all(16),
@@ -140,15 +131,16 @@ class _StudentResultsScreenState extends State<StudentResultsScreen>
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.blue.shade50,
+                          color: AppColors.lightSurface,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color: Colors.blue.shade200,
+                            color:
+                                AppColors.brandPrimary.withValues(alpha: 0.2),
                           ),
                         ),
                         child: const Row(
                           children: [
-                            Icon(Icons.sort, color: Colors.blue),
+                            Icon(Icons.sort, color: AppColors.brandPrimary),
                             SizedBox(width: 4),
                             Text(
                               'Sort',
@@ -165,47 +157,74 @@ class _StudentResultsScreenState extends State<StudentResultsScreen>
                 ),
                 const SizedBox(height: 16),
 
-                // Empty state with instructions
-                Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.quiz,
-                        size: 64,
-                        color: Colors.grey.shade300,
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No quiz attempts yet',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.grey.shade700,
+                if (attempts.isEmpty)
+                  Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.quiz,
+                          size: 64,
+                          color: Colors.grey.shade300,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No quiz attempts yet',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.grey.shade700,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Take a quiz to see your results here',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  ...attempts.map((attempt) {
+                    final color = _getScoreColor(attempt.scorePercentage);
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      child: ListTile(
+                        leading: CircleAvatar(
+                          backgroundColor: color.withValues(alpha: 0.15),
+                          child: Text(
+                            '${attempt.scorePercentage.toStringAsFixed(0)}%',
+                            style: TextStyle(
+                              color: color,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          attempt.quizTitle.isEmpty
+                              ? 'Quiz Attempt'
+                              : attempt.quizTitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        subtitle: Text(
+                          '${attempt.score}/${attempt.totalMarks} • ${attempt.startTime.toString().split(' ')[0]}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: Icon(
+                          attempt.isPassed
+                              ? Icons.check_circle
+                              : Icons.warning_amber_rounded,
+                          color: color,
                         ),
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Take a quiz to see your results here',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        icon: const Icon(Icons.arrow_back),
-                        label: const Text('Go to Quizzes'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.blue.shade700,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                    );
+                  }),
               ],
             ),
           ),
@@ -215,92 +234,83 @@ class _StudentResultsScreenState extends State<StudentResultsScreen>
   }
 
   Widget _buildStatisticsTab() {
-    return SingleChildScrollView(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Summary Cards
-            Row(
-              children: [
-                Expanded(
-                  child: _buildSummaryCard(
-                    title: 'Total Quizzes',
-                    value: '0',
-                    icon: Icons.quiz,
-                    color: Colors.blue,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildSummaryCard(
-                    title: 'Passed',
-                    value: '0',
-                    icon: Icons.check_circle,
-                    color: Colors.green,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                Expanded(
-                  child: _buildSummaryCard(
-                    title: 'Average Score',
-                    value: '0%',
-                    icon: Icons.trending_up,
-                    color: Colors.orange,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _buildSummaryCard(
-                    title: 'Best Score',
-                    value: '0%',
-                    icon: Icons.star,
-                    color: Colors.amber,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
+    return Consumer<QuizAttemptProvider>(
+        builder: (context, attemptsProvider, _) {
+      final attempts = attemptsProvider.studentAttempts
+          .where((a) => a.isSubmitted)
+          .toList(growable: false);
+      final total = attempts.length;
+      final passed = attempts.where((a) => a.isPassed).length;
+      final avg = total == 0
+          ? 0.0
+          : attempts.map((a) => a.scorePercentage).reduce((a, b) => a + b) /
+              total;
+      final best = total == 0
+          ? 0.0
+          : attempts
+              .map((a) => a.scorePercentage)
+              .reduce((a, b) => a > b ? a : b);
 
-            // Performance Insight
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      return SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
                 children: [
-                  const Text(
-                    'Performance Insight',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 14,
+                  Expanded(
+                    child: _buildSummaryCard(
+                      title: 'Total Quizzes',
+                      value: '$total',
+                      icon: Icons.quiz,
+                      color: AppColors.brandPrimary,
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Take your first quiz to see performance analysis and detailed insights about your learning progress.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade700,
-                      height: 1.5,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildSummaryCard(
+                      title: 'Passed',
+                      value: '$passed',
+                      icon: Icons.check_circle,
+                      color: const Color(0xFF49A36E),
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildSummaryCard(
+                      title: 'Average Score',
+                      value: '${avg.toStringAsFixed(0)}%',
+                      icon: Icons.trending_up,
+                      color: const Color(0xFFF09A36),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildSummaryCard(
+                      title: 'Best Score',
+                      value: '${best.toStringAsFixed(0)}%',
+                      icon: Icons.star,
+                      color: const Color(0xFFE1AC1D),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
-      ),
-    );
+      );
+    });
+  }
+
+  Color _getScoreColor(double score) {
+    if (score >= 80) return const Color(0xFF3FA66B);
+    if (score >= 60) return const Color(0xFFF09A36);
+    return const Color(0xFFE05A5A);
   }
 
   Widget _buildSummaryCard({
@@ -312,9 +322,9 @@ class _StudentResultsScreenState extends State<StudentResultsScreen>
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

@@ -1,6 +1,6 @@
 {
-    "name": "dental_care",
-    "short_name": "dental_care",
+    "name": "PalPath",
+    "short_name": "PalPath",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

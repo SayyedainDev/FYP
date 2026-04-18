@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-
+import 'package:dental_care/core/theme/app_tokens.dart';
 import 'package:dental_care/models/assignment.dart';
 
 class StudentAssignmentDetailScreen extends StatefulWidget {
@@ -36,7 +36,7 @@ class _StudentAssignmentDetailScreenState
     return Scaffold(
       appBar: AppBar(
         title: const Text('Assignment Details'),
-        backgroundColor: Colors.blue.shade700,
+        backgroundColor: AppColors.brandPrimary,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -133,7 +133,7 @@ class _StudentAssignmentDetailScreenState
                         child: ElevatedButton(
                           onPressed: _submitAssignment,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue.shade700,
+                            backgroundColor: AppColors.brandPrimary,
                             padding: const EdgeInsets.symmetric(vertical: 12),
                           ),
                           child: const Text('Submit'),

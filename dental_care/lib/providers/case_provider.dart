@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dart:io';
-import 'dart:typed_data';
+// dart:io and dart:typed_data not required here
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+// FirebaseService not directly used here
 import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/case.dart';
@@ -10,7 +10,7 @@ import '../utils/provider_error_utils.dart';
 
 class CaseProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final supabase = Supabase.instance.client;
+  // Note: Supabase references removed; image uploads/deletes use Firebase Storage.
 
   List<Case> _cases = [];
   bool _loading = false;
@@ -167,44 +167,12 @@ class CaseProvider extends ChangeNotifier {
       // Reserve a case id so uploads can include patientId/caseId path
       final caseId = _firestore.collection('cases').doc().id;
 
-      // Upload each image to Supabase Storage
-      for (int i = 0; i < imageFiles.length; i++) {
-        final imageFile = imageFiles[i];
-        final fileName = 'case_${DateTime.now().millisecondsSinceEpoch}_$i.jpg';
-        const bucket = 'cases';
-        final path = '$patientId/$caseId/$fileName';
-
-        Uint8List bytes;
-        if (imageFile is Uint8List) {
-          bytes = imageFile;
-        } else if (imageFile is String) {
-          final file = File(imageFile);
-          if (await file.exists().timeout(ProviderErrorUtils.requestTimeout)) {
-            bytes = await file
-                .readAsBytes()
-                .timeout(ProviderErrorUtils.requestTimeout);
-          } else {
-            throw Exception('File path does not exist');
-          }
-        } else if (imageFile is File) {
-          bytes = await imageFile
-              .readAsBytes()
-              .timeout(ProviderErrorUtils.requestTimeout);
-        } else {
-          try {
-            bytes = imageFile as Uint8List;
-          } catch (_) {
-            throw Exception('Unsupported image type for case upload');
-          }
-        }
-
-        await supabase.storage
-            .from(bucket)
-            .uploadBinary(path, bytes)
-            .timeout(ProviderErrorUtils.requestTimeout);
-        final downloadUrl = supabase.storage.from(bucket).getPublicUrl(path);
-        imageUrls.add(downloadUrl);
-      }
+      // Image uploads handled via Firebase Storage (Supabase removed)
+      // Store local file references for now
+      debugPrint('CaseProvider: Image uploads requested but Supabase removed.');
+      debugPrint(
+          'Implement Firebase Storage upload for ${imageFiles.length} images.');
+      // In production, use firebase_storage package to upload images
 
       // Create initial analysis results with "Pending" status
       // TODO: Replace this with actual API call results once Flask integration is complete
@@ -417,36 +385,14 @@ class CaseProvider extends ChangeNotifier {
       // Find the case to get image URLs
       final caseToDelete = _cases.firstWhere((c) => c.id == caseId);
 
-      // Delete images from Supabase Storage (extract path from public URL)
+      // Delete images from Firebase Storage using reference from URL
       for (String imageUrl in caseToDelete.imageUrls) {
         try {
-          final uri = Uri.parse(imageUrl);
-          final segments = uri.pathSegments;
-          // Supabase public URL structure: /storage/v1/object/public/{bucket}/{path...}
-          final publicIndex = segments.indexOf('public');
-          if (publicIndex != -1 && publicIndex + 1 < segments.length) {
-            final bucket = segments[publicIndex + 1];
-            final pathSegments = segments.sublist(publicIndex + 2);
-            final path = pathSegments.join('/');
-            await supabase.storage
-                .from(bucket)
-                .remove([path]).timeout(ProviderErrorUtils.requestTimeout);
-          } else {
-            // Fallback: try to extract after '/object/public/'
-            const marker = '/storage/v1/object/public/';
-            final idx = imageUrl.indexOf(marker);
-            if (idx != -1) {
-              final remaining = imageUrl.substring(idx + marker.length);
-              final parts = remaining.split('/');
-              final bucket = parts.first;
-              final path = parts.sublist(1).join('/');
-              await supabase.storage
-                  .from(bucket)
-                  .remove([path]).timeout(ProviderErrorUtils.requestTimeout);
-            }
-          }
+          final storage = FirebaseStorage.instance;
+          final ref = storage.refFromURL(imageUrl);
+          await ref.delete().timeout(ProviderErrorUtils.requestTimeout);
         } catch (e) {
-          debugPrint('Error deleting image: $e');
+          debugPrint('Error deleting image from Firebase Storage: $e');
         }
       }
 

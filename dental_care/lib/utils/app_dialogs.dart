@@ -421,6 +421,67 @@ class AppDialogs {
       ),
     );
   }
+
+  /// Green/success-styled. Shows a success message.
+  static Future<void> showSuccessDialog(
+    BuildContext context, {
+    String title = "Success",
+    required String message,
+  }) async {
+    return _enqueueBlockingDialog<void>(
+      () => showDialog<void>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          title: _buildDialogTitle(
+            icon: Icons.check_circle,
+            color: Colors.green,
+            text: title,
+          ),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('OK'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Shows a confirmation dialog. Returns true if user confirmed, false if cancelled.
+  static Future<bool?> showConfirmDialog(
+    BuildContext context, {
+    String title = "Confirm",
+    required String message,
+    String confirmLabel = "Confirm",
+    String cancelLabel = "Cancel",
+  }) async {
+    return _enqueueBlockingDialog<bool?>(
+      () => showDialog<bool?>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: _buildDialogTitle(
+            icon: Icons.info_outline,
+            color: Colors.blue,
+            text: title,
+          ),
+          content: Text(message),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: Text(cancelLabel),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: Text(confirmLabel),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _QueuedDialog {

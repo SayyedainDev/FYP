@@ -7,7 +7,7 @@ import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../service/firebase_service.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:dotted_border/dotted_border.dart';
 import 'package:provider/provider.dart';
@@ -281,17 +281,16 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
       final statusToSave =
           _caseStatus == 'Under Review' ? 'Completed' : _caseStatus;
 
-      final supabase = Supabase.instance.client;
+      final service = FirebaseService();
       for (int i = 0; i < _selectedFiles.length; i++) {
         final file = _selectedFiles[i];
         final fileName = '${timestamp}_image_$i.${file.extension ?? 'jpg'}';
-        const bucket = 'cases';
         final path = '${currentUser.uid}/$caseId/$fileName';
 
         try {
           final bytes = file.bytes!;
-          await supabase.storage.from(bucket).uploadBinary(path, bytes);
-          final downloadUrl = supabase.storage.from(bucket).getPublicUrl(path);
+          final downloadUrl =
+              await service.uploadImage(currentUser.uid, path, bytes);
           imageUrls.add(downloadUrl);
         } catch (e) {
           debugPrint('Error uploading image: $e');
