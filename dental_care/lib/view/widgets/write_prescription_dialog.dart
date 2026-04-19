@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../models/patient.dart';
 import '../../models/case.dart';
+import '../../models/prescription.dart';
 import '../../provider/auth_provider.dart';
 import '../../providers/prescription_provider.dart';
 import '../../utils/app_dialogs.dart';
+import '../../service/diagnosis_suggestion_service.dart';
 // removed unused imports
 
 class WritePrescriptionDialog extends StatefulWidget {
@@ -29,12 +32,15 @@ class _WritePrescriptionDialogState extends State<WritePrescriptionDialog> {
   late final TextEditingController _precautionsController;
 
   bool _isSubmitting = false;
+  List<SuggestionItem> _diagnosisSuggestions = [];
+  bool _loadingSuggestions = false;
   final _formKey = GlobalKey<FormState>();
 
   @override
   void initState() {
     super.initState();
     _diagnosisController = TextEditingController();
+    _diagnosisController.addListener(_onDiagnosisChanged);
     _prescriptionController = TextEditingController();
     _followUpController = TextEditingController();
     _precautionsController = TextEditingController();
@@ -43,10 +49,97 @@ class _WritePrescriptionDialogState extends State<WritePrescriptionDialog> {
   @override
   void dispose() {
     _diagnosisController.dispose();
+    _diagnosisController.removeListener(_onDiagnosisChanged);
     _prescriptionController.dispose();
     _followUpController.dispose();
     _precautionsController.dispose();
     super.dispose();
+  }
+
+  Future<void> _shareOnWhatsApp(Prescription prescription) async {
+    try {
+      final message = prescription.toWhatsAppMessage();
+      final encodedMessage = Uri.encodeComponent(message);
+      final phone = prescription.patientPhone.replaceAll(RegExp(r'\D'), '');
+      
+      // Check if it's a valid phone number
+      if (phone.isEmpty) {
+        AppDialogs.showErrorDialog(
+          context,
+          message: 'Patient phone number not found. Cannot share on WhatsApp.',
+        );
+        return;
+      }
+
+      // Format: https://wa.me/[phone]?text=[message]
+      // Note: phone number should include country code (e.g., 923001234567 for Pakistan)
+      final whatsappUrl = 'https://wa.me/$phone?text=$encodedMessage';
+      
+      if (await canLaunchUrl(Uri.parse(whatsappUrl))) {
+        await launchUrl(
+          Uri.parse(whatsappUrl),
+          mode: LaunchMode.externalApplication,
+        );
+        
+        // Mark as shared in Firestore
+        final prescriptionProvider =
+            Provider.of<PrescriptionProvider>(context, listen: false);
+        await prescriptionProvider.markAsShared(prescription.id);
+        
+        if (mounted) {
+          AppDialogs.showSuccessDialog(
+            context,
+            message: 'Prescription shared on WhatsApp!',
+          ).then((_) {
+            if (mounted) Navigator.pop(context, true);
+          });
+        }
+      } else {
+        if (mounted) {
+          AppDialogs.showErrorDialog(
+            context,
+            message: 'WhatsApp is not installed. Please install WhatsApp to share.',
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        AppDialogs.showErrorDialog(
+          context,
+          message: 'Error sharing on WhatsApp: $e',
+        );
+      }
+    }
+  }
+
+  void _showWhatsAppShareDialog(Prescription prescription) {
+    showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Share on WhatsApp?'),
+        content: Text(
+          'Do you want to send this prescription to ${prescription.patientName} via WhatsApp?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('No'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx, true);
+              _shareOnWhatsApp(prescription);
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Share on WhatsApp'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _savePrescription() async {
@@ -84,7 +177,9 @@ class _WritePrescriptionDialogState extends State<WritePrescriptionDialog> {
           context,
           message: 'Prescription saved successfully!',
         ).then((_) {
-          Navigator.pop(context, true);
+          if (mounted) {
+            _showWhatsAppShareDialog(result);
+          }
         });
       } else {
         AppDialogs.showErrorDialog(
@@ -100,6 +195,24 @@ class _WritePrescriptionDialogState extends State<WritePrescriptionDialog> {
         message: 'Error saving prescription: $e',
       );
     }
+  }
+
+  void _onDiagnosisChanged() async {
+    final q = _diagnosisController.text.trim();
+    if (q.isEmpty) {
+      setState(() {
+        _diagnosisSuggestions = [];
+      });
+      return;
+    }
+    setState(() => _loadingSuggestions = true);
+    final svc = DiagnosisSuggestionService.instance;
+    final results = await svc.search(q);
+    if (!mounted) return;
+    setState(() {
+      _diagnosisSuggestions = results;
+      _loadingSuggestions = false;
+    });
   }
 
   @override
@@ -203,7 +316,10 @@ class _WritePrescriptionDialogState extends State<WritePrescriptionDialog> {
                         ),
                       ),
                       const SizedBox(height: 8),
-                      TextFormField(
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          TextFormField(
                         controller: _diagnosisController,
                         maxLines: 3,
                         decoration: InputDecoration(
@@ -236,6 +352,105 @@ class _WritePrescriptionDialogState extends State<WritePrescriptionDialog> {
                           }
                           return null;
                         },
+                          ),
+                          const SizedBox(height: 8),
+                          if (_loadingSuggestions)
+                            const SizedBox(
+                              height: 32,
+                              child: Center(child: CircularProgressIndicator()),
+                            )
+                          else if (_diagnosisSuggestions.isNotEmpty)
+                            Container(
+                              constraints: const BoxConstraints(maxHeight: 180),
+                              decoration: BoxDecoration(
+                                color: Theme.of(context).colorScheme.surface,
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .outlineVariant),
+                              ),
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: _diagnosisSuggestions.length,
+                                itemBuilder: (ctx, i) {
+                                  final it = _diagnosisSuggestions[i];
+                                  final treatments = it.treatments;
+                                  final meds = it.medications;
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        color: Theme.of(context).colorScheme.surfaceVariant,
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Expanded(child: Text(it.diagnosis, style: const TextStyle(fontWeight: FontWeight.w600))),
+                                              TextButton(
+                                                onPressed: () {
+                                                  // Only set diagnosis, do not auto-write prescription
+                                                  setState(() {
+                                                    _diagnosisController.text = it.diagnosis;
+                                                    _diagnosisSuggestions = [];
+                                                  });
+                                                },
+                                                child: const Text('Use diagnosis'),
+                                              ),
+                                            ],
+                                          ),
+                                          if (treatments.isNotEmpty) ...[
+                                            const SizedBox(height: 8),
+                                            const Text('Suggested treatments:'),
+                                            const SizedBox(height: 6),
+                                            Wrap(
+                                              spacing: 8,
+                                              runSpacing: 6,
+                                              children: treatments.map<Widget>((t) {
+                                                return ActionChip(
+                                                  label: Text(t.toString()),
+                                                  onPressed: () {
+                                                    final curr = _prescriptionController.text.trim();
+                                                    final addition = t.toString();
+                                                    _prescriptionController.text = curr.isEmpty ? addition : '$curr\n$addition';
+                                                    // keep suggestions available for more taps
+                                                  },
+                                                );
+                                              }).toList(),
+                                            ),
+                                          ],
+                                          if (meds.isNotEmpty) ...[
+                                            const SizedBox(height: 8),
+                                            const Text('Suggested medications:'),
+                                            const SizedBox(height: 6),
+                                            Wrap(
+                                              spacing: 8,
+                                              runSpacing: 6,
+                                              children: meds.map<Widget>((m) {
+                                                final medText = '${m['name']} ${m['dose']} ${m['freq']}';
+                                                return ActionChip(
+                                                  label: Text(medText),
+                                                  onPressed: () {
+                                                    final curr = _prescriptionController.text.trim();
+                                                    _prescriptionController.text = curr.isEmpty ? medText : '$curr\n$medText';
+                                                  },
+                                                );
+                                              }).toList(),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                        ],
                       ),
                       const SizedBox(height: 20),
 

@@ -136,6 +136,13 @@ class MainSidebar extends StatelessWidget {
                     isActive: navProvider.isActive('Settings'),
                     onTap: () => navProvider.setPage('Settings'),
                   ),
+                  // Ensure Assignments is visible for both roles
+                  _SidebarItem(
+                    icon: Icons.assignment_outlined,
+                    label: 'Assignments',
+                    isActive: navProvider.isActive('Assignments'),
+                    onTap: () => navProvider.setPage('Assignments'),
+                  ),
                 ],
               ),
             ),

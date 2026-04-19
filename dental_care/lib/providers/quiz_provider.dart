@@ -489,7 +489,10 @@ class QuizProvider with ChangeNotifier {
   }
 
   /// Fetch all published quizzes (for students)
-  Future<void> fetchPublishedQuizzes() async {
+  /// Fetch all published quizzes (for students)
+  /// If [excludeStudentId] is provided, quizzes that already have an attempt
+  /// by that student will be filtered out (so students won't see quizzes they've taken).
+  Future<void> fetchPublishedQuizzes({String? excludeStudentId}) async {
     if (_isFetchingPublishedQuizzes) return;
 
     try {
@@ -505,8 +508,29 @@ class QuizProvider with ChangeNotifier {
           .orderBy('createdAt', descending: true)
           .get());
 
-      _publishedQuizzes =
-          snapshot.docs.map((doc) => Quiz.fromFirestore(doc)).toList();
+      var quizzes = snapshot.docs.map((doc) => Quiz.fromFirestore(doc)).toList();
+
+      if (excludeStudentId != null && excludeStudentId.isNotEmpty) {
+        // For each quiz, check if an attempt exists for this student. This is
+        // moderately expensive but acceptable for small numbers of published quizzes.
+        final filtered = <Quiz>[];
+        for (final q in quizzes) {
+          final attemptsSnap = await _withTimeout(_firestore
+              .collection('quizzes')
+              .doc(q.id)
+              .collection('attempts')
+              .where('studentId', isEqualTo: excludeStudentId)
+              .limit(1)
+              .get());
+
+          if (attemptsSnap.docs.isEmpty) {
+            filtered.add(q);
+          }
+        }
+        _publishedQuizzes = filtered;
+      } else {
+        _publishedQuizzes = quizzes;
+      }
 
       debugPrint('✅ Fetched ${_publishedQuizzes.length} published quizzes');
       _isLoading = false;

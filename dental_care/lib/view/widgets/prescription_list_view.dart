@@ -169,41 +169,22 @@ class _PrescriptionListViewState extends State<PrescriptionListView> {
         final prescriptions = snapshot.data ?? [];
 
         if (prescriptions.isEmpty) {
-          return Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: colorScheme.surfaceContainerLowest,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: colorScheme.outlineVariant),
-            ),
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.description_outlined,
-                    size: 48,
-                    color: colorScheme.onSurfaceVariant,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No prescriptions found',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: colorScheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Prescriptions will appear here when created',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
+          // Compact empty state to avoid large blank panels inside the
+          // patient profile layout. Keeps UI tidy and lets surrounding
+          // content flow naturally.
+          return Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Row(
+              children: [
+                Icon(Icons.description_outlined,
+                    color: colorScheme.onSurfaceVariant),
+                const SizedBox(width: 8),
+                Text(
+                  'No prescriptions yet',
+                  style: TextStyle(
+                      color: colorScheme.onSurfaceVariant, fontSize: 13),
+                ),
+              ],
             ),
           );
         }

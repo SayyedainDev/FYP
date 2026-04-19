@@ -72,7 +72,7 @@ class PrescriptionProvider extends ChangeNotifier {
   }
 
   // Create new prescription
-  Future<String?> createPrescription({
+  Future<Prescription?> createPrescription({
     required String dentistUid,
     required String dentistName,
     required String patientId,
@@ -107,11 +107,13 @@ class PrescriptionProvider extends ChangeNotifier {
           .collection('prescriptions')
           .add(newPrescription.toFirestore());
 
+      final createdPrescription = newPrescription.copyWith(id: docRef.id);
+
       _isLoading = false;
       notifyListeners();
 
       await fetchPrescriptionsByDentist(dentistUid);
-      return docRef.id;
+      return createdPrescription;
     } catch (e) {
       _errorMessage = 'Error creating prescription: $e';
       _isLoading = false;

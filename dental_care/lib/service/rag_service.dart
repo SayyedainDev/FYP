@@ -309,12 +309,4 @@ class RagService {
       throw GroqException('Quiz generation failed. Please try again.');
     }
   }
-
-  /// Wait for document to be ready with simple delays
-  /// The actual generation will retry if document isn't ready
-  static Future<void> _waitForDocumentReady(String documentId) async {
-    // The backend now handles indexing waits handling internally.
-    debugPrintSynchronously(
-        '⏩ Proceeding to quiz generation without delays...');
-  }
 }

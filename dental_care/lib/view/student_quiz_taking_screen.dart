@@ -7,6 +7,7 @@ import '../models/quiz.dart';
 import '../models/quiz_attempt.dart';
 import '../provider/auth_provider.dart';
 import '../providers/quiz_attempt_provider.dart';
+import '../providers/quiz_provider.dart';
 import '../core/adaptive_modal.dart';
 
 import '../core/animation_constants.dart';
@@ -454,6 +455,12 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
     final result = await attemptProvider.submitAttempt(quiz: widget.quiz);
 
     if (result != null && mounted) {
+      // Refresh available quizzes so this quiz is removed from the student's list
+      final quizProvider = Provider.of<QuizProvider>(context, listen: false);
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final studentId = auth.currentUserId ?? auth.uid ?? '';
+      quizProvider.fetchPublishedQuizzes(excludeStudentId: studentId);
+
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(

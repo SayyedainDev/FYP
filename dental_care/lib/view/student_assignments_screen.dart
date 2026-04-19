@@ -37,7 +37,13 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Assignments'),
+        // Ensure there's space for the leading (hamburger) icon and avoid title overflow
+        leadingWidth: 56,
+        titleSpacing: 16,
+        title: const Text(
+          'Assignments',
+          overflow: TextOverflow.ellipsis,
+        ),
         backgroundColor: AppColors.brandPrimary,
         bottom: TabBar(
           controller: _tabController,

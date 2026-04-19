@@ -27,6 +27,12 @@ import 'dart:io';
 import '../utils/app_dialogs.dart';
 import '../utils/global_error_handler.dart';
 import '../widgets/loaders/app_loader.dart';
+import 'widgets/write_prescription_dialog.dart';
+import '../models/patient.dart';
+import '../models/case.dart';
+import 'package:provider/provider.dart';
+import '../providers/patient_provider.dart';
+import '../providers/case_provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Design System — clinical palette
@@ -837,6 +843,83 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
             icon: Icons.fullscreen_rounded,
             tooltip: 'Full screen',
             onTap: () => _openModal(result),
+          ),
+          const SizedBox(width: 2),
+          // Write Prescription quick action
+          Tooltip(
+            message: 'Write Prescription',
+            child: InkWell(
+              onTap: () async {
+                // Select patient, then open dialog (similar to Patients screen)
+                final selected = await showDialog<Patient?>(
+                  context: context,
+                  builder: (ctx) {
+                    final patients = Provider.of<PatientProvider>(context).patients;
+                    return Dialog(
+                      child: Container(
+                        constraints: const BoxConstraints(maxWidth: 600),
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Text('Select Patient for Prescription', style: TextStyle(fontWeight: FontWeight.bold)),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              height: 300,
+                              child: ListView.builder(
+                                shrinkWrap: true,
+                                itemCount: patients.length,
+                                itemBuilder: (_, i) {
+                                  final p = patients[i];
+                                  return ListTile(
+                                    title: Text(p.name),
+                                    subtitle: Text(p.contactPhone),
+                                    onTap: () => Navigator.of(ctx).pop(p),
+                                  );
+                                },
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Cancel')),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                );
+
+                if (selected != null) {
+                  // find latest case for this patient
+                  final caseProv = Provider.of<CaseProvider>(context, listen: false);
+                  final cases = caseProv.allCases.where((c) => c.patientId == selected.id).toList();
+                  Case caseData;
+                  if (cases.isNotEmpty) {
+                    caseData = cases.first;
+                  } else {
+                    caseData = Case(
+                      id: '',
+                      patientId: selected.id,
+                      patientName: selected.name,
+                      toothNumber: '',
+                      caseDate: DateTime.now(),
+                      imageUrls: const [],
+                      analysisResults: const {'status': 'From AI Detection'},
+                      notes: '',
+                    );
+                  }
+
+                  showDialog<bool>(
+                    context: context,
+                    builder: (_) => WritePrescriptionDialog(patient: selected, caseData: caseData),
+                  );
+                }
+              },
+              borderRadius: BorderRadius.circular(4),
+              child: const Padding(
+                padding: EdgeInsets.all(6),
+                child: Icon(Icons.note_alt_outlined, size: 18, color: Colors.white70),
+              ),
+            ),
           ),
         ],
       ),

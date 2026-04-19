@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dental_care/providers/quiz_provider.dart';
+import 'package:dental_care/provider/auth_provider.dart';
 import 'package:dental_care/core/theme/app_tokens.dart';
 import 'student_quiz_taking_screen.dart';
 
@@ -19,7 +21,9 @@ class _StudentQuizAvailableScreenState
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<QuizProvider>().fetchPublishedQuizzes();
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final studentId = auth.currentUserId ?? auth.uid ?? '';
+      context.read<QuizProvider>().fetchPublishedQuizzes(excludeStudentId: studentId);
     });
   }
 
@@ -54,106 +58,69 @@ class _StudentQuizAvailableScreenState
             );
           }
 
-          return ListView.builder(
+          // Group quizzes by dentist UID (teacher)
+          final Map<String, List> quizzesByTeacher = {};
+          for (final q in quizzes) {
+            final uid = q.dentistUid;
+            quizzesByTeacher.putIfAbsent(uid, () => []).add(q);
+          }
+
+          // Cache for resolved display names
+          final Map<String, String> uidToName = {};
+
+          Future<void> _resolveName(String uid) async {
+            if (uidToName.containsKey(uid)) return;
+            try {
+              final doc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+              if (doc.exists) {
+                final data = doc.data();
+                if (data != null) {
+                  final first = (data['firstName'] as String?) ?? '';
+                  final last = (data['lastName'] as String?) ?? '';
+                  final display = (first.isNotEmpty || last.isNotEmpty) ? ('$first ${last}').trim() : (data['email'] as String?)?.split('@').first ?? uid;
+                  uidToName[uid] = display;
+                }
+              }
+            } catch (_) {
+              uidToName[uid] = uid;
+            }
+            if (mounted) setState(() {});
+          }
+
+          return ListView(
             padding: const EdgeInsets.all(12),
-            itemCount: quizzes.length,
-            itemBuilder: (context, index) {
-              final quiz = quizzes[index];
-              return Card(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              quiz.title,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          Chip(
-                            label: Text(
-                                quiz.config.difficulty.name[0].toUpperCase() +
-                                    quiz.config.difficulty.name.substring(1)),
-                            backgroundColor: _getDifficultyColor(
-                                quiz.config.difficulty.name[0].toUpperCase() +
-                                    quiz.config.difficulty.name.substring(1)),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          Icon(Icons.timer,
-                              size: 16, color: Colors.grey.shade700),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${quiz.questions.length} Questions',
-                            style: TextStyle(color: Colors.grey.shade700),
-                          ),
-                          const SizedBox(width: 16),
-                          Icon(Icons.score,
-                              size: 16, color: Colors.grey.shade700),
-                          const SizedBox(width: 8),
-                          Text(
-                            '${quiz.totalMarks.toStringAsFixed(0)} Marks',
-                            style: TextStyle(color: Colors.grey.shade700),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) =>
-                                    StudentQuizTakingScreen(quiz: quiz),
-                              ),
-                            );
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.brandPrimary,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                          ),
-                          child: const Text('Start Quiz'),
-                        ),
-                      ),
-                    ],
-                  ),
+            children: quizzesByTeacher.entries.map((entry) {
+              final uid = entry.key;
+              final list = entry.value;
+
+              // start resolving name (async) if not available
+              if (!uidToName.containsKey(uid)) _resolveName(uid);
+
+              final titleText = uidToName[uid] ?? 'Teacher';
+
+              return ExpansionTile(
+                title: Text(
+                  titleText,
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
+                children: list.map<Widget>((quiz) {
+                  return ListTile(
+                    title: Text(quiz.title, overflow: TextOverflow.ellipsis),
+                    subtitle: Text('${quiz.questions.length} questions • ${quiz.totalMarks.toStringAsFixed(0)} marks'),
+                    trailing: ElevatedButton(
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => StudentQuizTakingScreen(quiz: quiz))),
+                      style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandPrimary),
+                      child: const Text('Start'),
+                    ),
+                  );
+                }).toList(),
               );
-            },
+            }).toList(),
           );
         },
       ),
     );
-  }
-
-  Color _getDifficultyColor(String difficulty) {
-    switch (difficulty) {
-      case 'Easy':
-        return Colors.green.shade100;
-      case 'Medium':
-        return Colors.orange.shade100;
-      case 'Hard':
-        return Colors.red.shade100;
-      default:
-        return Colors.grey.shade100;
-    }
   }
 }

@@ -1,0 +1,35 @@
+[
+  {
+    "diagnosis": "Dental Caries",
+    "treatments": [
+      "Restoration (filling)",
+      "Root canal treatment (if pulp involved)",
+      "Extraction (if non-restorable)"
+    ],
+    "medications": [
+      {"name": "Amoxicillin", "dose": "500 mg", "freq": "TDS for 5 days"},
+      {"name": "Metronidazole", "dose": "400 mg", "freq": "BD for 5 days"},
+      {"name": "Ibuprofen", "dose": "400 mg", "freq": "TDS PRN"}
+    ]
+  },
+  {
+    "diagnosis": "Acute Apical Periodontitis",
+    "treatments": ["Root canal treatment", "Incision & drainage (if abscess)"],
+    "medications": [{"name": "Ibuprofen", "dose": "400 mg", "freq": "TDS PRN"}]
+  },
+  {
+    "diagnosis": "Gingivitis",
+    "treatments": ["Scaling and root planing", "Improved oral hygiene"],
+    "medications": [{"name": "Chlorhexidine mouthwash", "dose": "0.12%", "freq": "BD for 14 days"}]
+  },
+  {
+    "diagnosis": "Pericoronitis",
+    "treatments": ["Irrigation and debridement", "Extraction of impacted tooth"],
+    "medications": [{"name": "Amoxicillin", "dose": "500 mg", "freq": "TDS for 5 days"}]
+  },
+  {
+    "diagnosis": "Dry Socket (Alveolar osteitis)",
+    "treatments": ["Irrigation and medicated dressings", "Analgesics"],
+    "medications": [{"name": "Ibuprofen", "dose": "400 mg", "freq": "TDS PRN"}]
+  }
+]
