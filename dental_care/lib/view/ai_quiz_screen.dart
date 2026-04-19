@@ -1718,19 +1718,18 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
           ),
           if (question.options != null && question.options!.isNotEmpty) ...[
             const SizedBox(height: 8),
-            ...question.options!
-                .map(
-                  (option) => Padding(
-                    padding: const EdgeInsets.only(left: 16, top: 4),
-                    child: Text(
-                      '• $option',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: _cs.onSurfaceVariant,
-                      ),
-                    ),
+            ...question.options!.map(
+              (option) => Padding(
+                padding: const EdgeInsets.only(left: 16, top: 4),
+                child: Text(
+                  '• $option',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: _cs.onSurfaceVariant,
                   ),
                 ),
+              ),
+            ),
           ],
         ],
       ),
@@ -1814,6 +1813,48 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
         debugPrint('📏 File size: $fileSize bytes');
 
         // Validate file format and size
+        if (fileName.toLowerCase().endsWith(".pdf") &&
+            fileSize > 5 * 1024 * 1024) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                    '26a0Fe0f PDF is larger than 5MB. Processing may take longer and only first 50 pages will be used.'),
+                backgroundColor: _sem?.warning ?? Colors.orange,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        }
+
+        if (fileName.toLowerCase().endsWith(".pdf") &&
+            fileSize > 5 * 1024 * 1024) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                    '⚠️ PDF is larger than 5MB. Only the first 50 pages will be processed.'),
+                backgroundColor: _sem?.warning ?? Colors.orange,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        }
+
+        if (fileName.toLowerCase().endsWith(".pdf") &&
+            fileSize > 5 * 1024 * 1024) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text(
+                    '⚠️ PDF is larger than 5MB. Only the first 50 pages will be processed.'),
+                backgroundColor: _sem?.warning ?? Colors.orange,
+                duration: const Duration(seconds: 4),
+              ),
+            );
+          }
+        }
+
         final validationError = FileParserService.getValidationError(
           fileName,
           fileSize,
@@ -1884,7 +1925,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Unable to process selected file. Please try again.'),
+            content: const Text(
+                'Unable to process selected file. Please try again.'),
             backgroundColor: _sem?.danger ?? _cs.error,
           ),
         );

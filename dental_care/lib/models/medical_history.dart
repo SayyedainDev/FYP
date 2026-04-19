@@ -55,8 +55,7 @@ class MedicalHistory {
       medicalConditions: List<String>.from(data['medicalConditions'] ?? []),
       currentMedications: List<String>.from(data['currentMedications'] ?? []),
       previousTreatments: List<String>.from(data['previousTreatments'] ?? []),
-      surgicalHistory:
-          (data['surgicalHistory'] as List<dynamic>?)
+      surgicalHistory: (data['surgicalHistory'] as List<dynamic>?)
               ?.map((s) => SurgicalHistory.fromMap(s))
               .toList() ??
           [],

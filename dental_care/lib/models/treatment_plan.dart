@@ -60,8 +60,7 @@ class TreatmentPlan {
       dentistUid: data['dentistUid'] ?? '',
       title: data['title'] ?? '',
       description: data['description'] ?? '',
-      phases:
-          (data['phases'] as List<dynamic>?)
+      phases: (data['phases'] as List<dynamic>?)
               ?.map((p) => TreatmentPhase.fromMap(p))
               .toList() ??
           [],

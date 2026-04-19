@@ -14,11 +14,20 @@ class RagService {
     'BACKEND_URL',
     defaultValue: 'https://fyp-groq.onrender.com',
   );
-  static const Duration _uploadTimeout = Duration(minutes: 3);
-  static const Duration _generationTimeout = Duration(minutes: 2);
+  static const Duration _uploadTimeout = Duration(seconds: 120);
+  static const Duration _generationTimeout = Duration(seconds: 90);
 
-  static Future<String> uploadPdfBytes(Uint8List bytes, String filename) async {
-    try {
+  static Future<String> uploadPdfBytes(
+      Uint8List bytes, String filename, {void Function(double)? onProgress}) async {
+    // PDF Size validation (4)
+    if (bytes.length > 10 * 1024 * 1024) {
+      throw GroqException(
+          'File too large. Please upload a PDF under 10MB.');
+    } else if (bytes.length > 2 * 1024 * 1024) {
+      debugPrintSynchronously('Large file detected, compressing... (Warning only)');
+    }
+
+    Future<String> attemptUpload() async {
       debugPrintSynchronously(
           '📤 Uploading PDF bytes ($filename, ${bytes.length} bytes)...');
       final uri = Uri.parse('$baseUrl/api/upload-pdf');
@@ -26,92 +35,110 @@ class RagService {
         ..files.add(
             http.MultipartFile.fromBytes('file', bytes, filename: filename));
 
-      debugPrintSynchronously('⏳ Waiting for upload response...');
-      final response = await request.send().timeout(_uploadTimeout);
-      final responseData =
-          await response.stream.bytesToString().timeout(_uploadTimeout);
-
-      debugPrintSynchronously(
-          '📡 Upload response status: ${response.statusCode}');
-      debugPrintSynchronously('📋 Full upload response: $responseData');
+      // Progress Tracker
+      final http.StreamedResponse response = await request.send().timeout(_uploadTimeout);
+      int total = response.contentLength ?? 0;
+      int bytesReceived = 0;
+      List<int> responseBytes = [];
+      
+      await for (final chunk in response.stream.timeout(_uploadTimeout)) {
+          responseBytes.addAll(chunk);
+          if (total > 0 && onProgress != null) {
+              bytesReceived += chunk.length;
+              onProgress(bytesReceived / total);
+          }
+      }
+      
+      final responseData = utf8.decode(responseBytes);
 
       if (response.statusCode == 200) {
         final json = jsonDecode(responseData) as Map<String, dynamic>;
-        debugPrintSynchronously('🔍 Response JSON keys: ${json.keys.toList()}');
         final docId = json['documentId']?.toString() ?? '';
         debugPrintSynchronously('✅ PDF uploaded successfully (DocID: $docId)');
-        if (docId.isEmpty) {
-          debugPrintSynchronously(
-              '⚠️ WARNING: documentId is empty in response!');
-        }
         return docId;
       }
 
-      debugPrintSynchronously('❌ Upload failed. Response: $responseData');
-
-      // Try to extract error from backend
       String errorMsg = 'Failed to process PDF. Please try again.';
       try {
         final errorData = jsonDecode(responseData) as Map<String, dynamic>;
         errorMsg = errorData['error'] ?? errorData['message'] ?? errorMsg;
       } catch (_) {
-        errorMsg =
-            'Backend error (${response.statusCode}): ${responseData.isEmpty ? 'No details' : responseData.substring(0, 100)}';
+        errorMsg = 'Backend error (${response.statusCode})';
       }
-
       throw GroqException(errorMsg, statusCode: response.statusCode);
+    }
+
+    try {
+      return await attemptUpload();
     } on TimeoutException {
-      throw GroqException(
-          'PDF upload timed out. The file may be too large or your connection is slow.');
+      debugPrintSynchronously('⏱️ Upload timed out. Retrying once...');
+      try {
+         return await attemptUpload();
+      } catch (e) {
+         throw GroqException('Upload is taking too long. Check your internet or try a smaller PDF.');
+      }
     } catch (e) {
       if (e is GroqException) rethrow;
-      throw GroqException('Failed to upload PDF: ${e.toString()}');
+      throw GroqException('Server error. Please try again.');
     }
   }
 
-  static Future<String> uploadPdfFile(File file) async {
+  static Future<String> uploadPdfFile(File file, {void Function(double)? onProgress}) async {
+    Future<String> attemptUpload() async {
+       final fileSize = await file.length();
+       // PDF Size validation (4)
+       if (fileSize > 10 * 1024 * 1024) {
+         throw GroqException(
+             'File too large. Please upload a PDF under 10MB.');
+       } else if (fileSize > 2 * 1024 * 1024) {
+         debugPrintSynchronously('Large file detected, compressing... (Warning only)');
+       }
+ 
+       debugPrintSynchronously('📤 Uploading PDF file (${file.path})...');
+       final uri = Uri.parse('$baseUrl/api/upload-pdf');
+       final request = http.MultipartRequest('POST', uri)
+         ..files.add(await http.MultipartFile.fromPath('file', file.path));
+ 
+       final response = await request.send().timeout(_uploadTimeout);
+       
+       int total = response.contentLength ?? 0;
+       int bytesReceived = 0;
+       List<int> responseBytes = [];
+       await for (final chunk in response.stream.timeout(_uploadTimeout)) {
+           responseBytes.addAll(chunk);
+           if (total > 0 && onProgress != null) {
+               bytesReceived += chunk.length;
+               onProgress(bytesReceived / total);
+           }
+       }
+       
+       final responseData = utf8.decode(responseBytes);
+ 
+       if (response.statusCode == 200) {
+         final json = jsonDecode(responseData) as Map<String, dynamic>;
+         final docId = json['documentId']?.toString() ?? '';
+         return docId;
+       }
+ 
+       String errorMsg = 'Failed to process PDF. Please try again.';
+       try {
+         final errorData = jsonDecode(responseData) as Map<String, dynamic>;
+         errorMsg = errorData['error'] ?? errorData['message'] ?? errorMsg;
+       } catch (_) {
+         errorMsg = 'Backend error (${response.statusCode})';
+       }
+       throw GroqException(errorMsg, statusCode: response.statusCode);
+    }
+    
     try {
-      debugPrintSynchronously('📤 Uploading PDF file (${file.path})...');
-      final fileSize = await file.length();
-      debugPrintSynchronously('📏 File size: $fileSize bytes');
-
-      final uri = Uri.parse('$baseUrl/api/upload-pdf');
-      final request = http.MultipartRequest('POST', uri)
-        ..files.add(await http.MultipartFile.fromPath('file', file.path));
-
-      debugPrintSynchronously('⏳ Waiting for upload response...');
-      final response = await request.send().timeout(_uploadTimeout);
-      final responseData =
-          await response.stream.bytesToString().timeout(_uploadTimeout);
-
-      debugPrintSynchronously(
-          '📡 Upload response status: ${response.statusCode}');
-
-      if (response.statusCode == 200) {
-        final json = jsonDecode(responseData) as Map<String, dynamic>;
-        final docId = json['documentId']?.toString() ?? '';
-        debugPrintSynchronously('✅ PDF uploaded successfully (DocID: $docId)');
-        return docId;
-      }
-
-      debugPrintSynchronously('❌ Upload failed. Response: $responseData');
-
-      String errorMsg = 'Failed to process PDF. Please try again.';
-      try {
-        final errorData = jsonDecode(responseData) as Map<String, dynamic>;
-        errorMsg = errorData['error'] ?? errorData['message'] ?? errorMsg;
-      } catch (_) {
-        errorMsg =
-            'Backend error (${response.statusCode}): ${responseData.isEmpty ? 'No details' : responseData.substring(0, 100)}';
-      }
-
-      throw GroqException(errorMsg, statusCode: response.statusCode);
+      return await attemptUpload();
     } on TimeoutException {
-      throw GroqException(
-          'PDF upload timed out. The file may be too large or your connection is slow.');
+      try { return await attemptUpload(); } catch(e) {
+          throw GroqException('Upload is taking too long. Check your internet or try a smaller PDF.');
+      }
     } catch (e) {
       if (e is GroqException) rethrow;
-      throw GroqException('Failed to upload PDF: ${e.toString()}');
+      throw GroqException('Server error. Please try again.');
     }
   }
 
@@ -165,13 +192,8 @@ class RagService {
     required String uid,
   }) async {
     try {
-      // Wait for document to be ready (with retry logic)
       debugPrintSynchronously(
-          '⏳ Waiting for document to be indexed ($documentId)...');
-      await _waitForDocumentReady(documentId);
-
-      debugPrintSynchronously(
-          '🤖 Document ready. Generating quiz from $documentId...');
+          '🤖 Requesting quiz generation from $documentId...');
 
       final requestBody = {
         'topic': topic,
@@ -180,6 +202,10 @@ class RagService {
         'difficulty': config.difficulty.name,
         'cognitiveLevel': config.cognitiveLevel.name,
         'uid': uid,
+        // Added as per requirements:
+        'questionTypes': config.questionTypes.map((t) => t.name).toList(),
+        'quizMode': 'practice', // Passed down from UI later if properly bound
+        'explanationStyle': 'detailed'
       };
       debugPrintSynchronously(
           '📤 Generation request body: ${jsonEncode(requestBody)}');
@@ -261,6 +287,7 @@ class RagService {
             options: options,
             correctIndex: correctIndex,
             explanation: questionData['explanation'] as String?,
+            hint: questionData['hint'] as String?,
             marks: config.marksDistribution == 'equal' ? 1 : (index % 3) + 1,
             difficulty: difficultyEnum,
             section: config.numberOfSections > 1
@@ -274,28 +301,20 @@ class RagService {
           '✅ Successfully generated ${questions.length} questions');
       return questions;
     } on TimeoutException {
-      throw GroqException(
-        'Quiz generation timed out. The backend took too long to process your PDF. Try with a smaller file or fewer questions.',
-      );
+      throw GroqException('Upload is taking too long. Check your internet or try a smaller PDF.');
     } catch (e) {
       // Re-throw GroqExceptions as-is
       if (e is GroqException) rethrow;
       // For other errors, wrap them
-      throw GroqException('Failed to generate quiz: ${e.toString()}');
+      throw GroqException('Quiz generation failed. Please try again.');
     }
   }
 
   /// Wait for document to be ready with simple delays
   /// The actual generation will retry if document isn't ready
-  static Future<void> _waitForDocumentReady(String documentId,
-      {int initialDelayMs = 3000}) async {
-    // Give the backend time to start processing the document
-    // Don't poll excessively - let the generation call handle retries
+  static Future<void> _waitForDocumentReady(String documentId) async {
+    // The backend now handles indexing waits handling internally.
     debugPrintSynchronously(
-        '⏳ Giving backend time to index PDF (${initialDelayMs}ms)...');
-    await Future.delayed(Duration(milliseconds: initialDelayMs));
-
-    debugPrintSynchronously(
-        '✅ Initial wait complete. Starting quiz generation...');
+        '⏩ Proceeding to quiz generation without delays...');
   }
 }

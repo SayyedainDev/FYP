@@ -59,9 +59,8 @@ class LectureNote {
       'customNotes': customNotes,
       'tags': tags,
       'createdAt': Timestamp.fromDate(createdAt),
-      'lastModified': lastModified != null
-          ? Timestamp.fromDate(lastModified!)
-          : null,
+      'lastModified':
+          lastModified != null ? Timestamp.fromDate(lastModified!) : null,
       'isPublished': isPublished,
       'views': views,
       'thumbnail': thumbnail,
@@ -85,7 +84,7 @@ class LectureNote {
       customNotes: data['customNotes'],
       tags:
           (data['tags'] as List<dynamic>?)?.map((e) => e.toString()).toList() ??
-          [],
+              [],
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       lastModified: (data['lastModified'] as Timestamp?)?.toDate(),
       isPublished: data['isPublished'] ?? false,

@@ -64,8 +64,8 @@ class AdvancedSearchService {
             return value.contains(itemValue);
           } else {
             return itemValue.toString().toLowerCase().contains(
-              value.toString().toLowerCase(),
-            );
+                  value.toString().toLowerCase(),
+                );
           }
         } catch (e) {
           debugPrint('Filter error: $e');
@@ -86,9 +86,8 @@ class AdvancedSearchService {
         current = current[part];
       } else {
         try {
-          current = current.runtimeType.toString().contains(part)
-              ? current
-              : null;
+          current =
+              current.runtimeType.toString().contains(part) ? current : null;
         } catch (e) {
           return null;
         }

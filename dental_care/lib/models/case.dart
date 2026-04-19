@@ -29,8 +29,8 @@ class Case {
     required this.analysisResults,
     required this.notes,
     this.reviewNotes = '',
-  }) : scanIds = scanIds ?? const [],
-       updatedAt = updatedAt ?? caseDate;
+  })  : scanIds = scanIds ?? const [],
+        updatedAt = updatedAt ?? caseDate;
 
   // Convert Case to Firestore Map
   Map<String, dynamic> toFirestore() {

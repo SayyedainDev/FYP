@@ -31,8 +31,15 @@ class DummyAiAnalysisService implements AiAnalysisService {
         'Recommend intraoral radiograph to confirm depth.',
       ],
       'annotations': [
-        {'type': 'box', 'rect': [0.45, 0.35, 0.65, 0.55]},
-        {'type': 'circle', 'center': [0.7, 0.65], 'radius': 0.05},
+        {
+          'type': 'box',
+          'rect': [0.45, 0.35, 0.65, 0.55]
+        },
+        {
+          'type': 'circle',
+          'center': [0.7, 0.65],
+          'radius': 0.05
+        },
       ],
       'analyzedAt': DateTime.now().toIso8601String(),
     };

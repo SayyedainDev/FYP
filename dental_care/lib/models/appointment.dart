@@ -8,7 +8,7 @@ class Appointment {
   final Duration duration; // Duration of appointment
   final String status; // 'scheduled', 'completed', 'cancelled', 'no-show'
   final String
-  appointmentType; // 'consultation', 'treatment', 'follow-up', 'checkup'
+      appointmentType; // 'consultation', 'treatment', 'follow-up', 'checkup'
   final String notes;
   final String? location; // Clinic location
   final bool reminderSent;

@@ -27,7 +27,8 @@ class GroqParseException implements Exception {
 /// Service for generating quiz questions using Groq LLM API
 class GroqService {
   // Configured Groq API key for FYP Demo
-  static const String _apiKey = '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';
+  static const String _apiKey =
+      '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';
   static const String _baseUrl =
       'https://api.groq.com/openai/v1/chat/completions';
   static const String _model = 'llama-3.3-70b-versatile';
@@ -122,10 +123,9 @@ class GroqService {
             'messages': [
               {
                 'role': 'system',
-                'content':
-                    'You are an expert dental education professor creating MCQ exam questions. '
-                        'Generate high-quality quiz questions in valid JSON format. '
-                        'Always respond ONLY with a valid JSON array, no markdown, no explanation.',
+                'content': 'You are an expert dental education professor creating MCQ exam questions. '
+                    'Generate high-quality quiz questions in valid JSON format. '
+                    'Always respond ONLY with a valid JSON array, no markdown, no explanation.',
               },
               {'role': 'user', 'content': prompt},
             ],
@@ -137,7 +137,8 @@ class GroqService {
         .timeout(_timeout);
 
     if (response.statusCode == 429) {
-      throw GroqException('Rate limit exceeded. Please wait a moment and try again.',
+      throw GroqException(
+          'Rate limit exceeded. Please wait a moment and try again.',
           statusCode: 429);
     }
     if (response.statusCode == 401) {
@@ -152,8 +153,7 @@ class GroqService {
       } catch (_) {
         detail = response.body;
       }
-      throw GroqException(
-          'Groq API error (${response.statusCode}): $detail',
+      throw GroqException('Groq API error (${response.statusCode}): $detail',
           statusCode: response.statusCode);
     }
 

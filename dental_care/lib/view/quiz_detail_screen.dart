@@ -266,8 +266,8 @@ class QuizDetailScreen extends StatelessWidget {
           ),
           const SizedBox(height: 16),
           ...quiz.questions.asMap().entries.map((entry) {
-              return _buildQuestionCard(context, entry.key + 1, entry.value);
-            }),
+            return _buildQuestionCard(context, entry.key + 1, entry.value);
+          }),
         ],
       ),
     );

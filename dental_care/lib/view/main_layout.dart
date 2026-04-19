@@ -69,38 +69,32 @@ class _MainLayoutState extends State<MainLayout>
             : const DashboardScreen(key: ValueKey('Overview'));
       case 'Patients':
         if (isStudent) {
-          return const StudentLMSDashboard(
-              key: ValueKey('Student Overview'));
+          return const StudentLMSDashboard(key: ValueKey('Student Overview'));
         }
         return const PatientsScreen(key: ValueKey('Patients'));
       case 'Scan History':
         if (isStudent) {
-          return const StudentLMSDashboard(
-              key: ValueKey('Student Overview'));
+          return const StudentLMSDashboard(key: ValueKey('Student Overview'));
         }
         return const HistoryScreen(key: ValueKey('Scan History'));
       case 'Create Quiz':
         if (isStudent) {
-          return const StudentLMSDashboard(
-              key: ValueKey('Student Overview'));
+          return const StudentLMSDashboard(key: ValueKey('Student Overview'));
         }
         return const AIQuizScreen(key: ValueKey('Create Quiz'));
       case 'My Quizzes':
         if (isStudent) {
-          return const StudentLMSDashboard(
-              key: ValueKey('Student Overview'));
+          return const StudentLMSDashboard(key: ValueKey('Student Overview'));
         }
         return const QuizListScreen(key: ValueKey('My Quizzes'));
       case 'Lecture Notes':
         if (isStudent) {
-          return const StudentLMSDashboard(
-              key: ValueKey('Student Overview'));
+          return const StudentLMSDashboard(key: ValueKey('Student Overview'));
         }
         return const LectureNotesScreen(key: ValueKey('Lecture Notes'));
       case 'Quiz Results':
         if (isStudent) {
-          return const StudentLMSDashboard(
-              key: ValueKey('Student Overview'));
+          return const StudentLMSDashboard(key: ValueKey('Student Overview'));
         }
         return const AnalyticsDashboardScreen(key: ValueKey('Quiz Results'));
       case 'Settings':
@@ -109,8 +103,7 @@ class _MainLayoutState extends State<MainLayout>
         return const DentistProfileScreen(key: ValueKey('Profile'));
       case 'Disease Detection':
         if (isStudent) {
-          return const StudentLMSDashboard(
-              key: ValueKey('Student Overview'));
+          return const StudentLMSDashboard(key: ValueKey('Student Overview'));
         }
         return const DentalDetectionScreen(key: ValueKey('Disease Detection'));
       // Student-specific screens

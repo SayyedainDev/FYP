@@ -425,7 +425,8 @@ class _AppointmentManagementScreenState
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Delete Appointment'),
-        content: const Text('Are you sure you want to delete this appointment?'),
+        content:
+            const Text('Are you sure you want to delete this appointment?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),

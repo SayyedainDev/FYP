@@ -652,13 +652,28 @@ class QuizProvider with ChangeNotifier {
           debugPrint('Uploading PDF bytes to RAG backend...');
           documentId = await _runAiRequestWithRetry(
             () => _withAiTimeout(
-              RagService.uploadPdfBytes(_uploadedBytes!, _uploadedFileName!),
+              RagService.uploadPdfBytes(
+                _uploadedBytes!, 
+                _uploadedFileName!,
+                onProgress: (p) {
+                   _uploadProgress = p;
+                   notifyListeners();
+                }
+              ),
             ),
           );
         } else if (_uploadedFile != null) {
           debugPrint('Uploading PDF file to RAG backend...');
           documentId = await _runAiRequestWithRetry(
-            () => _withAiTimeout(RagService.uploadPdfFile(_uploadedFile!)),
+            () => _withAiTimeout(
+              RagService.uploadPdfFile(
+                _uploadedFile!,
+                onProgress: (p) {
+                   _uploadProgress = p;
+                   notifyListeners();
+                }
+              )
+            ),
           );
         } else {
           throw Exception(

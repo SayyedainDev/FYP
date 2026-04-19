@@ -4,7 +4,7 @@ class AuditLog {
   final String id;
   final String userId;
   final String
-  action; // 'create', 'update', 'delete', 'view', 'login', 'logout'
+      action; // 'create', 'update', 'delete', 'view', 'login', 'logout'
   final String entityType; // 'patient', 'case', 'appointment', 'treatment_plan'
   final String entityId;
   final Map<String, dynamic>? oldValue;

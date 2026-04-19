@@ -77,8 +77,7 @@ class QuizConfig {
         orElse: () => DifficultyLevel.medium,
       ),
       totalQuestions: data['totalQuestions'] ?? 10,
-      questionTypes:
-          (data['questionTypes'] as List<dynamic>?)
+      questionTypes: (data['questionTypes'] as List<dynamic>?)
               ?.map(
                 (e) => QuestionType.values.firstWhere(
                   (qt) => qt.name == e,
@@ -121,6 +120,7 @@ class Question {
   final int correctIndex; // Index of correct option (secure)
   final String? correctAnswer; // Legacy: kept for backward compat / non-MCQ
   final String? explanation;
+  final String? hint;
   final int marks;
   final DifficultyLevel difficulty;
   final String? section;
@@ -133,6 +133,7 @@ class Question {
     required this.correctIndex,
     this.correctAnswer,
     this.explanation,
+    this.hint,
     required this.marks,
     required this.difficulty,
     this.section,
@@ -166,7 +167,9 @@ class Question {
 
   /// Get the correct answer text (from options using index, or legacy field)
   String get correctAnswerText {
-    if (options != null && correctIndex >= 0 && correctIndex < options!.length) {
+    if (options != null &&
+        correctIndex >= 0 &&
+        correctIndex < options!.length) {
       return options![correctIndex];
     }
     return correctAnswer ?? '';
@@ -181,6 +184,7 @@ class Question {
       'correctIndex': correctIndex,
       'correctAnswer': correctAnswerText, // Store for backward compat
       'explanation': explanation,
+      'hint': hint,
       'marks': marks,
       'difficulty': difficulty.name,
       'section': section,
@@ -195,6 +199,7 @@ class Question {
       'type': type.name,
       'options': options,
       'explanation': explanation,
+      'hint': hint,
       'marks': marks,
       'difficulty': difficulty.name,
       'section': section,
@@ -231,6 +236,7 @@ class Question {
       correctIndex: parsedIndex >= 0 ? parsedIndex : 0,
       correctAnswer: data['correctAnswer']?.toString(),
       explanation: data['explanation'],
+      hint: data['hint'],
       marks: data['marks'] ?? 1,
       difficulty: DifficultyLevel.values.firstWhere(
         (e) => e.name == data['difficulty'],
@@ -303,9 +309,8 @@ class Quiz {
       'sourceText': sourceText,
       'status': status.name,
       'createdAt': Timestamp.fromDate(createdAt),
-      'lastModified': lastModified != null
-          ? Timestamp.fromDate(lastModified!)
-          : null,
+      'lastModified':
+          lastModified != null ? Timestamp.fromDate(lastModified!) : null,
       'totalMarks': totalMarks,
       'sectionMarks': sectionMarks,
     };
@@ -319,8 +324,7 @@ class Quiz {
       description: data['description'] ?? '',
       dentistUid: data['dentistUid'] ?? '',
       config: QuizConfig.fromFirestore(data['config'] ?? {}),
-      questions:
-          (data['questions'] as List<dynamic>?)
+      questions: (data['questions'] as List<dynamic>?)
               ?.map((q) => Question.fromFirestore(q as Map<String, dynamic>))
               .toList() ??
           [],
@@ -353,8 +357,7 @@ class Quiz {
       description: data['description'] ?? '',
       dentistUid: data['dentistUid'] ?? '',
       config: QuizConfig.fromFirestore(data['config'] ?? {}),
-      questions:
-          (data['questions'] as List<dynamic>?)
+      questions: (data['questions'] as List<dynamic>?)
               ?.map((q) => Question.fromFirestore(q as Map<String, dynamic>))
               .toList() ??
           [],
