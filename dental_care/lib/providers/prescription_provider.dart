@@ -85,6 +85,11 @@ class PrescriptionProvider extends ChangeNotifier {
     required String precautions,
   }) async {
     try {
+      if (dentistUid.isEmpty || patientId.isEmpty) {
+        throw Exception(
+            'Missing required IDs: dentist=$dentistUid, patient=$patientId');
+      }
+
       _isLoading = true;
       notifyListeners();
 
@@ -95,13 +100,16 @@ class PrescriptionProvider extends ChangeNotifier {
         patientId: patientId,
         patientName: patientName,
         patientPhone: patientPhone,
-        caseId: caseId,
+        caseId:
+            caseId, // may be empty when creating prescription without saved case
         createdAt: DateTime.now(),
         diagnosis: diagnosis,
         prescription: prescription,
         followUpTreatment: followUpTreatment,
         precautions: precautions,
       );
+
+      debugPrint('💾 Saving prescription: ${newPrescription.toFirestore()}');
 
       final docRef = await _firestore
           .collection('prescriptions')
@@ -112,13 +120,20 @@ class PrescriptionProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
-      await fetchPrescriptionsByDentist(dentistUid);
+      // Refresh prescriptions list (errors here won't block the save)
+      try {
+        await fetchPrescriptionsByDentist(dentistUid);
+      } catch (e) {
+        debugPrint('⚠️ Warning: Could not refresh prescriptions list: $e');
+      }
+
+      debugPrint('✅ Prescription saved with ID: ${docRef.id}');
       return createdPrescription;
     } catch (e) {
       _errorMessage = 'Error creating prescription: $e';
       _isLoading = false;
       notifyListeners();
-      debugPrint('Error creating prescription: $e');
+      debugPrint('❌ Error creating prescription: $e');
       return null;
     }
   }

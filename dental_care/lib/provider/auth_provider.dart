@@ -4,6 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../service/firebase_service.dart';
+import '../service/cache_service.dart';
+import '../service/shared_prefs_helper.dart';
 import '../controller/auth_controller.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -59,7 +61,7 @@ class AuthProvider extends ChangeNotifier {
     _initializeCurrentUser();
   }
 
-  void _initializeCurrentUser() async {
+  Future<void> _initializeCurrentUser() async {
     _rememberMe = (await _secureStorage.read(key: _kRememberMeKey)) == 'true';
 
     final currentUser = FirebaseAuth.instance.currentUser;
@@ -78,6 +80,18 @@ class AuthProvider extends ChangeNotifier {
       uid = await _secureStorage.read(key: _kSavedUidKey);
       _userEmail = await _secureStorage.read(key: _kSavedEmailKey);
       _role = await _secureStorage.read(key: _kSavedRoleKey) ?? 'Dentist';
+
+      // Try to load cached user data from SharedPreferences
+      try {
+        final prefs = SharedPrefsHelper();
+        final cachedName = prefs.getString(SharedPrefsHelper.keyUserName);
+        if (cachedName != null) {
+          _userName = cachedName;
+        }
+      } catch (e) {
+        debugPrint('Error loading cached user data: $e');
+      }
+
       notifyListeners();
     }
   }
@@ -101,13 +115,18 @@ class AuthProvider extends ChangeNotifier {
 
   Future<void> _fetchUserData(String userId) async {
     try {
-      final doc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .get();
+      final cacheService = CacheService();
+      final prefs = SharedPrefsHelper();
 
-      if (doc.exists) {
-        final data = doc.data();
+      // Try to fetch with caching (5 minute cache)
+      final doc = await cacheService.fetchDocumentWithCache(
+        'user_profile_$userId',
+        FirebaseFirestore.instance.collection('users').doc(userId),
+        cacheDuration: const Duration(minutes: 5),
+      );
+
+      if (doc != null && doc.exists) {
+        final data = doc.data() as Map<String, dynamic>?;
         if (data != null) {
           final firstName = data['firstName'] as String?;
           final lastName = data['lastName'] as String?;
@@ -123,6 +142,15 @@ class AuthProvider extends ChangeNotifier {
           _role = (data['role'] as String?)?.trim().isNotEmpty == true
               ? (data['role'] as String).trim()
               : 'Dentist';
+
+          // Cache user data to SharedPreferences for fast retrieval
+          await prefs.cacheUserBasicInfo(
+            uid: userId,
+            email: _userEmail ?? '',
+            name: _userName ?? '',
+            role: _role,
+          );
+          prefs.setCacheTimestamp('user_profile_$userId');
         }
       }
     } catch (e) {
@@ -241,6 +269,18 @@ class AuthProvider extends ChangeNotifier {
       _role = 'Dentist';
       _rememberMe = false;
       await _clearSession();
+
+      // Clear cached user data from SharedPreferences
+      try {
+        final prefs = SharedPrefsHelper();
+        await prefs.clearUserData();
+
+        // Clear cache service
+        final cacheService = CacheService();
+        cacheService.clearAllCache();
+      } catch (e) {
+        debugPrint('Error clearing caches during logout: $e');
+      }
     } finally {
       _loading = false;
       notifyListeners();

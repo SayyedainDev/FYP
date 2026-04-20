@@ -30,6 +30,7 @@ class PatientsScreen extends StatefulWidget {
 }
 
 class _PatientsScreenState extends State<PatientsScreen> {
+  Key _prescriptionListKey = UniqueKey();
   @override
   void initState() {
     super.initState();
@@ -672,6 +673,64 @@ class _PatientsScreenState extends State<PatientsScreen> {
                               child: Center(child: AppLoader(size: 36)),
                             );
                           }
+                          // Handle Firestore index error
+                          if (snap.hasError &&
+                              snap.error is FirebaseException) {
+                            final error = snap.error as FirebaseException;
+                            if (error.code == 'failed-precondition') {
+                              return Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.errorContainer,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: colorScheme.error,
+                                  ),
+                                ),
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Index Required',
+                                      style: TextStyle(
+                                        color: colorScheme.error,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'A Firestore composite index is required to display scans. Create it in Firebase Console.',
+                                      style: TextStyle(
+                                        color: colorScheme.onErrorContainer,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 12),
+                                    GestureDetector(
+                                      onTap: () {
+                                        // Open Firebase console in browser
+                                        final indexUrl =
+                                            'https://console.firebase.google.com/v1/r/project/fyp26-a22b9/firestore/indexes';
+                                        debugPrint(
+                                            'Open Firestore indexes: $indexUrl');
+                                        // Note: url_launcher package needed to open browser. For now, copy link to clipboard.
+                                      },
+                                      child: Text(
+                                        'Tap to see index details',
+                                        style: TextStyle(
+                                          color: colorScheme.error,
+                                          fontWeight: FontWeight.bold,
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
+                          }
                           final scans = snap.data ?? [];
                           if (scans.isEmpty) {
                             return Container(
@@ -751,6 +810,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                       const _SectionHeader('Prescriptions'),
                       const SizedBox(height: 12),
                       PrescriptionListView(
+                        key: _prescriptionListKey,
                         patientId: patient.id,
                         patientName: patient.name,
                         patientPhone: patient.contactPhone,
@@ -855,27 +915,44 @@ class _PatientsScreenState extends State<PatientsScreen> {
                               .where((c) => c.patientId == patient.id)
                               .toList();
 
-                          if (patientCases.isEmpty) {
-                            AppDialogs.showErrorDialog(
-                              context,
-                              message:
-                                  'Please create a case first before writing a prescription.',
-                            );
-                            return;
+                          // Use the most recent case or create a minimal one
+                          Case caseData = Case(
+                            id: '',
+                            patientId: patient.id,
+                            patientName: patient.name,
+                            toothNumber: '',
+                            caseDate: DateTime.now(),
+                            imageUrls: const [],
+                            analysisResults: const {'status': 'Pending'},
+                            notes: '',
+                          );
+
+                          if (patientCases.isNotEmpty) {
+                            caseData = patientCases.last;
                           }
 
-                          // Use the most recent case
-                          final latestCase = patientCases.last;
+                          // Use the case (either existing or minimal)
+                          final latestCase = caseData;
 
                           if (mounted) {
                             Navigator.pop(context);
-                            await showDialog(
+                            final messenger = ScaffoldMessenger.of(context);
+                            final created = await showDialog<bool>(
                               context: context,
                               builder: (context) => WritePrescriptionDialog(
                                 patient: patient,
                                 caseData: latestCase,
                               ),
                             );
+
+                            if (created == true && mounted) {
+                              // Recreate the prescription list to force reload
+                              setState(() {
+                                _prescriptionListKey = UniqueKey();
+                              });
+                              messenger.showSnackBar(const SnackBar(
+                                  content: Text('Prescription created')));
+                            }
                           }
                         },
                         icon: const Icon(Icons.description, size: 18),

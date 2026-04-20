@@ -10,74 +10,181 @@ import '../core/theme/app_semantic_colors.dart';
 import '../utils/app_dialogs.dart';
 import '../widgets/loaders/app_loader.dart';
 
-class HistoryScreen extends StatelessWidget {
+class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
 
+  @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     final caseProvider = Provider.of<CaseProvider>(context);
     final patientProvider = Provider.of<PatientProvider>(context);
-    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
+    final colorScheme = Theme.of(context).colorScheme;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Scan History',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          Align(
-            alignment: Alignment.centerRight,
-            child: ElevatedButton.icon(
-              onPressed: () async {
-                // Open create case dialog
-                await showDialog(
-                  context: context,
-                  builder: (context) => const CreateCaseDialog(),
-                );
-              },
-              icon: const Icon(Icons.add),
-              label: const Text('New Case'),
+    return Scaffold(
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Scan History',
+                      style: Theme.of(context)
+                          .textTheme
+                          .headlineSmall
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Manage and review patient scans',
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: colorScheme.onSurfaceVariant),
+                    ),
+                  ],
+                ),
+                ElevatedButton.icon(
+                  onPressed: () async {
+                    await showDialog(
+                      context: context,
+                      builder: (context) => const CreateCaseDialog(),
+                    );
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('New Case'),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(height: 16),
-          _FilterRow(
-            caseProvider: caseProvider,
-            patientProvider: patientProvider,
-          ),
-          const SizedBox(height: 16),
-          if (caseProvider.loading)
-            const Center(child: AppLoader(message: 'Loading scan history...'))
-          else if (caseProvider.error != null)
-            Text(
-              caseProvider.error!,
-              style: TextStyle(
-                color: semanticColors?.danger ??
-                    Theme.of(context).colorScheme.error,
+            const SizedBox(height: 24),
+
+            // Filters
+            _FilterRow(
+              caseProvider: caseProvider,
+              patientProvider: patientProvider,
+            ),
+            const SizedBox(height: 24),
+
+            // Content
+            if (caseProvider.loading)
+              SizedBox(
+                height: 300,
+                child: Center(
+                  child: AppLoader(
+                    message: 'Loading scan history...',
+                  ),
+                ),
+              )
+            else if (caseProvider.error != null)
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: colorScheme.error),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.error_outline, color: colorScheme.error),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        caseProvider.error!,
+                        style: TextStyle(color: colorScheme.error),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else if (caseProvider.cases.isEmpty)
+              _EmptyState()
+            else
+              Column(
+                children: caseProvider.cases
+                    .map((c) => _CaseHistoryCard(caseItem: c))
+                    .toList(),
               ),
-            )
-          else
-            Column(
-              children: caseProvider.cases
-                  .map((c) => _CaseHistoryCard(caseItem: c))
-                  .toList(),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyState extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: colorScheme.primaryContainer,
+              shape: BoxShape.circle,
             ),
+            child: Icon(
+              Icons.image_not_supported_outlined,
+              size: 48,
+              color: colorScheme.primary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No scans yet',
+            style: Theme.of(context)
+                .textTheme
+                .titleMedium
+                ?.copyWith(fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Create a new case to get started',
+            style: TextStyle(color: colorScheme.onSurfaceVariant),
+          ),
         ],
       ),
     );
   }
 }
 
-class _FilterRow extends StatelessWidget {
+class _FilterRow extends StatefulWidget {
   const _FilterRow({required this.caseProvider, required this.patientProvider});
 
   final CaseProvider caseProvider;
   final PatientProvider patientProvider;
+
+  @override
+  State<_FilterRow> createState() => _FilterRowState();
+}
+
+class _FilterRowState extends State<_FilterRow> {
+  late TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController =
+        TextEditingController(text: widget.caseProvider.searchQuery);
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -86,60 +193,84 @@ class _FilterRow extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: colorScheme.outlineVariant),
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Primary filters
           Row(
             children: [
               Expanded(
                 child: _PatientDropdown(
-                  caseProvider: caseProvider,
-                  patientProvider: patientProvider,
+                  caseProvider: widget.caseProvider,
+                  patientProvider: widget.patientProvider,
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(child: _CaseStatusDropdown(caseProvider: caseProvider)),
+              Expanded(
+                child: _CaseStatusDropdown(caseProvider: widget.caseProvider),
+              ),
             ],
           ),
           const SizedBox(height: 12),
+
+          // Date range filters
           Row(
             children: [
               Expanded(
                 child: _DatePicker(
                   label: 'Start Date',
-                  date: caseProvider.filterStartDate,
-                  onChanged: caseProvider.setStartDateFilter,
+                  date: widget.caseProvider.filterStartDate,
+                  onChanged: widget.caseProvider.setStartDateFilter,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: _DatePicker(
                   label: 'End Date',
-                  date: caseProvider.filterEndDate,
-                  onChanged: caseProvider.setEndDateFilter,
+                  date: widget.caseProvider.filterEndDate,
+                  onChanged: widget.caseProvider.setEndDateFilter,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
+
+          // Search and clear
           Row(
             children: [
               Expanded(
                 child: TextField(
-                  decoration: const InputDecoration(
-                    labelText: 'Search',
-                    prefixIcon: Icon(Icons.search),
+                  controller: _searchController,
+                  decoration: InputDecoration(
+                    labelText: 'Search by patient, title, or tooth number',
+                    prefixIcon: const Icon(Icons.search),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 12,
+                    ),
                   ),
-                  onChanged: caseProvider.setSearchQuery,
+                  onChanged: widget.caseProvider.setSearchQuery,
                 ),
               ),
               const SizedBox(width: 12),
-              TextButton.icon(
-                onPressed: caseProvider.clearFilters,
-                icon: const Icon(Icons.clear),
-                label: const Text('Clear Filters'),
+              FilledButton.tonal(
+                onPressed: () {
+                  _searchController.clear();
+                  widget.caseProvider.clearFilters();
+                },
+                child: const Row(
+                  children: [
+                    Icon(Icons.clear, size: 18),
+                    SizedBox(width: 8),
+                    Text('Clear'),
+                  ],
+                ),
               ),
             ],
           ),
@@ -166,7 +297,7 @@ class _PatientDropdown extends StatelessWidget {
         labelText: 'Patient',
         prefixIcon: Icon(Icons.person),
       ),
-      value: caseProvider.filterPatientId,
+      initialValue: caseProvider.filterPatientId,
       items: [
         const DropdownMenuItem<String?>(
           value: null,
@@ -193,7 +324,7 @@ class _CaseStatusDropdown extends StatelessWidget {
         labelText: 'Case Status',
         prefixIcon: Icon(Icons.analytics),
       ),
-      value: caseProvider.filterCaseStatus,
+      initialValue: caseProvider.filterCaseStatus,
       items: const [
         DropdownMenuItem<String?>(value: null, child: Text('All Cases')),
         DropdownMenuItem<String?>(value: 'Uploaded', child: Text('Uploaded')),
@@ -275,22 +406,27 @@ class _CaseHistoryCard extends StatelessWidget {
     final hasCavity = caseItem.hasCavity;
     final status = caseItem.caseStatus;
 
+    // Status styling
     Color statusColor;
     Color statusBg;
     if (status == 'Completed') {
-      statusColor = semanticColors?.success ?? colorScheme.secondary;
-      statusBg = (semanticColors?.success ?? colorScheme.secondary)
-          .withValues(alpha: 0.12);
+      statusColor = semanticColors?.success ?? Colors.green;
+      statusBg =
+          (semanticColors?.success ?? Colors.green).withValues(alpha: 0.12);
     } else if (status == 'Under Review') {
       statusColor = semanticColors?.info ?? colorScheme.primary;
       statusBg =
           (semanticColors?.info ?? colorScheme.primary).withValues(alpha: 0.12);
+    } else if (status == 'Archived') {
+      statusColor = colorScheme.onSurfaceVariant;
+      statusBg = colorScheme.surfaceContainerHighest;
     } else {
-      statusColor = semanticColors?.warning ?? colorScheme.tertiary;
-      statusBg = (semanticColors?.warning ?? colorScheme.tertiary)
-          .withValues(alpha: 0.12);
+      statusColor = semanticColors?.warning ?? Colors.orange;
+      statusBg =
+          (semanticColors?.warning ?? Colors.orange).withValues(alpha: 0.12);
     }
 
+    // Analysis styling
     final analysisLabel = !isAnalysisComplete
         ? 'Pending Analysis'
         : hasCavity
@@ -299,66 +435,67 @@ class _CaseHistoryCard extends StatelessWidget {
     final analysisColor = !isAnalysisComplete
         ? semanticColors?.info ?? colorScheme.primary
         : hasCavity
-            ? semanticColors?.warning ?? colorScheme.tertiary
-            : semanticColors?.success ?? colorScheme.secondary;
+            ? semanticColors?.danger ?? Colors.red
+            : semanticColors?.success ?? Colors.green;
     final analysisBg = !isAnalysisComplete
         ? (semanticColors?.info ?? colorScheme.primary).withValues(alpha: 0.12)
         : hasCavity
-            ? (semanticColors?.warning ?? colorScheme.tertiary)
-                .withValues(alpha: 0.12)
-            : (semanticColors?.success ?? colorScheme.secondary)
-                .withValues(alpha: 0.12);
+            ? (semanticColors?.danger ?? Colors.red).withValues(alpha: 0.12)
+            : (semanticColors?.success ?? Colors.green).withValues(alpha: 0.12);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: colorScheme.outlineVariant),
+      ),
       child: Padding(
         padding: const EdgeInsets.all(20),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Status icon
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: !isAnalysisComplete
-                    ? (semanticColors?.info ?? colorScheme.primary)
-                        .withValues(alpha: 0.22)
-                    : hasCavity
-                        ? (semanticColors?.warning ?? colorScheme.tertiary)
-                            .withValues(alpha: 0.22)
-                        : (semanticColors?.success ?? colorScheme.secondary)
-                            .withValues(alpha: 0.22),
+                color: analysisBg,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(
                 !isAnalysisComplete
                     ? Icons.hourglass_empty
                     : hasCavity
-                        ? Icons.warning_amber
-                        : Icons.check_circle,
-                color: !isAnalysisComplete
-                    ? semanticColors?.info ?? colorScheme.primary
-                    : hasCavity
-                        ? semanticColors?.warning ?? colorScheme.tertiary
-                        : semanticColors?.success ?? colorScheme.secondary,
-                size: 32,
+                        ? Icons.warning_amber_rounded
+                        : Icons.check_circle_rounded,
+                color: analysisColor,
+                size: 28,
               ),
             ),
             const SizedBox(width: 20),
+
+            // Content
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (caseItem.caseTitle.isNotEmpty) ...[
+                  // Title
+                  if (caseItem.caseTitle.isNotEmpty)
                     Text(
                       caseItem.caseTitle,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                      ),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
-                  ],
-                  Row(
+
+                  const SizedBox(height: 8),
+
+                  // Chips
+                  Wrap(
+                    spacing: 8,
                     children: [
                       Chip(
                         label: Text(
@@ -371,8 +508,8 @@ class _CaseHistoryCard extends StatelessWidget {
                         ),
                         backgroundColor: statusBg,
                         side: BorderSide.none,
+                        padding: EdgeInsets.zero,
                       ),
-                      const SizedBox(width: 8),
                       Chip(
                         label: Text(
                           analysisLabel,
@@ -384,151 +521,182 @@ class _CaseHistoryCard extends StatelessWidget {
                         ),
                         backgroundColor: analysisBg,
                         side: BorderSide.none,
+                        padding: EdgeInsets.zero,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 8),
+
+                  const SizedBox(height: 12),
+
+                  // Metadata
                   Row(
                     children: [
                       Icon(
                         Icons.calendar_today,
-                        size: 16,
+                        size: 14,
                         color: colorScheme.onSurfaceVariant,
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       Text(
                         _formatDateTime(caseItem.caseDate),
-                        style: TextStyle(color: colorScheme.onSurfaceVariant),
+                        style: TextStyle(
+                          color: colorScheme.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
                       ),
                       if (caseItem.toothNumber.isNotEmpty) ...[
-                        const SizedBox(width: 24),
+                        const SizedBox(width: 16),
                         Icon(
-                          Icons.medical_services,
-                          size: 16,
+                          Icons.medical_services_outlined,
+                          size: 14,
                           color: colorScheme.onSurfaceVariant,
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 6),
                         Text(
                           'Tooth #${caseItem.toothNumber}',
-                          style: TextStyle(color: colorScheme.onSurfaceVariant),
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                      if (caseItem.imageUrls.isNotEmpty) ...[
+                        const SizedBox(width: 16),
+                        Icon(
+                          Icons.image_outlined,
+                          size: 14,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          '${caseItem.imageUrls.length} image(s)',
+                          style: TextStyle(
+                            color: colorScheme.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
                         ),
                       ],
                     ],
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.image,
-                        size: 16,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '${caseItem.imageUrls.length} X-ray image(s)',
-                        style: TextStyle(color: colorScheme.onSurfaceVariant),
-                      ),
-                    ],
-                  ),
+
+                  // Notes preview
                   if (caseItem.notes.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Text(
                       caseItem.notes,
                       style: TextStyle(
                         color: colorScheme.onSurfaceVariant,
-                        fontSize: 14,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  if (caseItem.reviewNotes.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Text(
-                      'Review: ${caseItem.reviewNotes}',
-                      style: TextStyle(
-                        color: colorScheme.onSurfaceVariant,
                         fontSize: 13,
-                        fontStyle: FontStyle.italic,
                       ),
-                      maxLines: 2,
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ],
               ),
             ),
-            Column(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.visibility),
-                  onPressed: () => _showCaseDetails(context, caseItem),
-                  tooltip: 'View Details',
-                ),
-                if (caseItem.imageUrls.isNotEmpty)
-                  IconButton(
-                    icon: const Icon(Icons.image),
-                    onPressed: () => _showCaseImages(context, caseItem),
-                    tooltip: 'View Images',
+
+            // Action buttons
+            SizedBox(
+              width: 180,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  Tooltip(
+                    message: 'View Details',
+                    child: IconButton(
+                      icon: Icon(Icons.info_outline,
+                          color: colorScheme.primary, size: 20),
+                      onPressed: () => _showCaseDetails(context, caseItem),
+                      constraints:
+                          const BoxConstraints(minWidth: 40, minHeight: 40),
+                      padding: EdgeInsets.zero,
+                    ),
                   ),
-                IconButton(
-                  icon: const Icon(Icons.picture_as_pdf),
-                  tooltip: 'Download report (PDF)',
-                  onPressed: () => _downloadReport(context, caseItem),
-                ),
-                PopupMenuButton<String>(
-                  icon: const Icon(Icons.more_vert),
-                  tooltip: 'More actions',
-                  onSelected: (value) {
-                    switch (value) {
-                      case 'edit':
-                        _editCase(context, caseItem);
-                        break;
-                      case 'archive':
-                        _archiveCase(context, caseItem);
-                        break;
-                      case 'delete':
-                        _deleteCase(context, caseItem);
-                        break;
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
-                      value: 'edit',
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit, size: 20),
-                          SizedBox(width: 8),
-                          Text('Edit Case'),
-                        ],
+                  if (caseItem.imageUrls.isNotEmpty)
+                    Tooltip(
+                      message: 'View Images',
+                      child: IconButton(
+                        icon: Icon(Icons.image_outlined,
+                            color: colorScheme.primary, size: 20),
+                        onPressed: () => _showCaseImages(context, caseItem),
+                        constraints:
+                            const BoxConstraints(minWidth: 40, minHeight: 40),
+                        padding: EdgeInsets.zero,
                       ),
                     ),
-                    if (caseItem.caseStatus != 'Archived')
-                      const PopupMenuItem(
-                        value: 'archive',
+                  Tooltip(
+                    message: 'Download Report',
+                    child: IconButton(
+                      icon: Icon(Icons.download_outlined,
+                          color: colorScheme.primary, size: 20),
+                      onPressed: () => _downloadReport(context, caseItem),
+                      constraints:
+                          const BoxConstraints(minWidth: 40, minHeight: 40),
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
+                  PopupMenuButton<String>(
+                    icon: Icon(Icons.more_vert,
+                        color: colorScheme.onSurfaceVariant, size: 20),
+                    constraints:
+                        const BoxConstraints(minWidth: 40, minHeight: 40),
+                    padding: EdgeInsets.zero,
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: 'edit',
                         child: Row(
                           children: [
-                            Icon(Icons.archive, size: 20),
-                            SizedBox(width: 8),
-                            Text('Archive'),
+                            Icon(Icons.edit_outlined,
+                                size: 18, color: colorScheme.primary),
+                            const SizedBox(width: 12),
+                            const Text('Edit'),
                           ],
                         ),
                       ),
-                    PopupMenuItem(
-                      value: 'delete',
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete,
-                              color: colorScheme.error, size: 20),
-                          const SizedBox(width: 8),
-                          Text('Delete',
-                              style: TextStyle(color: colorScheme.error)),
-                        ],
+                      if (caseItem.caseStatus != 'Archived')
+                        PopupMenuItem(
+                          value: 'archive',
+                          child: Row(
+                            children: [
+                              Icon(Icons.archive_outlined,
+                                  size: 18,
+                                  color:
+                                      semanticColors?.warning ?? Colors.orange),
+                              const SizedBox(width: 12),
+                              const Text('Archive'),
+                            ],
+                          ),
+                        ),
+                      PopupMenuItem(
+                        value: 'delete',
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete_outlined,
+                                size: 18, color: colorScheme.error),
+                            const SizedBox(width: 12),
+                            Text('Delete',
+                                style: TextStyle(color: colorScheme.error)),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
+                    ],
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'edit':
+                          _editCase(context, caseItem);
+                          break;
+                        case 'archive':
+                          _archiveCase(context, caseItem);
+                          break;
+                        case 'delete':
+                          _deleteCase(context, caseItem);
+                          break;
+                      }
+                    },
+                  ),
+                ],
+              ),
             ),
           ],
         ),
@@ -537,38 +705,143 @@ class _CaseHistoryCard extends StatelessWidget {
   }
 
   void _showCaseDetails(BuildContext context, Case caseItem) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Case Details'),
-        content: SizedBox(
-          width: 400,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 500),
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _DetailRow('Patient', caseItem.patientName),
-              _DetailRow('Date', _formatDateTime(caseItem.caseDate)),
-              if (caseItem.toothNumber.isNotEmpty)
-                _DetailRow('Tooth Number', caseItem.toothNumber),
-              _DetailRow('Images', '${caseItem.imageUrls.length} X-ray(s)'),
-              _DetailRow('Analysis Status', caseItem.analysisStatus),
-              if (caseItem.isAnalysisComplete)
-                _DetailRow(
-                  'Result',
-                  caseItem.hasCavity ? 'Cavity Detected' : 'Healthy',
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Case Information',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+
+              // Content
+              SingleChildScrollView(
+                child: Column(
+                  children: [
+                    _DetailItemRow(
+                      icon: Icons.calendar_today,
+                      label: 'Date',
+                      value: _formatDateTime(caseItem.caseDate),
+                    ),
+                    const SizedBox(height: 12),
+                    if (caseItem.toothNumber.isNotEmpty)
+                      _DetailItemRow(
+                        icon: Icons.medical_services_outlined,
+                        label: 'Tooth',
+                        value: 'FDI #${caseItem.toothNumber}',
+                      ),
+                    if (caseItem.imageUrls.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _DetailItemRow(
+                        icon: Icons.image_outlined,
+                        label: 'Images',
+                        value: '${caseItem.imageUrls.length} X-ray(s)',
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    _DetailItemRow(
+                      icon: Icons.analytics_outlined,
+                      label: 'Analysis',
+                      value: caseItem.analysisStatus,
+                    ),
+                    if (caseItem.isAnalysisComplete) ...[
+                      const SizedBox(height: 12),
+                      _DetailItemRow(
+                        icon: caseItem.hasCavity
+                            ? Icons.warning_amber_rounded
+                            : Icons.check_circle_rounded,
+                        label: 'Result',
+                        value: caseItem.hasCavity
+                            ? 'Cavity Detected'
+                            : 'Healthy/Pending',
+                        valueColor: caseItem.hasCavity
+                            ? colorScheme.error
+                            : colorScheme.primary,
+                      ),
+                    ],
+                    if (caseItem.notes.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.note_outlined,
+                                  size: 18,
+                                  color: colorScheme.onSurfaceVariant),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Notes',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.onSurface,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: colorScheme.surfaceContainerLowest,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              caseItem.notes,
+                              style: TextStyle(
+                                color: colorScheme.onSurfaceVariant,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
-              if (caseItem.notes.isNotEmpty)
-                _DetailRow('Notes', caseItem.notes),
+              ),
+              const SizedBox(height: 24),
+
+              // Action buttons
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Close'),
+                  ),
+                ],
+              ),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
       ),
     );
   }
@@ -576,57 +849,111 @@ class _CaseHistoryCard extends StatelessWidget {
   void _showCaseImages(BuildContext context, Case caseItem) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text('X-ray Images - ${caseItem.patientName}'),
-        content: SizedBox(
-          width: 600,
-          height: 400,
-          child: GridView.builder(
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemCount: caseItem.imageUrls.length,
-            itemBuilder: (context, index) {
-              return GestureDetector(
-                onTap: () =>
-                    _showFullScreenImage(context, caseItem.imageUrls[index]),
-                child: Card(
-                  clipBehavior: Clip.antiAlias,
-                  child: Image.network(
-                    caseItem.imageUrls[index],
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return const Center(child: AppLoader(size: 36));
-                    },
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surfaceContainerHighest,
-                        child: Center(
-                          child: Icon(
-                            Icons.error,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 700, maxHeight: 600),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: Column(
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'X-ray Images',
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleLarge
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(),
+
+              // Images grid
+              Expanded(
+                child: GridView.builder(
+                  padding: const EdgeInsets.all(20),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                  ),
+                  itemCount: caseItem.imageUrls.length,
+                  itemBuilder: (context, index) {
+                    return GestureDetector(
+                      onTap: () => _showFullScreenImage(
+                          context, caseItem.imageUrls[index]),
+                      child: Card(
+                        clipBehavior: Clip.antiAlias,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Container(
+                          color: Theme.of(context).colorScheme.surfaceContainer,
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              Image.network(
+                                caseItem.imageUrls[index],
+                                fit: BoxFit.cover,
+                                loadingBuilder:
+                                    (context, child, loadingProgress) {
+                                  if (loadingProgress == null) return child;
+                                  return Center(
+                                    child: AppLoader(size: 32),
+                                  );
+                                },
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Center(
+                                    child: Icon(
+                                      Icons.image_not_supported_outlined,
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                                  );
+                                },
+                              ),
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.all(8),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.7),
+                                    borderRadius: const BorderRadius.only(
+                                      topLeft: Radius.circular(8),
+                                    ),
+                                  ),
+                                  child: const Icon(
+                                    Icons.zoom_in,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      );
-                    },
-                  ),
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
+              ),
+            ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
-          ),
-        ],
       ),
     );
   }
@@ -635,7 +962,8 @@ class _CaseHistoryCard extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => Dialog(
-        backgroundColor: Theme.of(context).colorScheme.scrim,
+        backgroundColor: Colors.black,
+        insetPadding: EdgeInsets.zero,
         child: Stack(
           children: [
             Center(
@@ -647,7 +975,7 @@ class _CaseHistoryCard extends StatelessWidget {
                   fit: BoxFit.contain,
                   loadingBuilder: (context, child, loadingProgress) {
                     if (loadingProgress == null) return child;
-                    return const Center(child: AppLoader(size: 42));
+                    return const Center(child: AppLoader(size: 48));
                   },
                 ),
               ),
@@ -656,11 +984,7 @@ class _CaseHistoryCard extends StatelessWidget {
               top: 16,
               right: 16,
               child: IconButton(
-                icon: Icon(
-                  Icons.close,
-                  color: Theme.of(context).colorScheme.onPrimary,
-                  size: 30,
-                ),
+                icon: const Icon(Icons.close, color: Colors.white, size: 32),
                 onPressed: () => Navigator.pop(context),
               ),
             ),
@@ -671,67 +995,67 @@ class _CaseHistoryCard extends StatelessWidget {
   }
 
   Future<void> _downloadReport(BuildContext context, Case caseItem) async {
-    final doc = pw.Document();
-    final dateText = _formatDateTime(caseItem.caseDate);
-
-    doc.addPage(
-      pw.Page(
-        build: (context) {
-          return pw.Column(
-            crossAxisAlignment: pw.CrossAxisAlignment.start,
-            children: [
-              pw.Text(
-                'Case Report',
-                style: pw.TextStyle(
-                  fontSize: 22,
-                  fontWeight: pw.FontWeight.bold,
-                ),
-              ),
-              pw.SizedBox(height: 12),
-              pw.Text('Case ID: ${caseItem.id}'),
-              if (caseItem.caseTitle.isNotEmpty)
-                pw.Text('Title: ${caseItem.caseTitle}'),
-              pw.Text('Patient: ${caseItem.patientName}'),
-              pw.Text('Tooth (FDI): ${caseItem.toothNumber}'),
-              pw.Text('Status: ${caseItem.caseStatus}'),
-              pw.Text('Analysis: ${caseItem.analysisStatus}'),
-              pw.Text(
-                'Result: ${caseItem.hasCavity ? 'Cavity Detected' : 'Healthy/Pending'}',
-              ),
-              pw.Text('Uploaded: $dateText'),
-              pw.SizedBox(height: 16),
-              pw.Text(
-                'Notes',
-                style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-              ),
-              pw.Text(caseItem.notes.isNotEmpty ? caseItem.notes : '—'),
-              pw.SizedBox(height: 12),
-              pw.Text(
-                'Manual Review',
-                style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-              ),
-              pw.Text(
-                caseItem.reviewNotes.isNotEmpty
-                    ? caseItem.reviewNotes
-                    : 'Pending',
-              ),
-              pw.SizedBox(height: 16),
-              pw.Text(
-                'AI Module',
-                style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-              ),
-              pw.Text('Placeholder: AI module will be integrated later.'),
-            ],
-          );
-        },
-      ),
-    );
-
     try {
+      final doc = pw.Document();
+      final dateText = _formatDateTime(caseItem.caseDate);
+
+      doc.addPage(
+        pw.Page(
+          build: (context) {
+            return pw.Column(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Text(
+                  'Dental Case Report',
+                  style: pw.TextStyle(
+                    fontSize: 24,
+                    fontWeight: pw.FontWeight.bold,
+                  ),
+                ),
+                pw.SizedBox(height: 20),
+                pw.Divider(),
+                pw.SizedBox(height: 12),
+                _buildPdfRow('Case ID', caseItem.id),
+                if (caseItem.caseTitle.isNotEmpty)
+                  _buildPdfRow('Title', caseItem.caseTitle),
+                _buildPdfRow('Date', dateText),
+                if (caseItem.toothNumber.isNotEmpty)
+                  _buildPdfRow('Tooth Number', 'FDI #${caseItem.toothNumber}'),
+                _buildPdfRow('Status', caseItem.caseStatus),
+                _buildPdfRow('Analysis Status', caseItem.analysisStatus),
+                if (caseItem.isAnalysisComplete)
+                  _buildPdfRow(
+                    'Result',
+                    caseItem.hasCavity ? 'Cavity Detected' : 'Healthy',
+                  ),
+                _buildPdfRow('Images', '${caseItem.imageUrls.length} X-ray(s)'),
+                pw.SizedBox(height: 16),
+                pw.Text(
+                  'Notes',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                ),
+                pw.Text(caseItem.notes.isNotEmpty ? caseItem.notes : '—'),
+                pw.SizedBox(height: 16),
+                pw.Text(
+                  'Review Notes',
+                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+                ),
+                pw.Text(
+                  caseItem.reviewNotes.isNotEmpty
+                      ? caseItem.reviewNotes
+                      : 'Pending',
+                ),
+              ],
+            );
+          },
+        ),
+      );
+
       final bytes = await doc.save();
       await Printing.sharePdf(
         bytes: bytes,
-        filename: 'case_report_${caseItem.id}.pdf',
+        filename:
+            'case_${caseItem.id}_${DateTime.now().millisecondsSinceEpoch}.pdf',
       );
     } catch (e) {
       if (context.mounted) {
@@ -743,10 +1067,6 @@ class _CaseHistoryCard extends StatelessWidget {
     }
   }
 
-  String _formatDateTime(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  }
-
   void _editCase(BuildContext context, Case caseItem) {
     final titleController = TextEditingController(text: caseItem.caseTitle);
     final notesController = TextEditingController(text: caseItem.notes);
@@ -755,109 +1075,149 @@ class _CaseHistoryCard extends StatelessWidget {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Edit Case'),
-        content: SizedBox(
-          width: 400,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                TextField(
-                  controller: titleController,
-                  decoration: const InputDecoration(
-                    labelText: 'Case Title',
-                    border: OutlineInputBorder(),
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 500),
+          padding: const EdgeInsets.all(28),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Edit Case',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleLarge
+                        ?.copyWith(fontWeight: FontWeight.bold),
                   ),
-                ),
-                const SizedBox(height: 16),
-                DropdownButtonFormField<String>(
-                  value: selectedStatus,
-                  decoration: const InputDecoration(
-                    labelText: 'Status',
-                    border: OutlineInputBorder(),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.pop(context),
                   ),
-                  items: ['Uploaded', 'Under Review', 'Completed', 'Archived']
-                      .map(
-                        (status) => DropdownMenuItem(
-                          value: status,
-                          child: Text(status),
+                ],
+              ),
+              const SizedBox(height: 20),
+              SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: titleController,
+                      decoration: InputDecoration(
+                        labelText: 'Case Title',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                      )
-                      .toList(),
-                  onChanged: (value) {
-                    if (value != null) selectedStatus = value;
-                  },
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<String>(
+                      initialValue: selectedStatus,
+                      decoration: InputDecoration(
+                        labelText: 'Status',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      items:
+                          ['Uploaded', 'Under Review', 'Completed', 'Archived']
+                              .map(
+                                (status) => DropdownMenuItem(
+                                  value: status,
+                                  child: Text(status),
+                                ),
+                              )
+                              .toList(),
+                      onChanged: (value) {
+                        if (value != null) selectedStatus = value;
+                      },
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: notesController,
+                      decoration: InputDecoration(
+                        labelText: 'Notes',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      maxLines: 3,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: reviewController,
+                      decoration: InputDecoration(
+                        labelText: 'Review Notes',
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      maxLines: 3,
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: notesController,
-                  decoration: const InputDecoration(
-                    labelText: 'Notes',
-                    border: OutlineInputBorder(),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Cancel'),
                   ),
-                  maxLines: 3,
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: reviewController,
-                  decoration: const InputDecoration(
-                    labelText: 'Review Notes',
-                    border: OutlineInputBorder(),
+                  const SizedBox(width: 12),
+                  ElevatedButton(
+                    onPressed: () async {
+                      final caseProvider = Provider.of<CaseProvider>(
+                        context,
+                        listen: false,
+                      );
+                      final success =
+                          await caseProvider.updateCase(caseItem.id, {
+                        'caseTitle': titleController.text,
+                        'caseStatus': selectedStatus,
+                        'notes': notesController.text,
+                        'reviewNotes': reviewController.text,
+                      });
+
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        if (success) {
+                          AppDialogs.showInfoDialog(context,
+                              title: 'Success',
+                              message: 'Case updated successfully');
+                        } else {
+                          AppDialogs.showErrorDialog(context,
+                              message: 'Failed to update case.');
+                        }
+                      }
+                    },
+                    child: const Text('Save Changes'),
                   ),
-                  maxLines: 3,
-                ),
-              ],
-            ),
+                ],
+              ),
+            ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final caseProvider = Provider.of<CaseProvider>(
-                context,
-                listen: false,
-              );
-              final success = await caseProvider.updateCase(caseItem.id, {
-                'caseTitle': titleController.text,
-                'caseStatus': selectedStatus,
-                'notes': notesController.text,
-                'reviewNotes': reviewController.text,
-              });
-
-              if (context.mounted) {
-                Navigator.pop(context);
-                if (success) {
-                  AppDialogs.showInfoDialog(context,
-                      title: 'Success', message: 'Case updated successfully');
-                } else {
-                  AppDialogs.showErrorDialog(context,
-                      message: 'Failed to update case.');
-                }
-              }
-            },
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
   }
 
   void _archiveCase(BuildContext context, Case caseItem) {
     final semanticColors = Theme.of(context).extension<AppSemanticColors>();
-    final colorScheme = Theme.of(context).colorScheme;
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Archive Case'),
-        content: Text(
-          'Are you sure you want to archive "${caseItem.caseTitle.isEmpty ? caseItem.id : caseItem.caseTitle}"?',
-        ),
+        content: const Text(
+            'Are you sure you want to archive this case? It will be moved to the archive.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -883,8 +1243,7 @@ class _CaseHistoryCard extends StatelessWidget {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: semanticColors?.warning ?? colorScheme.tertiary,
-              foregroundColor: colorScheme.onTertiary,
+              backgroundColor: semanticColors?.warning ?? Colors.orange,
             ),
             child: const Text('Archive'),
           ),
@@ -894,23 +1253,35 @@ class _CaseHistoryCard extends StatelessWidget {
   }
 
   void _deleteCase(BuildContext context, Case caseItem) {
-    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
     final colorScheme = Theme.of(context).colorScheme;
+    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: const Text('Delete Case'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Are you sure you want to permanently delete "${caseItem.caseTitle.isEmpty ? caseItem.id : caseItem.caseTitle}"?',
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'This action cannot be undone. All images will be deleted.',
-              style: TextStyle(color: colorScheme.error, fontSize: 12),
+            const Text(
+                'Are you sure you want to permanently delete this case?'),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: colorScheme.errorContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'This action cannot be undone. All images will be permanently deleted.',
+                style: TextStyle(
+                  color: colorScheme.error,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
             ),
           ],
         ),
@@ -940,7 +1311,6 @@ class _CaseHistoryCard extends StatelessWidget {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: semanticColors?.danger ?? colorScheme.error,
-              foregroundColor: colorScheme.onError,
             ),
             child: const Text('Delete'),
           ),
@@ -948,31 +1318,76 @@ class _CaseHistoryCard extends StatelessWidget {
       ),
     );
   }
+
+  String _formatDateTime(DateTime date) {
+    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
+  }
+
+  pw.Widget _buildPdfRow(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 6),
+      child: pw.Row(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          pw.SizedBox(
+            width: 120,
+            child: pw.Text(
+              '$label:',
+              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
+            ),
+          ),
+          pw.Expanded(child: pw.Text(value)),
+        ],
+      ),
+    );
+  }
 }
 
-class _DetailRow extends StatelessWidget {
-  const _DetailRow(this.label, this.value);
+class _DetailItemRow extends StatelessWidget {
+  const _DetailItemRow({
+    required this.icon,
+    required this.label,
+    required this.value,
+    this.valueColor,
+  });
 
+  final IconData icon;
   final String label;
   final String value;
+  final Color? valueColor;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 120,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
+    final colorScheme = Theme.of(context).colorScheme;
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: colorScheme.onSurfaceVariant),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: colorScheme.onSurface,
+                  fontSize: 12,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                value,
+                style: TextStyle(
+                  color: valueColor ?? colorScheme.onSurfaceVariant,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
           ),
-          Expanded(child: Text(value)),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }

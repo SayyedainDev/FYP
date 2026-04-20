@@ -20,7 +20,11 @@ class _CaseComparisonScreenState extends State<CaseComparisonScreen> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      appBar: AppBar(title: const Text('Case Comparison'), elevation: 0),
+      appBar: AppBar(
+        title: const Text('Case Comparison'),
+        elevation: 0,
+        automaticallyImplyLeading: true,
+      ),
       body: Consumer<CaseProvider>(
         builder: (context, caseProvider, _) {
           return Column(

@@ -854,7 +854,8 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
                 final selected = await showDialog<Patient?>(
                   context: context,
                   builder: (ctx) {
-                    final patients = Provider.of<PatientProvider>(context).patients;
+                    final patients =
+                        Provider.of<PatientProvider>(context).patients;
                     return Dialog(
                       child: Container(
                         constraints: const BoxConstraints(maxWidth: 600),
@@ -862,7 +863,8 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text('Select Patient for Prescription', style: TextStyle(fontWeight: FontWeight.bold)),
+                            const Text('Select Patient for Prescription',
+                                style: TextStyle(fontWeight: FontWeight.bold)),
                             const SizedBox(height: 12),
                             SizedBox(
                               height: 300,
@@ -880,7 +882,9 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
                               ),
                             ),
                             const SizedBox(height: 8),
-                            TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('Cancel')),
+                            TextButton(
+                                onPressed: () => Navigator.of(ctx).pop(null),
+                                child: const Text('Cancel')),
                           ],
                         ),
                       ),
@@ -890,8 +894,11 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
 
                 if (selected != null) {
                   // find latest case for this patient
-                  final caseProv = Provider.of<CaseProvider>(context, listen: false);
-                  final cases = caseProv.allCases.where((c) => c.patientId == selected.id).toList();
+                  final caseProv =
+                      Provider.of<CaseProvider>(context, listen: false);
+                  final cases = caseProv.allCases
+                      .where((c) => c.patientId == selected.id)
+                      .toList();
                   Case caseData;
                   if (cases.isNotEmpty) {
                     caseData = cases.first;
@@ -910,14 +917,16 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
 
                   showDialog<bool>(
                     context: context,
-                    builder: (_) => WritePrescriptionDialog(patient: selected, caseData: caseData),
+                    builder: (_) => WritePrescriptionDialog(
+                        patient: selected, caseData: caseData),
                   );
                 }
               },
               borderRadius: BorderRadius.circular(4),
               child: const Padding(
                 padding: EdgeInsets.all(6),
-                child: Icon(Icons.note_alt_outlined, size: 18, color: Colors.white70),
+                child: Icon(Icons.note_alt_outlined,
+                    size: 18, color: Colors.white70),
               ),
             ),
           ),

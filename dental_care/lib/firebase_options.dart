@@ -50,9 +50,9 @@ class DefaultFirebaseOptions {
     apiKey: 'AIzaSyALWcGUf3afOs4K-Fr8Q8FAbBJ_gsjauiA',
     appId: '1:874657566001:web:304d91f64b9bcc1dbf7410',
     messagingSenderId: '874657566001',
-    projectId: 'fyp26-a22b9',
-    authDomain: 'fyp26-a22b9.firebaseapp.com',
-    storageBucket: 'fyp26-a22b9.firebasestorage.app',
+    projectId: 'dental-care-6daf8',
+    authDomain: 'dental-care-6daf8.firebaseapp.com',
+    storageBucket: 'dental-care-6daf8.firebasestorage.app',
     measurementId: 'G-CL604XBQ9S',
   );
 

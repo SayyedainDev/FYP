@@ -21,8 +21,10 @@ import 'student_quiz_result_screen.dart';
 
 class StudentQuizTakingScreen extends StatefulWidget {
   final Quiz quiz;
+  final bool isReview;
 
-  const StudentQuizTakingScreen({super.key, required this.quiz});
+  const StudentQuizTakingScreen(
+      {super.key, required this.quiz, this.isReview = false});
 
   @override
   State<StudentQuizTakingScreen> createState() =>
@@ -249,6 +251,22 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
     _resetInactivityTimer();
   }
 
+  void _selectOption(
+      Question question, int optionIndex, QuizAttemptProvider attemptProvider) {
+    if (widget.isReview) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('This is a review. You cannot modify answers.'),
+          backgroundColor: Theme.of(context).colorScheme.error,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+    _recordInteraction();
+    attemptProvider.saveResponse(question.id, optionIndex);
+  }
+
   // ─── Quiz Logic ──────────────────────────────────────────────────────
 
   Future<void> _startAttempt() async {
@@ -273,19 +291,43 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
 
     QuizAttempt? attempt;
     try {
-      attempt = await attemptProvider.startAttempt(
-        quizId: widget.quiz.id,
-        quizTitle: widget.quiz.title,
-        studentId: user.uid,
-        studentName: authProvider.userName ?? 'Student',
-        totalMarks: widget.quiz.totalMarks,
-        questionCount: widget.quiz.questions.length,
-      );
-    } catch (_) {
+      // If reviewing a previous attempt, don't start a new one
+      if (widget.isReview) {
+        attempt = await attemptProvider.getAttemptForReview(
+          quizId: widget.quiz.id,
+          studentId: user.uid,
+        );
+        if (attempt == null) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('Could not load this attempt.'),
+                backgroundColor:
+                    Theme.of(context).extension<AppSemanticColors>()?.danger ??
+                        Theme.of(context).colorScheme.error,
+              ),
+            );
+            Navigator.pop(context);
+          }
+          return;
+        }
+      } else {
+        // Start a new attempt
+        attempt = await attemptProvider.startAttempt(
+          quizId: widget.quiz.id,
+          quizTitle: widget.quiz.title,
+          studentId: user.uid,
+          studentName: authProvider.userName ?? 'Student',
+          totalMarks: widget.quiz.totalMarks,
+          questionCount: widget.quiz.questions.length,
+        );
+      }
+    } catch (e) {
+      debugPrint('❌ Error in _startAttempt: $e');
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text('Unable to start quiz. Please try again.'),
+          content: const Text('Unable to load quiz. Please try again.'),
           backgroundColor:
               Theme.of(context).extension<AppSemanticColors>()?.danger ??
                   Theme.of(context).colorScheme.error,
@@ -297,7 +339,8 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
 
     if (attempt == null && attemptProvider.errorMessage != null) {
       // If already completed, show results
-      if (attemptProvider.currentAttempt?.isSubmitted == true) {
+      if (attemptProvider.currentAttempt != null &&
+          attemptProvider.currentAttempt!.isSubmitted == true) {
         if (mounted) {
           Navigator.pushReplacement(
             context,
@@ -314,7 +357,8 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(attemptProvider.errorMessage!),
+            content:
+                Text(attemptProvider.errorMessage ?? 'Failed to start quiz'),
             backgroundColor:
                 Theme.of(context).extension<AppSemanticColors>()?.danger ??
                     Theme.of(context).colorScheme.error,
@@ -334,40 +378,42 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
 
     setState(() => _attemptStarted = true);
 
-    // Setup anti-cheating
-    _setupAntiCheating();
+    // Only setup security measures and timer for NEW attempts, not reviews
+    if (!widget.isReview) {
+      _setupAntiCheating();
 
-    // Show fullscreen prompt
-    if (kIsWeb) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _showFullscreenPrompt();
-      });
-    }
-
-    // Start timer if quiz has time limit
-    if (widget.quiz.config.timeLimitMinutes != null) {
-      final elapsed = DateTime.now().difference(attempt.startTime).inSeconds;
-      final totalSeconds = widget.quiz.config.timeLimitMinutes! * 60;
-      _remainingSeconds = (totalSeconds - elapsed).clamp(0, totalSeconds);
-
-      if (_remainingSeconds <= 0) {
-        _autoSubmit();
-        return;
+      // Show fullscreen prompt
+      if (kIsWeb) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) _showFullscreenPrompt();
+        });
       }
 
-      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (!mounted) {
-          timer.cancel();
+      // Start timer if quiz has time limit
+      if (widget.quiz.config.timeLimitMinutes != null) {
+        final elapsed = DateTime.now().difference(attempt.startTime).inSeconds;
+        final totalSeconds = widget.quiz.config.timeLimitMinutes! * 60;
+        _remainingSeconds = (totalSeconds - elapsed).clamp(0, totalSeconds);
+
+        if (_remainingSeconds <= 0) {
+          _autoSubmit();
           return;
         }
-        setState(() {
-          _remainingSeconds--;
-          if (_remainingSeconds <= 0) {
+
+        _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+          if (!mounted) {
             timer.cancel();
-            _autoSubmit();
+            return;
           }
+          setState(() {
+            _remainingSeconds--;
+            if (_remainingSeconds <= 0) {
+              timer.cancel();
+              _autoSubmit();
+            }
+          });
         });
-      });
+      }
     }
   }
 
@@ -655,7 +701,8 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
   ) {
     final colorScheme = Theme.of(context).colorScheme;
     final semanticColors = Theme.of(context).extension<AppSemanticColors>();
-    final hasTimeLimit = widget.quiz.config.timeLimitMinutes != null;
+    final hasTimeLimit =
+        !widget.isReview && widget.quiz.config.timeLimitMinutes != null;
     final isLowTime = _remainingSeconds < 300 && _remainingSeconds > 60;
     final isCriticalTime = _remainingSeconds <= 60 && _remainingSeconds > 0;
 
@@ -699,17 +746,59 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
             ),
             const SizedBox(width: 10),
 
-            // Quiz title
+            // Quiz title + Review badge
             Expanded(
-              child: Text(
-                widget.quiz.title,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: colorScheme.onSurface,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.quiz.title,
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w700,
+                        color: colorScheme.onSurface,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  if (widget.isReview) ...[
+                    const SizedBox(width: 12),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade100,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                          color: Colors.blue.shade300,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.visibility,
+                            size: 14,
+                            color: Colors.blue.shade700,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Review',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.blue.shade700,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
 
@@ -1313,22 +1402,20 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
 
           const SizedBox(height: 24),
 
-          // Options as styled cards
           if (question.options != null)
             ...question.options!.asMap().entries.map((entry) {
               final idx = entry.key;
               final option = entry.value;
               final isSelected = selectedOption == idx;
               final letter = String.fromCharCode(65 + idx);
+              final colorScheme = Theme.of(context).colorScheme;
 
               return Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: PressableWidget(
                   onTap: () {
-                    _recordInteraction();
-                    context
-                        .read<QuizAttemptProvider>()
-                        .saveResponse(question.id, idx);
+                    _selectOption(
+                        question, idx, context.read<QuizAttemptProvider>());
                   },
                   child: AnimatedContainer(
                     duration: AppDurations.fast,
@@ -1336,12 +1423,16 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? colorScheme.primary.withValues(alpha: 0.08)
+                          ? (widget.isReview
+                              ? Colors.green.withValues(alpha: 0.08)
+                              : colorScheme.primary.withValues(alpha: 0.08))
                           : colorScheme.surfaceContainerLowest,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
                         color: isSelected
-                            ? colorScheme.primary
+                            ? (widget.isReview
+                                ? Colors.green.shade600
+                                : colorScheme.primary)
                             : colorScheme.outlineVariant.withValues(alpha: 0.6),
                         width: 1.6,
                       ),
@@ -1353,7 +1444,9 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                           height: 36,
                           decoration: BoxDecoration(
                             color: isSelected
-                                ? colorScheme.primary
+                                ? (widget.isReview
+                                    ? Colors.green.shade600
+                                    : colorScheme.primary)
                                 : colorScheme.surfaceContainerHighest,
                             shape: BoxShape.circle,
                           ),
@@ -1362,7 +1455,7 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                               letter,
                               style: TextStyle(
                                 color: isSelected
-                                    ? colorScheme.onPrimary
+                                    ? Colors.white
                                     : colorScheme.onSurfaceVariant,
                                 fontWeight: FontWeight.w700,
                                 fontSize: 15,
@@ -1395,7 +1488,9 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                             opacity: isSelected ? 1 : 0,
                             child: Icon(
                               Icons.check_circle,
-                              color: colorScheme.primary,
+                              color: widget.isReview
+                                  ? Colors.green.shade600
+                                  : colorScheme.primary,
                               size: 22,
                             ),
                           ),
@@ -1414,6 +1509,8 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
   Widget _buildBottomNav(
       int totalQuestions, QuizAttemptProvider attemptProvider) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isLastQuestion = _currentQuestionIndex == totalQuestions - 1;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1449,8 +1546,29 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
 
           const Spacer(),
 
-          // Next button
-          if (_currentQuestionIndex < totalQuestions - 1)
+          // Review mode: show "Close Review" on last question, disabled on earlier questions
+          if (widget.isReview) ...[
+            ElevatedButton.icon(
+              onPressed: isLastQuestion ? () => _showExitConfirmation() : null,
+              icon: const Icon(Icons.close, size: 18),
+              label: const Text('Close Review'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isLastQuestion
+                    ? Colors.blue.shade600
+                    : colorScheme.outlineVariant.withValues(alpha: 0.3),
+                foregroundColor: isLastQuestion
+                    ? Colors.white
+                    : colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                elevation: 0,
+              ),
+            )
+          ]
+          // Normal mode: Next button or Submit button
+          else if (_currentQuestionIndex < totalQuestions - 1) ...[
             ElevatedButton.icon(
               onPressed: () {
                 _recordInteraction();
@@ -1467,7 +1585,27 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                     borderRadius: BorderRadius.circular(10)),
                 elevation: 0,
               ),
-            ),
+            )
+          ] else ...[
+            ElevatedButton.icon(
+              onPressed: () {
+                final answered =
+                    attemptProvider.currentAttempt?.responses.length ?? 0;
+                _showSubmitConfirmation(answered, totalQuestions);
+              },
+              icon: const Icon(Icons.check, size: 18),
+              label: const Text('Submit Quiz'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: colorScheme.secondary,
+                foregroundColor: colorScheme.onSecondary,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10)),
+                elevation: 0,
+              ),
+            )
+          ],
         ],
       ),
     );
@@ -1532,33 +1670,67 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
   void _showExitConfirmation() {
     final colorScheme = Theme.of(context).colorScheme;
     final semanticColors = Theme.of(context).extension<AppSemanticColors>();
-    showAdaptiveAppDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Leave Quiz?'),
-        content: const Text(
-          'Your progress has been saved. You can continue later, but the timer will keep running.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Stay'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              Navigator.pop(context);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: semanticColors?.danger ?? colorScheme.error,
-              foregroundColor: colorScheme.onError,
+
+    if (widget.isReview) {
+      // Review mode: simple close dialog
+      showAdaptiveAppDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Close Review?'),
+          content: const Text(
+              'You are viewing a completed quiz. Your answers cannot be changed.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Keep Reviewing'),
             ),
-            child: const Text('Leave'),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.shade600,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Close Review'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      // Normal mode: quiz exit with timer warning
+      showAdaptiveAppDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Text('Leave Quiz?'),
+          content: const Text(
+            'Your progress has been saved. You can continue later, but the timer will keep running.',
           ),
-        ],
-      ),
-    );
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Stay'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                Navigator.pop(context);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: semanticColors?.danger ?? colorScheme.error,
+                foregroundColor: colorScheme.onError,
+              ),
+              child: const Text('Leave'),
+            ),
+          ],
+        ),
+      );
+    }
   }
 
   String _formatTime(int seconds) {

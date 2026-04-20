@@ -481,6 +481,53 @@ class QuizAttemptProvider with ChangeNotifier {
     }
   }
 
+  // Get attempt for review (read-only access)
+  Future<QuizAttempt?> getAttemptForReview({
+    required String quizId,
+    required String studentId,
+  }) async {
+    try {
+      final snapshot = await _withTimeout(_firestore
+          .collection('attempts')
+          .where('quizId', isEqualTo: quizId)
+          .where('studentId', isEqualTo: studentId)
+          .where('isSubmitted', isEqualTo: true)
+          .limit(1)
+          .get());
+
+      if (snapshot.docs.isEmpty) {
+        _errorMessage = 'No submitted attempt found for this quiz.';
+        notifyListeners();
+        return null;
+      }
+
+      final attempt = QuizAttempt.fromFirestore(snapshot.docs.first);
+      _currentAttempt = attempt;
+
+      // Load responses for review mode
+      _currentResponses = {};
+      _visitedQuestions = {};
+      for (var r in attempt.responses) {
+        if (r.selectedOption != null && r.selectedOption! >= 0) {
+          _currentResponses[r.questionId] = r.selectedOption!;
+        }
+        _visitedQuestions.add(r.questionId);
+      }
+
+      debugPrint('📖 Loaded attempt for review: ${attempt.id}');
+      notifyListeners();
+      return attempt;
+    } catch (e) {
+      debugPrint('❌ Error getting attempt for review: $e');
+      _errorMessage = _mapErrorMessage(
+        e,
+        fallback: 'Unable to load attempt. Please try again.',
+      );
+      notifyListeners();
+      return null;
+    }
+  }
+
   /// Fetch attempts for a specific quiz (for professors to view student results)
   Future<List<QuizAttempt>> fetchQuizAttempts(String quizId) async {
     try {

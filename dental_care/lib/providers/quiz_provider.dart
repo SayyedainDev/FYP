@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 // Supabase removed
 import 'package:path_provider/path_provider.dart';
@@ -500,7 +501,11 @@ class QuizProvider with ChangeNotifier {
       debugPrint('🔍 Fetching published quizzes for students...');
       _isLoading = true;
       _errorMessage = null;
-      notifyListeners();
+      
+      // Defer notification until after build phase to avoid "setState during build" error
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        notifyListeners();
+      });
 
       final snapshot = await _withTimeout(_firestore
           .collection('quizzes')
@@ -508,7 +513,8 @@ class QuizProvider with ChangeNotifier {
           .orderBy('createdAt', descending: true)
           .get());
 
-      var quizzes = snapshot.docs.map((doc) => Quiz.fromFirestore(doc)).toList();
+      var quizzes =
+          snapshot.docs.map((doc) => Quiz.fromFirestore(doc)).toList();
 
       if (excludeStudentId != null && excludeStudentId.isNotEmpty) {
         // For each quiz, check if an attempt exists for this student. This is
@@ -676,28 +682,21 @@ class QuizProvider with ChangeNotifier {
           debugPrint('Uploading PDF bytes to RAG backend...');
           documentId = await _runAiRequestWithRetry(
             () => _withAiTimeout(
-              RagService.uploadPdfBytes(
-                _uploadedBytes!, 
-                _uploadedFileName!,
-                onProgress: (p) {
-                   _uploadProgress = p;
-                   notifyListeners();
-                }
-              ),
+              RagService.uploadPdfBytes(_uploadedBytes!, _uploadedFileName!,
+                  onProgress: (p) {
+                _uploadProgress = p;
+                notifyListeners();
+              }),
             ),
           );
         } else if (_uploadedFile != null) {
           debugPrint('Uploading PDF file to RAG backend...');
           documentId = await _runAiRequestWithRetry(
             () => _withAiTimeout(
-              RagService.uploadPdfFile(
-                _uploadedFile!,
-                onProgress: (p) {
-                   _uploadProgress = p;
-                   notifyListeners();
-                }
-              )
-            ),
+                RagService.uploadPdfFile(_uploadedFile!, onProgress: (p) {
+              _uploadProgress = p;
+              notifyListeners();
+            })),
           );
         } else {
           throw Exception(

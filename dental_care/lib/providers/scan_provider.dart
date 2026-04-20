@@ -211,6 +211,10 @@ class ScanProvider extends ChangeNotifier {
       return querySnapshot.docs.map((doc) => Scan.fromFirestore(doc)).toList();
     } catch (e) {
       debugPrint('Error fetching scans for patient: $e');
+      // Rethrow Firestore index errors so UI can display helpful message
+      if (e is FirebaseException && e.code == 'failed-precondition') {
+        rethrow;
+      }
       return [];
     }
   }

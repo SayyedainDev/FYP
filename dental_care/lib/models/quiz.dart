@@ -53,21 +53,33 @@ class QuizConfig {
       timeLimitMinutes != null ? timeLimitMinutes! * 60 : null;
 
   Map<String, dynamic> toFirestore() {
-    return {
+    final data = <String, dynamic>{
       'difficulty': difficulty.name,
       'totalQuestions': totalQuestions,
       'questionTypes': questionTypes.map((e) => e.name).toList(),
       'numberOfSections': numberOfSections,
       'marksDistribution': marksDistribution,
-      'customMarksPerSection': customMarksPerSection,
       'cognitiveLevel': cognitiveLevel.name,
       'contentCoverage': contentCoverage,
-      'specificTopics': specificTopics,
-      'timeLimitMinutes': timeLimitMinutes,
       'includeAnswerKey': includeAnswerKey,
       'explanationLevel': explanationLevel,
-      'specialMode': specialMode?.name,
     };
+
+    // Only include optional fields if they're not null
+    if (customMarksPerSection != null) {
+      data['customMarksPerSection'] = customMarksPerSection!;
+    }
+    if (specificTopics != null) {
+      data['specificTopics'] = specificTopics!;
+    }
+    if (timeLimitMinutes != null) {
+      data['timeLimitMinutes'] = timeLimitMinutes!;
+    }
+    if (specialMode != null) {
+      data['specialMode'] = specialMode!.name;
+    }
+
+    return data;
   }
 
   factory QuizConfig.fromFirestore(Map<String, dynamic> data) {
@@ -176,34 +188,60 @@ class Question {
   }
 
   Map<String, dynamic> toFirestore() {
-    return {
+    final data = <String, dynamic>{
       'id': id,
       'questionText': questionText,
       'type': type.name,
-      'options': options,
       'correctIndex': correctIndex,
-      'correctAnswer': correctAnswerText, // Store for backward compat
-      'explanation': explanation,
-      'hint': hint,
       'marks': marks,
       'difficulty': difficulty.name,
-      'section': section,
     };
+
+    // Only include optional fields if they're not null
+    if (options != null) {
+      data['options'] = options!;
+    }
+    if (correctAnswer != null) {
+      data['correctAnswer'] = correctAnswer!;
+    }
+    if (explanation != null && explanation!.isNotEmpty) {
+      data['explanation'] = explanation!;
+    }
+    if (hint != null && hint!.isNotEmpty) {
+      data['hint'] = hint!;
+    }
+    if (section != null && section!.isNotEmpty) {
+      data['section'] = section!;
+    }
+
+    return data;
   }
 
   /// Firestore data WITHOUT the answer (for student-facing reads)
   Map<String, dynamic> toFirestoreWithoutAnswer() {
-    return {
+    final data = <String, dynamic>{
       'id': id,
       'questionText': questionText,
       'type': type.name,
-      'options': options,
-      'explanation': explanation,
-      'hint': hint,
       'marks': marks,
       'difficulty': difficulty.name,
-      'section': section,
     };
+
+    // Only include optional fields if they're not null
+    if (options != null) {
+      data['options'] = options!;
+    }
+    if (explanation != null && explanation!.isNotEmpty) {
+      data['explanation'] = explanation!;
+    }
+    if (hint != null && hint!.isNotEmpty) {
+      data['hint'] = hint!;
+    }
+    if (section != null && section!.isNotEmpty) {
+      data['section'] = section!;
+    }
+
+    return data;
   }
 
   factory Question.fromFirestore(Map<String, dynamic> data) {
@@ -294,30 +332,50 @@ class Quiz {
   bool get isClosed => status == QuizStatus.closed;
 
   Map<String, dynamic> toFirestore() {
-    return {
+    final data = <String, dynamic>{
       'id': id,
       'title': title,
       'description': description,
       'dentistUid': dentistUid,
       'config': config.toFirestore(),
       'questions': questions.map((q) => q.toFirestore()).toList(),
-      'noteFileUrl': noteFileUrl,
-      'noteFileName': noteFileName,
-      'lectureNoteIds': lectureNoteIds,
-      'additionalNotesUrl': additionalNotesUrl,
-      'additionalNotesFileName': additionalNotesFileName,
-      'sourceText': sourceText,
       'status': status.name,
       'createdAt': Timestamp.fromDate(createdAt),
-      'lastModified':
-          lastModified != null ? Timestamp.fromDate(lastModified!) : null,
       'totalMarks': totalMarks,
-      'sectionMarks': sectionMarks,
     };
+
+    // Only include optional fields if they're not null
+    if (noteFileUrl != null && noteFileUrl!.isNotEmpty) {
+      data['noteFileUrl'] = noteFileUrl!;
+    }
+    if (noteFileName != null && noteFileName!.isNotEmpty) {
+      data['noteFileName'] = noteFileName!;
+    }
+    if (lectureNoteIds != null && lectureNoteIds!.isNotEmpty) {
+      data['lectureNoteIds'] = lectureNoteIds!;
+    }
+    if (additionalNotesUrl != null && additionalNotesUrl!.isNotEmpty) {
+      data['additionalNotesUrl'] = additionalNotesUrl!;
+    }
+    if (additionalNotesFileName != null &&
+        additionalNotesFileName!.isNotEmpty) {
+      data['additionalNotesFileName'] = additionalNotesFileName!;
+    }
+    if (sourceText != null && sourceText!.isNotEmpty) {
+      data['sourceText'] = sourceText!;
+    }
+    if (lastModified != null) {
+      data['lastModified'] = Timestamp.fromDate(lastModified!);
+    }
+    if (sectionMarks != null && sectionMarks!.isNotEmpty) {
+      data['sectionMarks'] = sectionMarks!;
+    }
+
+    return data;
   }
 
   factory Quiz.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>? ?? <String, dynamic>{};
     return Quiz(
       id: doc.id,
       title: data['title'] ?? '',

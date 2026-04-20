@@ -5,8 +5,9 @@ import 'package:dental_care/core/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-// Supabase removed from project — using Firebase for storage
 import 'package:dental_care/service/firebase_service.dart';
+import 'package:dental_care/service/cache_service.dart';
+import 'package:dental_care/service/shared_prefs_helper.dart';
 import 'package:dental_care/provider/auth_provider.dart';
 import 'package:dental_care/providers/app_provider.dart';
 import 'package:dental_care/providers/patient_provider.dart';
@@ -31,11 +32,13 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // Initialize Firebase (auth, firestore)
-    await Firebase.initializeApp(
-      options: DefaultFirebaseOptions.currentPlatform,
-    );
-    debugPrint('✅ Firebase Initialized Successfully');
+    // Parallel initialization: run Firebase, SharedPrefs, and Cache Service in parallel
+    await Future.wait([
+      _initializeFirebase(),
+      _initializeSharedPreferences(),
+    ]);
+
+    debugPrint('✅ All services initialized successfully');
 
     // Run Firebase connection tests (in debug mode only)
     assert(() {
@@ -47,8 +50,7 @@ void main() async {
       return true;
     }());
   } catch (e) {
-    debugPrint('❌ Firebase Initialization Error: $e');
-    debugPrint('Please check your Firebase configuration.');
+    debugPrint('❌ Initialization Error: $e');
   }
 
   final firebaseService = FirebaseService();
@@ -77,6 +79,30 @@ void main() async {
       child: const MyApp(),
     ),
   );
+}
+
+/// Initialize Firebase in parallel
+Future<void> _initializeFirebase() async {
+  try {
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+    debugPrint('✅ Firebase Initialized');
+  } catch (e) {
+    debugPrint('❌ Firebase Init Error: $e');
+    rethrow;
+  }
+}
+
+/// Initialize SharedPreferences in parallel
+Future<void> _initializeSharedPreferences() async {
+  try {
+    await SharedPrefsHelper().init();
+    debugPrint('✅ SharedPreferences Initialized');
+  } catch (e) {
+    debugPrint('❌ SharedPrefs Init Error: $e');
+    rethrow;
+  }
 }
 
 class MyApp extends StatelessWidget {

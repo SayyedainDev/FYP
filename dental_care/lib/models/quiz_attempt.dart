@@ -124,13 +124,12 @@ class QuizAttempt {
   }
 
   Map<String, dynamic> toFirestore() {
-    return {
+    final data = <String, dynamic>{
       'quizId': quizId,
       'quizTitle': quizTitle,
       'studentId': studentId,
       'studentName': studentName,
       'startTime': Timestamp.fromDate(startTime),
-      'endTime': endTime != null ? Timestamp.fromDate(endTime!) : null,
       'score': score,
       'totalMarks': totalMarks,
       'isSubmitted': isSubmitted,
@@ -141,35 +140,57 @@ class QuizAttempt {
       'autoSubmitTriggered': autoSubmitTriggered,
       'questionOrder': questionOrder,
     };
+
+    // Only include optional fields if they're not null
+    if (endTime != null) {
+      data['endTime'] = Timestamp.fromDate(endTime!);
+    }
+
+    return data;
   }
 
   factory QuizAttempt.fromFirestore(DocumentSnapshot doc) {
-    final data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>?;
+    if (data == null) {
+      throw StateError('Document data is null for attempt ${doc.id}');
+    }
+
+    List<QuizResponse> parseResponses(dynamic responsesData) {
+      if (responsesData == null) return [];
+      if (responsesData is! List) return [];
+
+      return responsesData
+          .whereType<Map<String, dynamic>>() // Filter out nulls
+          .map((r) => QuizResponse.fromFirestore(r))
+          .toList();
+    }
+
+    List<int> parseQuestionOrder(dynamic orderData) {
+      if (orderData == null) return [];
+      if (orderData is! List) return [];
+
+      return orderData
+          .whereType<int>() // Only keep integers
+          .toList();
+    }
+
     return QuizAttempt(
       id: doc.id,
-      quizId: data['quizId'] ?? '',
-      quizTitle: data['quizTitle'] ?? '',
-      studentId: data['studentId'] ?? '',
-      studentName: data['studentName'] ?? '',
+      quizId: (data['quizId'] as String?) ?? '',
+      quizTitle: (data['quizTitle'] as String?) ?? '',
+      studentId: (data['studentId'] as String?) ?? '',
+      studentName: (data['studentName'] as String?) ?? '',
       startTime: (data['startTime'] as Timestamp?)?.toDate() ?? DateTime.now(),
       endTime: (data['endTime'] as Timestamp?)?.toDate(),
-      score: data['score'] ?? 0,
-      totalMarks: data['totalMarks'] ?? 0,
-      isSubmitted: data['isSubmitted'] ?? false,
-      responses: (data['responses'] as List<dynamic>?)
-              ?.map(
-                (r) => QuizResponse.fromFirestore(r as Map<String, dynamic>),
-              )
-              .toList() ??
-          [],
-      tabSwitchCount: data['tabSwitchCount'] ?? 0,
-      fullscreenExitCount: data['fullscreenExitCount'] ?? 0,
-      inactivityCount: data['inactivityCount'] ?? 0,
-      autoSubmitTriggered: data['autoSubmitTriggered'] ?? false,
-      questionOrder: (data['questionOrder'] as List<dynamic>?)
-              ?.map((e) => e as int)
-              .toList() ??
-          [],
+      score: (data['score'] as int?) ?? 0,
+      totalMarks: (data['totalMarks'] as int?) ?? 0,
+      isSubmitted: (data['isSubmitted'] as bool?) ?? false,
+      responses: parseResponses(data['responses']),
+      tabSwitchCount: (data['tabSwitchCount'] as int?) ?? 0,
+      fullscreenExitCount: (data['fullscreenExitCount'] as int?) ?? 0,
+      inactivityCount: (data['inactivityCount'] as int?) ?? 0,
+      autoSubmitTriggered: (data['autoSubmitTriggered'] as bool?) ?? false,
+      questionOrder: parseQuestionOrder(data['questionOrder']),
     );
   }
 

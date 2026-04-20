@@ -18,6 +18,7 @@ import 'student_quiz_list_screen.dart';
 import 'student_my_results_screen.dart';
 import 'student_analytics_screen.dart';
 import 'student_notifications_screen.dart';
+import 'student_assignments_screen.dart';
 import 'widgets/adaptive_nav_shell.dart';
 
 class MainLayout extends StatefulWidget {
@@ -36,6 +37,7 @@ class _MainLayoutState extends State<MainLayout>
     'Available Quizzes',
     'My Results',
     'My Analytics',
+    'Assignments',
     'Notifications',
     'Settings',
     'Profile',
@@ -115,6 +117,8 @@ class _MainLayoutState extends State<MainLayout>
         return const StudentAnalyticsScreen(key: ValueKey('My Analytics'));
       case 'Notifications':
         return const StudentNotificationsScreen(key: ValueKey('Notifications'));
+      case 'Assignments':
+        return const StudentAssignmentsScreen(key: ValueKey('Assignments'));
       default:
         return isStudent
             ? const StudentLMSDashboard(key: ValueKey('Student Overview'))
@@ -181,6 +185,11 @@ class _MainLayoutState extends State<MainLayout>
             const NavDestination(
               label: 'My Analytics',
               icon: Icons.analytics_outlined,
+            ),
+          if (isStudent)
+            const NavDestination(
+              label: 'Assignments',
+              icon: Icons.assignment_outlined,
             ),
           if (isStudent)
             const NavDestination(

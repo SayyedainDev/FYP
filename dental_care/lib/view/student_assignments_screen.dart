@@ -48,6 +48,12 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          labelStyle:
+              const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+          unselectedLabelStyle:
+              const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
           tabs: const [
             Tab(text: 'Pending'),
             Tab(text: 'Submitted'),

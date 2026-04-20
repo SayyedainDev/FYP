@@ -8,7 +8,6 @@ import '../../provider/auth_provider.dart';
 import '../../providers/prescription_provider.dart';
 import '../../utils/app_dialogs.dart';
 import '../../service/diagnosis_suggestion_service.dart';
-// removed unused imports
 
 class WritePrescriptionDialog extends StatefulWidget {
   final Patient patient;
@@ -61,32 +60,32 @@ class _WritePrescriptionDialogState extends State<WritePrescriptionDialog> {
       final message = prescription.toWhatsAppMessage();
       final encodedMessage = Uri.encodeComponent(message);
       final phone = prescription.patientPhone.replaceAll(RegExp(r'\D'), '');
-      
-      // Check if it's a valid phone number
+
       if (phone.isEmpty) {
-        AppDialogs.showErrorDialog(
-          context,
-          message: 'Patient phone number not found. Cannot share on WhatsApp.',
-        );
+        if (mounted) {
+          AppDialogs.showErrorDialog(
+            context,
+            message:
+                'Patient phone number not found. Cannot share on WhatsApp.',
+          );
+        }
         return;
       }
 
-      // Format: https://wa.me/[phone]?text=[message]
-      // Note: phone number should include country code (e.g., 923001234567 for Pakistan)
       final whatsappUrl = 'https://wa.me/$phone?text=$encodedMessage';
-      
+
       if (await canLaunchUrl(Uri.parse(whatsappUrl))) {
         await launchUrl(
           Uri.parse(whatsappUrl),
           mode: LaunchMode.externalApplication,
         );
-        
-        // Mark as shared in Firestore
-        final prescriptionProvider =
-            Provider.of<PrescriptionProvider>(context, listen: false);
-        await prescriptionProvider.markAsShared(prescription.id);
-        
+
+        // Mark as shared
         if (mounted) {
+          final prescriptionProvider =
+              Provider.of<PrescriptionProvider>(context, listen: false);
+          await prescriptionProvider.markAsShared(prescription.id);
+
           AppDialogs.showSuccessDialog(
             context,
             message: 'Prescription shared on WhatsApp!',
@@ -98,7 +97,8 @@ class _WritePrescriptionDialogState extends State<WritePrescriptionDialog> {
         if (mounted) {
           AppDialogs.showErrorDialog(
             context,
-            message: 'WhatsApp is not installed. Please install WhatsApp to share.',
+            message:
+                'WhatsApp is not installed. Please install WhatsApp to share.',
           );
         }
       }
@@ -149,8 +149,7 @@ class _WritePrescriptionDialogState extends State<WritePrescriptionDialog> {
     final prescriptionProvider =
         Provider.of<PrescriptionProvider>(context, listen: false);
     final userEmail = authProvider.user?.email ?? '';
-    final dentistName =
-        userEmail.split('@')[0]; // Use first part of email as name
+    final dentistName = userEmail.split('@')[0];
 
     try {
       setState(() => _isSubmitting = true);
@@ -173,18 +172,17 @@ class _WritePrescriptionDialogState extends State<WritePrescriptionDialog> {
       setState(() => _isSubmitting = false);
 
       if (result != null) {
-        AppDialogs.showSuccessDialog(
-          context,
-          message: 'Prescription saved successfully!',
-        ).then((_) {
-          if (mounted) {
-            _showWhatsAppShareDialog(result);
-          }
-        });
+        // Close the dialog and signal success to the caller so parent
+        // can refresh lists. Sharing can be done from the prescriptions
+        // list view if needed.
+        if (mounted) Navigator.pop(context, true);
       } else {
+        // Show error from provider
+        final errorMsg = prescriptionProvider.errorMessage ??
+            'Failed to save prescription. Please try again.';
         AppDialogs.showErrorDialog(
           context,
-          message: 'Failed to save prescription. Please try again.',
+          message: errorMsg,
         );
       }
     } catch (e) {
@@ -215,16 +213,81 @@ class _WritePrescriptionDialogState extends State<WritePrescriptionDialog> {
     });
   }
 
+  Widget _buildFieldLabel(String label, ColorScheme colorScheme,
+      {bool isRequired = false}) {
+    return Row(
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: colorScheme.onSurface,
+          ),
+        ),
+        if (isRequired) ...[
+          const SizedBox(width: 4),
+          Text(
+            '*',
+            style: TextStyle(color: colorScheme.error, fontSize: 14),
+          ),
+        ],
+      ],
+    );
+  }
+
+  InputDecoration _buildInputDecoration(
+      String hintText, ColorScheme colorScheme) {
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: TextStyle(
+        color: colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+        fontSize: 13,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: colorScheme.outlineVariant),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: colorScheme.outlineVariant, width: 1.5),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: colorScheme.primary, width: 2),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: colorScheme.error, width: 1.5),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: colorScheme.error, width: 2),
+      ),
+      filled: true,
+      fillColor: colorScheme.surfaceContainerLowest,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isSmallScreen = MediaQuery.of(context).size.width < 600;
 
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
       elevation: 0,
       backgroundColor: Colors.transparent,
+      insetPadding: EdgeInsets.symmetric(
+        horizontal: isSmallScreen ? 16 : 48,
+        vertical: 24,
+      ),
       child: Container(
-        constraints: const BoxConstraints(maxWidth: 700),
+        constraints: BoxConstraints(
+          maxWidth: 700,
+          maxHeight: MediaQuery.of(context).size.height * 0.9,
+        ),
         decoration: BoxDecoration(
           color: colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
@@ -241,7 +304,7 @@ class _WritePrescriptionDialogState extends State<WritePrescriptionDialog> {
           children: [
             // Header
             Container(
-              padding: const EdgeInsets.all(28),
+              padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
@@ -256,344 +319,360 @@ class _WritePrescriptionDialogState extends State<WritePrescriptionDialog> {
                   topRight: Radius.circular(20),
                 ),
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.description,
-                        color: colorScheme.onPrimary,
-                        size: 28,
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Write Prescription',
-                              style: TextStyle(
-                                color: colorScheme.onPrimary,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'For ${widget.patient.name}',
-                              style: TextStyle(
-                                color: colorScheme.onPrimary
-                                    .withValues(alpha: 0.9),
-                                fontSize: 14,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: colorScheme.onPrimary.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.description,
+                      color: colorScheme.onPrimary,
+                      size: 28,
+                    ),
                   ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Write Prescription',
+                          style: TextStyle(
+                            color: colorScheme.onPrimary,
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'For ${widget.patient.name}',
+                          style: TextStyle(
+                            color:
+                                colorScheme.onPrimary.withValues(alpha: 0.85),
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (!isSmallScreen)
+                    Tooltip(
+                      message: 'Fill all required fields and save',
+                      child: Icon(
+                        Icons.info_outline,
+                        color: colorScheme.onPrimary.withValues(alpha: 0.7),
+                        size: 20,
+                      ),
+                    ),
                 ],
               ),
             ),
             // Form Content
-            SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(28),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Diagnosis Field
-                      Text(
-                        'Diagnosis',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          TextFormField(
-                        controller: _diagnosisController,
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          hintText: 'Enter diagnosis details...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: colorScheme.outlineVariant,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: colorScheme.outlineVariant,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: colorScheme.primary,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: colorScheme.surfaceContainerLowest,
-                        ),
-                        validator: (value) {
-                          if (value?.isEmpty ?? true) {
-                            return 'Diagnosis is required';
-                          }
-                          return null;
-                        },
-                          ),
-                          const SizedBox(height: 8),
-                          if (_loadingSuggestions)
-                            const SizedBox(
-                              height: 32,
-                              child: Center(child: CircularProgressIndicator()),
-                            )
-                          else if (_diagnosisSuggestions.isNotEmpty)
-                            Container(
-                              constraints: const BoxConstraints(maxHeight: 180),
-                              decoration: BoxDecoration(
-                                color: Theme.of(context).colorScheme.surface,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .outlineVariant),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Form(
+                    key: _formKey,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Diagnosis
+                        _buildFieldLabel('Diagnosis', colorScheme,
+                            isRequired: true),
+                        const SizedBox(height: 8),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TextFormField(
+                              controller: _diagnosisController,
+                              maxLines: 3,
+                              textCapitalization: TextCapitalization.sentences,
+                              decoration: _buildInputDecoration(
+                                'Enter diagnosis details...',
+                                colorScheme,
                               ),
-                              child: ListView.builder(
-                                shrinkWrap: true,
-                                itemCount: _diagnosisSuggestions.length,
-                                itemBuilder: (ctx, i) {
-                                  final it = _diagnosisSuggestions[i];
-                                  final treatments = it.treatments;
-                                  final meds = it.medications;
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.surfaceVariant,
-                                        borderRadius: BorderRadius.circular(8),
+                              validator: (value) {
+                                if (value?.isEmpty ?? true) {
+                                  return 'Diagnosis is required';
+                                }
+                                if (value!.length < 3) {
+                                  return 'Diagnosis must be at least 3 characters';
+                                }
+                                return null;
+                              },
+                            ),
+                            const SizedBox(height: 12),
+                            if (_loadingSuggestions)
+                              Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 1.5,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                          colorScheme.primary,
+                                        ),
                                       ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Text(
+                                      'Loading suggestions...',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: colorScheme.onSurfaceVariant,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            else if (_diagnosisSuggestions.isNotEmpty)
+                              Container(
+                                constraints:
+                                    const BoxConstraints(maxHeight: 220),
+                                decoration: BoxDecoration(
+                                  color: colorScheme.surfaceContainerLowest,
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: colorScheme.outlineVariant,
+                                  ),
+                                ),
+                                child: ListView.separated(
+                                  shrinkWrap: true,
+                                  itemCount: _diagnosisSuggestions.length,
+                                  separatorBuilder: (_, __) => Divider(
+                                    height: 1,
+                                    color: colorScheme.outlineVariant
+                                        .withValues(alpha: 0.3),
+                                  ),
+                                  itemBuilder: (ctx, i) {
+                                    final it = _diagnosisSuggestions[i];
+                                    final treatments = it.treatments;
+                                    final meds = it.medications;
+                                    return Padding(
+                                      padding: const EdgeInsets.all(12),
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.spaceBetween,
                                             children: [
-                                              Expanded(child: Text(it.diagnosis, style: const TextStyle(fontWeight: FontWeight.w600))),
-                                              TextButton(
-                                                onPressed: () {
-                                                  // Only set diagnosis, do not auto-write prescription
-                                                  setState(() {
-                                                    _diagnosisController.text = it.diagnosis;
-                                                    _diagnosisSuggestions = [];
-                                                  });
-                                                },
-                                                child: const Text('Use diagnosis'),
+                                              Expanded(
+                                                child: Text(
+                                                  it.diagnosis,
+                                                  style: TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                    color:
+                                                        colorScheme.onSurface,
+                                                    fontSize: 13,
+                                                  ),
+                                                ),
+                                              ),
+                                              SizedBox(
+                                                height: 32,
+                                                child: TextButton.icon(
+                                                  onPressed: () {
+                                                    setState(() {
+                                                      _diagnosisController
+                                                          .text = it.diagnosis;
+                                                      _diagnosisSuggestions =
+                                                          [];
+                                                    });
+                                                  },
+                                                  icon: Icon(
+                                                    Icons.check,
+                                                    size: 16,
+                                                    color: colorScheme.primary,
+                                                  ),
+                                                  label: const Text(
+                                                    'Use',
+                                                    style:
+                                                        TextStyle(fontSize: 12),
+                                                  ),
+                                                  style: TextButton.styleFrom(
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 8),
+                                                  ),
+                                                ),
                                               ),
                                             ],
                                           ),
                                           if (treatments.isNotEmpty) ...[
                                             const SizedBox(height: 8),
-                                            const Text('Suggested treatments:'),
+                                            Text(
+                                              'Treatments:',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: colorScheme
+                                                    .onSurfaceVariant,
+                                              ),
+                                            ),
                                             const SizedBox(height: 6),
                                             Wrap(
-                                              spacing: 8,
-                                              runSpacing: 6,
-                                              children: treatments.map<Widget>((t) {
-                                                return ActionChip(
-                                                  label: Text(t.toString()),
-                                                  onPressed: () {
-                                                    final curr = _prescriptionController.text.trim();
-                                                    final addition = t.toString();
-                                                    _prescriptionController.text = curr.isEmpty ? addition : '$curr\n$addition';
-                                                    // keep suggestions available for more taps
-                                                  },
+                                              spacing: 6,
+                                              runSpacing: 4,
+                                              children:
+                                                  treatments.map<Widget>((t) {
+                                                return SizedBox(
+                                                  height: 28,
+                                                  child: ActionChip(
+                                                    visualDensity:
+                                                        VisualDensity.compact,
+                                                    label: Text(
+                                                      t.toString(),
+                                                      style: const TextStyle(
+                                                        fontSize: 11,
+                                                      ),
+                                                    ),
+                                                    onPressed: () {
+                                                      final curr =
+                                                          _prescriptionController
+                                                              .text
+                                                              .trim();
+                                                      final addition =
+                                                          t.toString();
+                                                      _prescriptionController
+                                                          .text = curr
+                                                              .isEmpty
+                                                          ? addition
+                                                          : '$curr\n$addition';
+                                                    },
+                                                  ),
                                                 );
                                               }).toList(),
                                             ),
                                           ],
                                           if (meds.isNotEmpty) ...[
                                             const SizedBox(height: 8),
-                                            const Text('Suggested medications:'),
+                                            Text(
+                                              'Medications:',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: colorScheme
+                                                    .onSurfaceVariant,
+                                              ),
+                                            ),
                                             const SizedBox(height: 6),
                                             Wrap(
-                                              spacing: 8,
-                                              runSpacing: 6,
+                                              spacing: 6,
+                                              runSpacing: 4,
                                               children: meds.map<Widget>((m) {
-                                                final medText = '${m['name']} ${m['dose']} ${m['freq']}';
-                                                return ActionChip(
-                                                  label: Text(medText),
-                                                  onPressed: () {
-                                                    final curr = _prescriptionController.text.trim();
-                                                    _prescriptionController.text = curr.isEmpty ? medText : '$curr\n$medText';
-                                                  },
+                                                final medText =
+                                                    '${m['name']} ${m['dose']} ${m['freq']}';
+                                                return SizedBox(
+                                                  height: 28,
+                                                  child: ActionChip(
+                                                    visualDensity:
+                                                        VisualDensity.compact,
+                                                    label: Text(
+                                                      medText,
+                                                      style: const TextStyle(
+                                                        fontSize: 11,
+                                                      ),
+                                                    ),
+                                                    onPressed: () {
+                                                      final curr =
+                                                          _prescriptionController
+                                                              .text
+                                                              .trim();
+                                                      _prescriptionController
+                                                          .text = curr
+                                                              .isEmpty
+                                                          ? medText
+                                                          : '$curr\n$medText';
+                                                    },
+                                                  ),
                                                 );
                                               }).toList(),
                                             ),
                                           ],
                                         ],
                                       ),
-                                    ),
-                                  );
-                                },
+                                    );
+                                  },
+                                ),
                               ),
-                            ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Prescription Field
-                      Text(
-                        'Prescription',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
+                          ],
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _prescriptionController,
-                        maxLines: 4,
-                        decoration: InputDecoration(
-                          hintText:
-                              'Enter medications, dosage, and frequency...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: colorScheme.outlineVariant,
-                            ),
+                        const SizedBox(height: 22),
+                        // Prescription
+                        _buildFieldLabel('Prescription', colorScheme,
+                            isRequired: true),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _prescriptionController,
+                          maxLines: 4,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: _buildInputDecoration(
+                            'Enter medications, dosage, and frequency...',
+                            colorScheme,
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: colorScheme.outlineVariant,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: colorScheme.primary,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: colorScheme.surfaceContainerLowest,
+                          validator: (value) {
+                            if (value?.isEmpty ?? true) {
+                              return 'Prescription is required';
+                            }
+                            if (value!.length < 5) {
+                              return 'Please provide detailed prescription';
+                            }
+                            return null;
+                          },
                         ),
-                        validator: (value) {
-                          if (value?.isEmpty ?? true) {
-                            return 'Prescription is required';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Follow-up Treatment Field
-                      Text(
-                        'Follow-up Treatment',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
+                        const SizedBox(height: 22),
+                        // Follow-up Treatment
+                        _buildFieldLabel('Follow-up Treatment', colorScheme,
+                            isRequired: true),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _followUpController,
+                          maxLines: 3,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: _buildInputDecoration(
+                            'Enter follow-up appointments and treatment plans...',
+                            colorScheme,
+                          ),
+                          validator: (value) {
+                            if (value?.isEmpty ?? true) {
+                              return 'Follow-up treatment is required';
+                            }
+                            return null;
+                          },
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _followUpController,
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          hintText:
-                              'Enter follow-up appointments and treatment plans...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: colorScheme.outlineVariant,
-                            ),
+                        const SizedBox(height: 22),
+                        // Precautions
+                        _buildFieldLabel('Precautions', colorScheme,
+                            isRequired: true),
+                        const SizedBox(height: 8),
+                        TextFormField(
+                          controller: _precautionsController,
+                          maxLines: 3,
+                          textCapitalization: TextCapitalization.sentences,
+                          decoration: _buildInputDecoration(
+                            'Enter precautions and care instructions...',
+                            colorScheme,
                           ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: colorScheme.outlineVariant,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: colorScheme.primary,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: colorScheme.surfaceContainerLowest,
+                          validator: (value) {
+                            if (value?.isEmpty ?? true) {
+                              return 'Precautions are required';
+                            }
+                            return null;
+                          },
                         ),
-                        validator: (value) {
-                          if (value?.isEmpty ?? true) {
-                            return 'Follow-up treatment is required';
-                          }
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 20),
-
-                      // Precautions Field
-                      Text(
-                        'Precautions',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: colorScheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _precautionsController,
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          hintText:
-                              'Enter precautions and care instructions...',
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: colorScheme.outlineVariant,
-                            ),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: colorScheme.outlineVariant,
-                            ),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: colorScheme.primary,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: colorScheme.surfaceContainerLowest,
-                        ),
-                        validator: (value) {
-                          if (value?.isEmpty ?? true) {
-                            return 'Precautions are required';
-                          }
-                          return null;
-                        },
-                      ),
-                    ],
+                        const SizedBox(height: 8),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -650,8 +729,10 @@ class _WritePrescriptionDialogState extends State<WritePrescriptionDialog> {
                             ),
                           )
                         : const Icon(Icons.save, size: 18),
-                    label:
-                        Text(_isSubmitting ? 'Saving...' : 'Save Prescription'),
+                    label: Text(
+                      _isSubmitting ? 'Saving...' : 'Save Prescription',
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: colorScheme.primary,
                       foregroundColor: colorScheme.onPrimary,
