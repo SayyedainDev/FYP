@@ -31,7 +31,7 @@ class GroqService {
       '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';
   static const String _baseUrl =
       'https://api.groq.com/openai/v1/chat/completions';
-  static const String _model = 'llama-3.3-70b-versatile';
+  static const String _model = 'llama-3.1-8b-instant';
   static const Duration _timeout = Duration(seconds: 30);
   static const int _maxSourceTextLength = 12000; // Groq context limit safety
 

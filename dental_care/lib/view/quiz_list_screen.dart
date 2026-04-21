@@ -1,5 +1,6 @@
 import 'quiz_detail_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 import '../models/quiz.dart';
 import '../provider/auth_provider.dart';
@@ -26,7 +27,18 @@ class _QuizListScreenState extends State<QuizListScreen> {
   @override
   void initState() {
     super.initState();
-    _loadQuizzes();
+    Future.wait([
+      _loadQuizzes(),
+      _pingBackend(),
+    ]);
+  }
+
+  Future<void> _pingBackend() async {
+    try {
+      await http
+          .get(Uri.parse('https://fyp-groq.onrender.com/health'))
+          .timeout(const Duration(seconds: 5));
+    } catch (_) {}
   }
 
   Future<void> _loadQuizzes() async {

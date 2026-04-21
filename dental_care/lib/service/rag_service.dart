@@ -17,39 +17,35 @@ class RagService {
   static const Duration _uploadTimeout = Duration(seconds: 120);
   static const Duration _generationTimeout = Duration(seconds: 90);
 
-  static Future<String> uploadPdfBytes(Uint8List bytes, String filename,
-      {void Function(double)? onProgress}) async {
-    // PDF Size validation (4)
+  static Future<String> uploadPdfBytes(
+      Uint8List bytes, String filename, {void Function(double)? onProgress}) async {
     if (bytes.length > 10 * 1024 * 1024) {
       throw GroqException('File too large. Please upload a PDF under 10MB.');
     } else if (bytes.length > 2 * 1024 * 1024) {
-      debugPrintSynchronously(
-          'Large file detected, compressing... (Warning only)');
+      debugPrintSynchronously('Large file detected, compressing... (Warning only)');
     }
 
+    final processedBytes = await compute(processPDF, bytes);
+
     Future<String> attemptUpload() async {
-      debugPrintSynchronously(
-          '📤 Uploading PDF bytes ($filename, ${bytes.length} bytes)...');
+      debugPrintSynchronously('📤 Uploading PDF bytes ($filename, ${processedBytes.length} bytes)...');
       final uri = Uri.parse('$baseUrl/api/upload-pdf');
       final request = http.MultipartRequest('POST', uri)
-        ..files.add(
-            http.MultipartFile.fromBytes('file', bytes, filename: filename));
+        ..files.add(http.MultipartFile.fromBytes('file', processedBytes, filename: filename));
 
-      // Progress Tracker
-      final http.StreamedResponse response =
-          await request.send().timeout(_uploadTimeout);
+      final http.StreamedResponse response = await request.send().timeout(_uploadTimeout);
       int total = response.contentLength ?? 0;
       int bytesReceived = 0;
       List<int> responseBytes = [];
-
+      
       await for (final chunk in response.stream.timeout(_uploadTimeout)) {
-        responseBytes.addAll(chunk);
-        if (total > 0 && onProgress != null) {
-          bytesReceived += chunk.length;
-          onProgress(bytesReceived / total);
-        }
+          responseBytes.addAll(chunk);
+          if (total > 0 && onProgress != null) {
+              bytesReceived += chunk.length;
+              onProgress(bytesReceived / total);
+          }
       }
-
+      
       final responseData = utf8.decode(responseBytes);
 
       if (response.statusCode == 200) {
@@ -69,52 +65,52 @@ class RagService {
       throw GroqException(errorMsg, statusCode: response.statusCode);
     }
 
-    try {
-      return await attemptUpload();
-    } on TimeoutException {
-      debugPrintSynchronously('⏱️ Upload timed out. Retrying once...');
+    int maxAttempts = 3;
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
       try {
         return await attemptUpload();
       } catch (e) {
-        throw GroqException(
-            'Upload is taking too long. Check your internet or try a smaller PDF.');
+        if (attempt == maxAttempts - 1) {
+          if (e is GroqException) rethrow;
+          throw GroqException('Upload failed after retries: ${e.toString()}');
+        }
+        int delaySeconds = pow(2, attempt).toInt() * 5;
+        debugPrintSynchronously('⏱️ Upload failed. Retrying in $delaySeconds s...');
+        await Future.delayed(Duration(seconds: delaySeconds));
       }
-    } catch (e) {
-      if (e is GroqException) rethrow;
-      throw GroqException('Server error. Please try again.');
     }
+    throw GroqException('Upload failed completely.');
   }
 
-  static Future<String> uploadPdfFile(File file,
-      {void Function(double)? onProgress}) async {
-    Future<String> attemptUpload() async {
-      final fileSize = await file.length();
-      // PDF Size validation (4)
-      if (fileSize > 10 * 1024 * 1024) {
-        throw GroqException('File too large. Please upload a PDF under 10MB.');
-      } else if (fileSize > 2 * 1024 * 1024) {
-        debugPrintSynchronously(
-            'Large file detected, compressing... (Warning only)');
-      }
+  static Future<String> uploadPdfFile(File file, {void Function(double)? onProgress}) async {
+    final rawBytes = await file.readAsBytes();
+    if (rawBytes.length > 10 * 1024 * 1024) {
+      throw GroqException('File too large. Please upload a PDF under 10MB.');
+    } else if (rawBytes.length > 2 * 1024 * 1024) {
+      debugPrintSynchronously('Large file detected, compressing... (Warning only)');
+    }
 
+    final processedBytes = await compute(processPDF, rawBytes);
+
+    Future<String> attemptUpload() async {
       debugPrintSynchronously('📤 Uploading PDF file (${file.path})...');
       final uri = Uri.parse('$baseUrl/api/upload-pdf');
       final request = http.MultipartRequest('POST', uri)
-        ..files.add(await http.MultipartFile.fromPath('file', file.path));
+        ..files.add(http.MultipartFile.fromBytes('file', processedBytes, filename: file.uri.pathSegments.last));
 
       final response = await request.send().timeout(_uploadTimeout);
-
+      
       int total = response.contentLength ?? 0;
       int bytesReceived = 0;
       List<int> responseBytes = [];
       await for (final chunk in response.stream.timeout(_uploadTimeout)) {
-        responseBytes.addAll(chunk);
-        if (total > 0 && onProgress != null) {
-          bytesReceived += chunk.length;
-          onProgress(bytesReceived / total);
-        }
+          responseBytes.addAll(chunk);
+          if (total > 0 && onProgress != null) {
+              bytesReceived += chunk.length;
+              onProgress(bytesReceived / total);
+          }
       }
-
+      
       final responseData = utf8.decode(responseBytes);
 
       if (response.statusCode == 200) {
@@ -132,20 +128,22 @@ class RagService {
       }
       throw GroqException(errorMsg, statusCode: response.statusCode);
     }
-
-    try {
-      return await attemptUpload();
-    } on TimeoutException {
+    
+    int maxAttempts = 3;
+    for (int attempt = 0; attempt < maxAttempts; attempt++) {
       try {
         return await attemptUpload();
       } catch (e) {
-        throw GroqException(
-            'Upload is taking too long. Check your internet or try a smaller PDF.');
+        if (attempt == maxAttempts - 1) {
+          if (e is GroqException) rethrow;
+          throw GroqException('Upload failed after retries: ${e.toString()}');
+        }
+        int delaySeconds = pow(2, attempt).toInt() * 5;
+        debugPrintSynchronously('⏱️ Upload failed. Retrying in $delaySeconds s...');
+        await Future.delayed(Duration(seconds: delaySeconds));
       }
-    } catch (e) {
-      if (e is GroqException) rethrow;
-      throw GroqException('Server error. Please try again.');
     }
+    throw GroqException('Upload failed completely.');
   }
 
   static Future<String> uploadRawText(String text) async {
