@@ -297,7 +297,7 @@ class _PatientDropdown extends StatelessWidget {
         labelText: 'Patient',
         prefixIcon: Icon(Icons.person),
       ),
-      initialValue: caseProvider.filterPatientId,
+      value: caseProvider.filterPatientId,
       items: [
         const DropdownMenuItem<String?>(
           value: null,
@@ -324,7 +324,7 @@ class _CaseStatusDropdown extends StatelessWidget {
         labelText: 'Case Status',
         prefixIcon: Icon(Icons.analytics),
       ),
-      initialValue: caseProvider.filterCaseStatus,
+      value: caseProvider.filterCaseStatus,
       items: const [
         DropdownMenuItem<String?>(value: null, child: Text('All Cases')),
         DropdownMenuItem<String?>(value: 'Uploaded', child: Text('Uploaded')),
@@ -1117,7 +1117,7 @@ class _CaseHistoryCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 16),
                     DropdownButtonFormField<String>(
-                      initialValue: selectedStatus,
+                      value: selectedStatus,
                       decoration: InputDecoration(
                         labelText: 'Status',
                         border: OutlineInputBorder(

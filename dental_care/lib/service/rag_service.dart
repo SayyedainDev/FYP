@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
@@ -8,6 +9,12 @@ import 'package:http/http.dart' as http;
 
 import '../models/quiz.dart';
 import 'groq_service.dart';
+
+Uint8List processPDF(Uint8List bytes) {
+  // Add any intensive PDF processing logic here if needed.
+  // Running in an async isolate via `compute` prevents UI blocks.
+  return bytes;
+}
 
 class RagService {
   static const String baseUrl = String.fromEnvironment(
@@ -37,7 +44,7 @@ class RagService {
       int total = response.contentLength ?? 0;
       int bytesReceived = 0;
       List<int> responseBytes = [];
-      
+
       await for (final chunk in response.stream.timeout(_uploadTimeout)) {
           responseBytes.addAll(chunk);
           if (total > 0 && onProgress != null) {
@@ -45,7 +52,7 @@ class RagService {
               onProgress(bytesReceived / total);
           }
       }
-      
+
       final responseData = utf8.decode(responseBytes);
 
       if (response.statusCode == 200) {
@@ -99,7 +106,7 @@ class RagService {
         ..files.add(http.MultipartFile.fromBytes('file', processedBytes, filename: file.uri.pathSegments.last));
 
       final response = await request.send().timeout(_uploadTimeout);
-      
+
       int total = response.contentLength ?? 0;
       int bytesReceived = 0;
       List<int> responseBytes = [];
@@ -110,7 +117,7 @@ class RagService {
               onProgress(bytesReceived / total);
           }
       }
-      
+
       final responseData = utf8.decode(responseBytes);
 
       if (response.statusCode == 200) {
@@ -128,7 +135,7 @@ class RagService {
       }
       throw GroqException(errorMsg, statusCode: response.statusCode);
     }
-    
+
     int maxAttempts = 3;
     for (int attempt = 0; attempt < maxAttempts; attempt++) {
       try {
