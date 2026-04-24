@@ -170,6 +170,51 @@ class _PatientListCardState extends State<PatientListCard> {
                               ),
                             ),
                             const Spacer(),
+                            // Health Status Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Color(
+                                  Patient.statusColors[widget.patient.healthStatus] ?? 0xFF2196F3,
+                                ).withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: Color(
+                                    Patient.statusColors[widget.patient.healthStatus] ?? 0xFF2196F3,
+                                  ).withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Color(
+                                        Patient.statusColors[widget.patient.healthStatus] ?? 0xFF2196F3,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    widget.patient.healthStatus,
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(
+                                        Patient.statusColors[widget.patient.healthStatus] ?? 0xFF2196F3,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 12),
                             // Contact info indicator
                             if (widget.patient.contactPhone.isNotEmpty)
                               Tooltip(

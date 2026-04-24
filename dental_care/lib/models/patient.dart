@@ -10,6 +10,7 @@ class Patient {
   final String contactEmail;
   final String notes;
   final DateTime createdAt;
+  final String healthStatus; // Healthy, Critical, At Risk, etc.
 
   Patient({
     required this.id,
@@ -21,6 +22,7 @@ class Patient {
     required this.contactEmail,
     required this.notes,
     required this.createdAt,
+    this.healthStatus = 'Healthy',
   });
 
   // Calculate age from date of birth
@@ -34,6 +36,14 @@ class Patient {
     return calculatedAge;
   }
 
+  // Get color for health status
+  static const Map<String, int> statusColors = {
+    'Healthy': 0xFF4CAF50, // Green
+    'At Risk': 0xFFFFC107, // Amber
+    'Critical': 0xFFF44336, // Red
+    'Pending': 0xFF2196F3, // Blue
+  };
+
   // Convert Patient to Firestore Map
   Map<String, dynamic> toFirestore() {
     return {
@@ -45,6 +55,7 @@ class Patient {
       'contactEmail': contactEmail,
       'notes': notes,
       'createdAt': Timestamp.fromDate(createdAt),
+      'healthStatus': healthStatus,
     };
   }
 
@@ -61,6 +72,7 @@ class Patient {
       contactEmail: data['contactEmail'] ?? '',
       notes: data['notes'] ?? '',
       createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      healthStatus: data['healthStatus'] ?? 'Healthy',
     );
   }
 
@@ -83,6 +95,7 @@ class Patient {
     String? contactEmail,
     String? notes,
     DateTime? createdAt,
+    String? healthStatus,
   }) {
     return Patient(
       id: id ?? this.id,
@@ -94,6 +107,7 @@ class Patient {
       contactEmail: contactEmail ?? this.contactEmail,
       notes: notes ?? this.notes,
       createdAt: createdAt ?? this.createdAt,
+      healthStatus: healthStatus ?? this.healthStatus,
     );
   }
 

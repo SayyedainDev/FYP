@@ -432,17 +432,43 @@ class _RegisterPageState extends State<RegisterPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: roleColor.withValues(alpha: 0.1),
-          ),
-          child: Icon(
-            _isStudent ? Icons.school_outlined : Icons.group_work_outlined,
-            color: roleColor,
-            size: 32,
-          ),
+        // Tooth Logo with role icon overlay
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            Container(
+              width: 90,
+              height: 90,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: colorScheme.primary.withValues(alpha: 0.1),
+              ),
+              child: Icon(
+                Icons.medical_services_outlined,
+                color: colorScheme.primary,
+                size: 50,
+              ),
+            ),
+            Positioned(
+              bottom: 0,
+              right: 0,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: roleColor,
+                  border: Border.all(color: colorScheme.surface, width: 3),
+                ),
+                child: Icon(
+                  _isStudent
+                      ? Icons.school_outlined
+                      : Icons.group_work_outlined,
+                  color: colorScheme.onPrimary,
+                  size: 20,
+                ),
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 16),
         Text(
