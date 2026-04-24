@@ -12,8 +12,8 @@
         "lib/firebase_options.dart": {
           "projectId": "fyp26-a22b9",
           "configurations": {
-            "android": "1:874657566001:android:03bdd215d0ca9816bf7410",
-            "web": "1:874657566001:web:304d91f64b9bcc1dbf7410"
+            "android": "1:874657566001:android:03abdd215d0ca9816bf7410",
+            "web": "1:874657566001:web:4ce2f9aeab7fea47bf7410"
           }
         }
       }
@@ -24,6 +24,7 @@
     "indexes": "firestore.indexes.json"
   },
   "hosting": {
+    "site": "fyp26-a22b9",
     "public": "build/web",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [{"source": "**", "destination": "/index.html"}]

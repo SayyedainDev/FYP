@@ -47,17 +47,17 @@ class DefaultFirebaseOptions {
   }
 
   static const FirebaseOptions web = FirebaseOptions(
-    apiKey: 'AIzaSyALWcGUf3afOs4K-Fr8Q8FAbBJ_gsjauiA',
-    appId: '1:874657566001:web:304d91f64b9bcc1dbf7410',
+    apiKey: 'AIzaSyBlaYaQVDSvQogAMfav4zD4O-Ql1iRTYZQ',
+    appId: '1:874657566001:web:4ce2f9aeab7fea47bf7410',
     messagingSenderId: '874657566001',
-    projectId: 'dental-care-6daf8',
-    authDomain: 'dental-care-6daf8.firebaseapp.com',
-    storageBucket: 'dental-care-6daf8.firebasestorage.app',
-    measurementId: 'G-CL604XBQ9S',
+    projectId: 'fyp26-a22b9',
+    authDomain: 'fyp26-a22b9.firebaseapp.com',
+    storageBucket: 'fyp26-a22b9.firebasestorage.app',
+    measurementId: 'G-8028XXWZW2',
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyB0uRs2j2AyGsr_vz6zm5hvJsmPvyt00uc',
+    apiKey: 'AIzaSyBlaYaQVDSvQogAMfav4zD4O-Ql1iRTYZQ',
     appId: '1:874657566001:android:03bdd215d0ca9816bf7410',
     messagingSenderId: '874657566001',
     projectId: 'fyp26-a22b9',
@@ -65,11 +65,11 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyBEbFRVoJmGD6piczD78bP4PDOJalwZA-s',
-    appId: '1:1073333582888:ios:0a8ce7f6aa97fb5043491d',
-    messagingSenderId: '1073333582888',
-    projectId: 'dental-care-6daf8',
-    storageBucket: 'dental-care-6daf8.appspot.com',
+    apiKey: 'AIzaSyBlaYaQVDSvQogAMfav4zD4O-Ql1iRTYZQ',
+    appId: '1:874657566001:ios:8d30ec18bb30a0c8bf7410',
+    messagingSenderId: '874657566001',
+    projectId: 'fyp26-a22b9',
+    storageBucket: 'fyp26-a22b9.firebasestorage.app',
     iosBundleId: 'com.example.dentalCare',
   );
 }

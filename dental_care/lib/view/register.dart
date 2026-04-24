@@ -16,6 +16,7 @@ import '../provider/auth_provider.dart';
 import '../utils/app_dialogs.dart';
 import '../utils/global_error_handler.dart';
 import '../widgets/loaders/app_loader.dart';
+import 'package:dental_care/view/student_lms_dashboard.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -152,12 +153,41 @@ class _RegisterPageState extends State<RegisterPage>
     try {
       await auth.register(form, password).timeout(const Duration(seconds: 30));
       if (!mounted) return;
-      Navigator.pushReplacement(
+
+      // Auto-login after registration
+      try {
+        await auth
+            .login(
+              _email.text.trim(),
+              password,
+              studentOnly: _isStudent,
+            )
+            .timeout(const Duration(seconds: 30));
+
+        if (!mounted) return;
+
+        // Navigate to appropriate dashboard based on role
+        if (_isStudent) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (_) => const StudentLMSDashboard(),
+            ),
+          );
+        } else {
+          Navigator.pushReplacementNamed(context, '/dashboard');
+        }
+      } catch (loginError) {
+        if (!mounted) return;
+        // If auto-login fails, go to email verification screen
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(
-              builder: (_) => const EmailVerificationScreen(),
-              settings:
-                  RouteSettings(arguments: {'email': _email.text.trim()})));
+            builder: (_) => const EmailVerificationScreen(),
+            settings: RouteSettings(arguments: {'email': _email.text.trim()}),
+          ),
+        );
+      }
     } on TimeoutException catch (_) {
       if (!mounted) return;
       AppDialogs.showErrorDialog(context,

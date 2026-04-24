@@ -36,23 +36,27 @@ class AuthProvider extends ChangeNotifier {
   // Get current Firebase user
   User? get user => FirebaseAuth.instance.currentUser;
 
-  // Get display name with Dr. title
+  // Get display name (full name for students, Dr. + name for dentists)
   String get displayName {
     if (_userName != null && _userName!.isNotEmpty) {
-      return 'Dr. $_userName';
+      if (_role.toLowerCase() == 'student') {
+        return _userName!;
+      } else {
+        return 'Dr. $_userName';
+      }
     }
-    return 'Dr. User';
+    return _role.toLowerCase() == 'student' ? 'Student User' : 'Dr. User';
   }
 
   // Get initials for avatar
   String get initials {
     if (_userName != null && _userName!.isNotEmpty) {
       final parts = _userName!.trim().split(' ');
-      if (parts.isEmpty) return 'Dr';
+      if (parts.isEmpty) return 'S';
       if (parts.length == 1) return parts[0][0].toUpperCase();
       return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
     }
-    return 'Dr';
+    return _role.toLowerCase() == 'student' ? 'S' : 'D';
   }
 
   AuthProvider(FirebaseService service)
@@ -207,7 +211,12 @@ class AuthProvider extends ChangeNotifier {
         batchCode: batchCode,
       );
       uid = id;
+      _userEmail = email;
+      _userName = '$firstName $lastName';
       _role = role;
+
+      // Fetch user data from Firestore to ensure consistency
+      await _fetchUserData(id);
     } finally {
       _loading = false;
       notifyListeners();

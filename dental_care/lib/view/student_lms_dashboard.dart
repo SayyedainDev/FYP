@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:dental_care/provider/auth_provider.dart';
 import 'package:dental_care/providers/quiz_attempt_provider.dart';
-import 'package:dental_care/providers/assignment_provider.dart';
 import 'package:dental_care/providers/quiz_provider.dart';
 // import removed: navigation provider not used
 import 'package:dental_care/core/theme/app_tokens.dart';
@@ -37,11 +36,9 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
     if (uid == null) return;
 
     final quizProv = context.read<QuizProvider>();
-    final assignProv = context.read<AssignmentProvider>();
     final attemptProv = context.read<QuizAttemptProvider>();
 
     await quizProv.fetchPublishedQuizzes();
-    await assignProv.fetchStudentAssignments(uid);
     await attemptProv.fetchStudentAttempts(uid);
   }
 
@@ -426,7 +423,6 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
   Widget _buildDashboardContent() {
     final auth = context.watch<AuthProvider>();
     final quizProvider = context.watch<QuizProvider>();
-    final assignmentProvider = context.watch<AssignmentProvider>();
     final attemptProvider = context.watch<QuizAttemptProvider>();
 
     // For students, show userName without "Dr." prefix
@@ -436,7 +432,6 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
     final attempts =
         attemptProvider.studentAttempts.where((a) => a.isSubmitted).toList();
     final quizzes = quizProvider.publishedQuizzes;
-    final assignments = assignmentProvider.assignments;
 
     // Calculate stats from actual quiz attempts
     double avgScore = 0;

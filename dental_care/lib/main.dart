@@ -6,7 +6,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:dental_care/service/firebase_service.dart';
-import 'package:dental_care/service/cache_service.dart';
 import 'package:dental_care/service/shared_prefs_helper.dart';
 import 'package:dental_care/provider/auth_provider.dart';
 import 'package:dental_care/providers/app_provider.dart';

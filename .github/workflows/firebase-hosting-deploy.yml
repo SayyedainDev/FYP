@@ -65,6 +65,6 @@ jobs:
           fi
       
       - name: Deploy to Firebase Hosting
-        run: npx firebase deploy --only hosting --project dental-care-6daf8
+        run: npx firebase deploy --only hosting --project fyp26-a22b9
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
