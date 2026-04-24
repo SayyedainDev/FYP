@@ -65,6 +65,4 @@ jobs:
           fi
       
       - name: Deploy to Firebase Hosting
-        run: npx firebase deploy --only hosting --project fyp26-a22b9
-        env:
-          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+        run: npx firebase deploy --only hosting --project fyp26-a22b9 --token "${{ secrets.FIREBASE_TOKEN }}"
