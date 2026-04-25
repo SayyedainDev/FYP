@@ -21,6 +21,8 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
   final _formKey = GlobalKey<FormState>();
   String? _selectedPatientId;
   final _notesController = TextEditingController();
+  final _toothNumberController = TextEditingController();
+  String? _selectedStatus = 'Uploaded';
 
   List<PlatformFile>? _pickedFiles;
   List<Uint8List>? _pickedBytes;
@@ -34,6 +36,7 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
   @override
   void dispose() {
     _notesController.dispose();
+    _toothNumberController.dispose();
     super.dispose();
   }
 
@@ -120,7 +123,8 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
               listen: false,
             ).getPatientById(_selectedPatientId!)?.name ??
             '',
-        toothNumber: '',
+        toothNumber: _toothNumberController.text.trim(),
+        caseStatus: _selectedStatus ?? 'Uploaded',
         imageFiles: payload,
         notes: _notesController.text.trim(),
       );
@@ -221,8 +225,9 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    DropdownButtonFormField<String>(
-                      value: _selectedPatientId,
+                    // Patient Dropdown
+                    DropdownButtonFormField<String?>(
+                      initialValue: _selectedPatientId,
                       decoration: const InputDecoration(labelText: 'Patient'),
                       items: patients
                           .map(
@@ -236,7 +241,45 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
                       validator: (v) =>
                           v == null ? 'Please select a patient' : null,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
+
+                    // Tooth Number and Status Row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: TextFormField(
+                            controller: _toothNumberController,
+                            decoration: const InputDecoration(
+                              labelText: 'Tooth Number (optional)',
+                              hintText: 'e.g., 16, Molar',
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: DropdownButtonFormField<String?>(
+                            initialValue: _selectedStatus,
+                            decoration: const InputDecoration(
+                                labelText: 'Initial Status'),
+                            items: <String>[
+                              'Uploaded',
+                              'Under Review',
+                              'Completed',
+                            ]
+                                .map(
+                                  (status) => DropdownMenuItem(
+                                    value: status,
+                                    child: Text(status),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (v) =>
+                                setState(() => _selectedStatus = v),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
 
                     // Image picker + preview
                     Row(

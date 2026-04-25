@@ -149,6 +149,7 @@ class CaseProvider extends ChangeNotifier {
     required List<dynamic>
         imageFiles, // List of image bytes (Uint8List for web) or File
     String notes = '',
+    String caseStatus = 'Uploaded',
   }) async {
     try {
       final uid = _uid;
@@ -189,6 +190,7 @@ class CaseProvider extends ChangeNotifier {
         patientName: patientName,
         toothNumber: toothNumber,
         caseDate: DateTime.now(),
+        caseStatus: caseStatus,
         imageUrls: imageUrls,
         analysisResults: initialAnalysisResults,
         notes: notes,

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 class NavigationProvider extends ChangeNotifier {
-  String _currentPage = 'Overview';
+  String _currentPage = 'Available Quizzes';
 
   String get currentPage => _currentPage;
 

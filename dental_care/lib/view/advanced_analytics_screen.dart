@@ -15,15 +15,13 @@ class AdvancedAnalyticsScreen extends StatefulWidget {
 
 class _AdvancedAnalyticsScreenState extends State<AdvancedAnalyticsScreen> {
   @override
-  void initState() {
-    super.initState();
-    Future.microtask(() {
-      final cases = context.read<CaseProvider>().cases;
-      context.read<AnalyticsProvider>().generateAnalytics(
-            'current_user_id', // Replace with actual user ID
-            cases,
-          );
-    });
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final cases = context.read<CaseProvider>().cases;
+    context.read<AnalyticsProvider>().generateAnalytics(
+          'current_user_id', // Replace with actual user ID
+          cases,
+        );
   }
 
   @override

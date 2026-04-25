@@ -298,7 +298,7 @@ class AuthProvider extends ChangeNotifier {
 
   /// Update user profile fields in Firestore and Firebase Auth displayName.
   Future<void> updateProfile(Map<String, dynamic> data) async {
-    final userId = currentUserId ?? this.uid;
+    final userId = currentUserId ?? uid;
     if (userId == null) throw Exception('No authenticated user');
 
     try {

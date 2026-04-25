@@ -127,6 +127,12 @@ class MainSidebar extends StatelessWidget {
                       isActive: navProvider.isActive('My Results'),
                       onTap: () => navProvider.setPage('My Results'),
                     ),
+                    _SidebarItem(
+                      icon: Icons.notifications_outlined,
+                      label: 'Notifications',
+                      isActive: navProvider.isActive('Notifications'),
+                      onTap: () => navProvider.setPage('Notifications'),
+                    ),
                   ],
 
                   // Common items

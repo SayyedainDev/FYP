@@ -39,7 +39,7 @@ class Prescription {
 
   // Convert Prescription to Firestore Map
   Map<String, dynamic> toFirestore() {
-    return {
+    final map = <String, dynamic>{
       'dentistUid': dentistUid,
       'dentistName': dentistName,
       'patientId': patientId,
@@ -53,9 +53,16 @@ class Prescription {
       'followUpTreatment': followUpTreatment,
       'precautions': precautions,
       'isShared': isShared,
-      'sharedAt': sharedAt != null ? Timestamp.fromDate(sharedAt!) : null,
       'status': status,
     };
+
+    // Firestore web can throw type errors when a field is explicitly null in
+    // dynamic maps; only send sharedAt when it exists.
+    if (sharedAt != null) {
+      map['sharedAt'] = Timestamp.fromDate(sharedAt!);
+    }
+
+    return map;
   }
 
   // Create Prescription from Firestore DocumentSnapshot

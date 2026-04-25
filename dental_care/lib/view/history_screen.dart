@@ -1,14 +1,11 @@
 import 'package:dental_care/models/case.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:pdf/widgets.dart' as pw;
-import 'package:printing/printing.dart';
 import '../providers/case_provider.dart';
-import 'widgets/create_case_dialog.dart';
 import '../providers/patient_provider.dart';
-import '../core/theme/app_semantic_colors.dart';
-import '../utils/app_dialogs.dart';
 import '../widgets/loaders/app_loader.dart';
+import 'widgets/create_case_dialog.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -18,11 +15,140 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
+  final TextEditingController _searchController = TextEditingController();
+
+  static const List<String> _statusOptions = [
+    'Uploaded',
+    'Under Review',
+    'Completed',
+  ];
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  String _patientNameFor(Case c, PatientProvider patientProvider) {
+    final fromProvider = patientProvider.getPatientById(c.patientId)?.name;
+    if (fromProvider != null && fromProvider.trim().isNotEmpty) {
+      return fromProvider.trim();
+    }
+    final fallback = c.patientName.trim();
+    if (fallback.isNotEmpty && !fallback.toLowerCase().startsWith('case ')) {
+      return fallback;
+    }
+    return 'Patient';
+  }
+
+  String _toothLabel(Case c) {
+    if (c.toothNumber.trim().isEmpty) return 'Not specified';
+    return c.toothNumber;
+  }
+
+  Color _statusColor(ColorScheme cs, String status) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return Colors.green.shade700;
+      case 'under review':
+        return Colors.orange.shade700;
+      default:
+        return cs.primary;
+    }
+  }
+
+  String _formatDate(DateTime dt) {
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+  }
+
+  Future<void> _pickStartDate(
+      BuildContext context, CaseProvider provider) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: provider.filterStartDate ?? now,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(now.year + 1),
+    );
+    if (picked != null) provider.setStartDateFilter(picked);
+  }
+
+  Future<void> _pickEndDate(BuildContext context, CaseProvider provider) async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: provider.filterEndDate ?? now,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(now.year + 1),
+    );
+    if (picked != null) {
+      provider.setEndDateFilter(
+        DateTime(picked.year, picked.month, picked.day, 23, 59, 59),
+      );
+    }
+  }
+
+  Future<void> _updateCaseStatus(
+    BuildContext context,
+    CaseProvider provider,
+    Case caseItem,
+    String nextStatus,
+  ) async {
+    final ok = await provider.updateCase(caseItem.id, {
+      'caseStatus': nextStatus,
+    });
+    if (!context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      SnackBar(
+        content: Text(ok
+            ? 'Case status updated to $nextStatus'
+            : 'Failed to update case status'),
+      ),
+    );
+  }
+
+  Future<void> _deleteCase(
+    BuildContext context,
+    CaseProvider provider,
+    Case caseItem,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete Case'),
+        content: const Text('This action cannot be undone. Delete this case?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    final ok = await provider.deleteCase(caseItem.id);
+    if (!context.mounted) return;
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.showSnackBar(
+      SnackBar(content: Text(ok ? 'Case deleted' : 'Failed to delete case')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final caseProvider = Provider.of<CaseProvider>(context);
     final patientProvider = Provider.of<PatientProvider>(context);
     final colorScheme = Theme.of(context).colorScheme;
+    final cases = caseProvider.cases;
+    final completedCount =
+        cases.where((c) => c.caseStatus.toLowerCase() == 'completed').length;
+    final reviewCount =
+        cases.where((c) => c.caseStatus.toLowerCase() == 'under review').length;
 
     return Scaffold(
       body: SingleChildScrollView(
@@ -30,30 +156,34 @@ class _HistoryScreenState extends State<HistoryScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header
+            // Header actions (title is provided by layout app bar)
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Scan History',
-                      style: Theme.of(context)
-                          .textTheme
-                          .headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Manage and review patient scans',
-                      style: Theme.of(context)
-                          .textTheme
-                          .bodySmall
-                          ?.copyWith(color: colorScheme.onSurfaceVariant),
-                    ),
-                  ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Track patient cases, monitor condition, and manage treatment workflow.',
+                        style: Theme.of(context)
+                            .textTheme
+                            .titleMedium
+                            ?.copyWith(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Use filters to quickly find affected teeth, diagnosis status, and treatment progress.',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: colorScheme.onSurfaceVariant),
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 12),
                 ElevatedButton.icon(
                   onPressed: () async {
                     await showDialog(
@@ -62,7 +192,31 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     );
                   },
                   icon: const Icon(Icons.add),
-                  label: const Text('New Case'),
+                  label: const Text('Add New Case'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Summary
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _SummaryCard(
+                  title: 'Total Cases',
+                  value: '${cases.length}',
+                  icon: Icons.folder_open,
+                ),
+                _SummaryCard(
+                  title: 'Under Review',
+                  value: '$reviewCount',
+                  icon: Icons.pending_actions,
+                ),
+                _SummaryCard(
+                  title: 'Completed',
+                  value: '$completedCount',
+                  icon: Icons.verified,
                 ),
               ],
             ),
@@ -72,12 +226,16 @@ class _HistoryScreenState extends State<HistoryScreen> {
             _FilterRow(
               caseProvider: caseProvider,
               patientProvider: patientProvider,
+              searchController: _searchController,
+              statusOptions: _statusOptions,
+              onPickStartDate: () => _pickStartDate(context, caseProvider),
+              onPickEndDate: () => _pickEndDate(context, caseProvider),
             ),
             const SizedBox(height: 24),
 
             // Content
             if (caseProvider.loading)
-              SizedBox(
+              const SizedBox(
                 height: 300,
                 child: Center(
                   child: AppLoader(
@@ -99,1474 +257,442 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     const SizedBox(width: 16),
                     Expanded(
                       child: Text(
-                        caseProvider.error!,
-                        style: TextStyle(color: colorScheme.error),
+                        'An error occurred while loading scan history. Please try again.',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyMedium
+                            ?.copyWith(color: colorScheme.onError),
                       ),
                     ),
                   ],
                 ),
               )
             else if (caseProvider.cases.isEmpty)
-              _EmptyState()
-            else
-              Column(
-                children: caseProvider.cases
-                    .map((c) => _CaseHistoryCard(caseItem: c))
-                    .toList(),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 60, horizontal: 24),
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: colorScheme.primaryContainer,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.image_not_supported_outlined,
-              size: 48,
-              color: colorScheme.primary,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            'No scans yet',
-            style: Theme.of(context)
-                .textTheme
-                .titleMedium
-                ?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Create a new case to get started',
-            style: TextStyle(color: colorScheme.onSurfaceVariant),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FilterRow extends StatefulWidget {
-  const _FilterRow({required this.caseProvider, required this.patientProvider});
-
-  final CaseProvider caseProvider;
-  final PatientProvider patientProvider;
-
-  @override
-  State<_FilterRow> createState() => _FilterRowState();
-}
-
-class _FilterRowState extends State<_FilterRow> {
-  late TextEditingController _searchController;
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController =
-        TextEditingController(text: widget.caseProvider.searchQuery);
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: colorScheme.outlineVariant),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Primary filters
-          Row(
-            children: [
-              Expanded(
-                child: _PatientDropdown(
-                  caseProvider: widget.caseProvider,
-                  patientProvider: widget.patientProvider,
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: colorScheme.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: colorScheme.outlineVariant),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _CaseStatusDropdown(caseProvider: widget.caseProvider),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Date range filters
-          Row(
-            children: [
-              Expanded(
-                child: _DatePicker(
-                  label: 'Start Date',
-                  date: widget.caseProvider.filterStartDate,
-                  onChanged: widget.caseProvider.setStartDateFilter,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _DatePicker(
-                  label: 'End Date',
-                  date: widget.caseProvider.filterEndDate,
-                  onChanged: widget.caseProvider.setEndDateFilter,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-
-          // Search and clear
-          Row(
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: _searchController,
-                  decoration: InputDecoration(
-                    labelText: 'Search by patient, title, or tooth number',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
-                    ),
-                  ),
-                  onChanged: widget.caseProvider.setSearchQuery,
-                ),
-              ),
-              const SizedBox(width: 12),
-              FilledButton.tonal(
-                onPressed: () {
-                  _searchController.clear();
-                  widget.caseProvider.clearFilters();
-                },
-                child: const Row(
+                child: Column(
                   children: [
-                    Icon(Icons.clear, size: 18),
-                    SizedBox(width: 8),
-                    Text('Clear'),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PatientDropdown extends StatelessWidget {
-  const _PatientDropdown({
-    required this.caseProvider,
-    required this.patientProvider,
-  });
-
-  final CaseProvider caseProvider;
-  final PatientProvider patientProvider;
-
-  @override
-  Widget build(BuildContext context) {
-    final patients = patientProvider.patients;
-    return DropdownButtonFormField<String?>(
-      decoration: const InputDecoration(
-        labelText: 'Patient',
-        prefixIcon: Icon(Icons.person),
-      ),
-      value: caseProvider.filterPatientId,
-      items: [
-        const DropdownMenuItem<String?>(
-          value: null,
-          child: Text('All Patients'),
-        ),
-        ...patients.map(
-          (p) => DropdownMenuItem<String?>(value: p.id, child: Text(p.name)),
-        ),
-      ],
-      onChanged: caseProvider.setPatientFilter,
-    );
-  }
-}
-
-class _CaseStatusDropdown extends StatelessWidget {
-  const _CaseStatusDropdown({required this.caseProvider});
-
-  final CaseProvider caseProvider;
-
-  @override
-  Widget build(BuildContext context) {
-    return DropdownButtonFormField<String?>(
-      decoration: const InputDecoration(
-        labelText: 'Case Status',
-        prefixIcon: Icon(Icons.analytics),
-      ),
-      value: caseProvider.filterCaseStatus,
-      items: const [
-        DropdownMenuItem<String?>(value: null, child: Text('All Cases')),
-        DropdownMenuItem<String?>(value: 'Uploaded', child: Text('Uploaded')),
-        DropdownMenuItem<String?>(
-          value: 'Under Review',
-          child: Text('Under Review'),
-        ),
-        DropdownMenuItem<String?>(value: 'Completed', child: Text('Completed')),
-      ],
-      onChanged: caseProvider.setCaseStatusFilter,
-    );
-  }
-}
-
-class _DatePicker extends StatelessWidget {
-  const _DatePicker({
-    required this.label,
-    required this.date,
-    required this.onChanged,
-  });
-
-  final String label;
-  final DateTime? date;
-  final ValueChanged<DateTime?> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return InkWell(
-      onTap: () async {
-        final picked = await showDatePicker(
-          context: context,
-          initialDate: date ?? DateTime.now(),
-          firstDate: DateTime(2020),
-          lastDate: DateTime.now(),
-        );
-        if (picked != null) {
-          onChanged(picked);
-        }
-      },
-      child: InputDecorator(
-        decoration: InputDecoration(
-          labelText: label,
-          prefixIcon: const Icon(Icons.calendar_today),
-          suffixIcon: date != null
-              ? IconButton(
-                  icon: const Icon(Icons.clear),
-                  onPressed: () => onChanged(null),
-                )
-              : null,
-        ),
-        child: Text(
-          date != null ? _formatDate(date!) : 'Select date',
-          style: TextStyle(
-            color: date != null
-                ? colorScheme.onSurface
-                : colorScheme.onSurfaceVariant,
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
-  }
-}
-
-class _CaseHistoryCard extends StatelessWidget {
-  const _CaseHistoryCard({required this.caseItem});
-
-  final Case caseItem;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
-    final isAnalysisComplete = caseItem.isAnalysisComplete;
-    final hasCavity = caseItem.hasCavity;
-    final status = caseItem.caseStatus;
-
-    // Status styling
-    Color statusColor;
-    Color statusBg;
-    if (status == 'Completed') {
-      statusColor = semanticColors?.success ?? Colors.green;
-      statusBg =
-          (semanticColors?.success ?? Colors.green).withValues(alpha: 0.12);
-    } else if (status == 'Under Review') {
-      statusColor = semanticColors?.info ?? colorScheme.primary;
-      statusBg =
-          (semanticColors?.info ?? colorScheme.primary).withValues(alpha: 0.12);
-    } else if (status == 'Archived') {
-      statusColor = colorScheme.onSurfaceVariant;
-      statusBg = colorScheme.surfaceContainerHighest;
-    } else {
-      statusColor = semanticColors?.warning ?? Colors.orange;
-      statusBg =
-          (semanticColors?.warning ?? Colors.orange).withValues(alpha: 0.12);
-    }
-
-    // Analysis styling
-    final analysisLabel = !isAnalysisComplete
-        ? 'Pending Analysis'
-        : hasCavity
-            ? 'Cavity Detected'
-            : 'Healthy';
-    final analysisColor = !isAnalysisComplete
-        ? semanticColors?.info ?? colorScheme.primary
-        : hasCavity
-            ? semanticColors?.danger ?? Colors.red
-            : semanticColors?.success ?? Colors.green;
-    final analysisBg = !isAnalysisComplete
-        ? (semanticColors?.info ?? colorScheme.primary).withValues(alpha: 0.12)
-        : hasCavity
-            ? (semanticColors?.danger ?? Colors.red).withValues(alpha: 0.12)
-            : (semanticColors?.success ?? Colors.green).withValues(alpha: 0.12);
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: BorderSide(color: colorScheme.outlineVariant),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Status icon
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: analysisBg,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                !isAnalysisComplete
-                    ? Icons.hourglass_empty
-                    : hasCavity
-                        ? Icons.warning_amber_rounded
-                        : Icons.check_circle_rounded,
-                color: analysisColor,
-                size: 28,
-              ),
-            ),
-            const SizedBox(width: 20),
-
-            // Content
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title
-                  if (caseItem.caseTitle.isNotEmpty)
+                    Icon(Icons.history_toggle_off,
+                        size: 48, color: colorScheme.onSurfaceVariant),
+                    const SizedBox(height: 10),
                     Text(
-                      caseItem.caseTitle,
+                      'No scan history found',
                       style: Theme.of(context)
                           .textTheme
                           .titleMedium
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                          ?.copyWith(fontWeight: FontWeight.w700),
                     ),
-
-                  const SizedBox(height: 8),
-
-                  // Chips
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      Chip(
-                        label: Text(
-                          status,
-                          style: TextStyle(
-                            color: statusColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        backgroundColor: statusBg,
-                        side: BorderSide.none,
-                        padding: EdgeInsets.zero,
-                      ),
-                      Chip(
-                        label: Text(
-                          analysisLabel,
-                          style: TextStyle(
-                            color: analysisColor,
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        backgroundColor: analysisBg,
-                        side: BorderSide.none,
-                        padding: EdgeInsets.zero,
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Metadata
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.calendar_today,
-                        size: 14,
-                        color: colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        _formatDateTime(caseItem.caseDate),
-                        style: TextStyle(
-                          color: colorScheme.onSurfaceVariant,
-                          fontSize: 12,
-                        ),
-                      ),
-                      if (caseItem.toothNumber.isNotEmpty) ...[
-                        const SizedBox(width: 16),
-                        Icon(
-                          Icons.medical_services_outlined,
-                          size: 14,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          'Tooth #${caseItem.toothNumber}',
-                          style: TextStyle(
-                            color: colorScheme.onSurfaceVariant,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                      if (caseItem.imageUrls.isNotEmpty) ...[
-                        const SizedBox(width: 16),
-                        Icon(
-                          Icons.image_outlined,
-                          size: 14,
-                          color: colorScheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 6),
-                        Text(
-                          '${caseItem.imageUrls.length} image(s)',
-                          style: TextStyle(
-                            color: colorScheme.onSurfaceVariant,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-
-                  // Notes preview
-                  if (caseItem.notes.isNotEmpty) ...[
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 6),
                     Text(
-                      caseItem.notes,
-                      style: TextStyle(
-                        color: colorScheme.onSurfaceVariant,
-                        fontSize: 13,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-
-            // Action buttons
-            SizedBox(
-              width: 180,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  Tooltip(
-                    message: 'View Details',
-                    child: IconButton(
-                      icon: Icon(Icons.info_outline,
-                          color: colorScheme.primary, size: 20),
-                      onPressed: () => _showCaseDetails(context, caseItem),
-                      constraints:
-                          const BoxConstraints(minWidth: 40, minHeight: 40),
-                      padding: EdgeInsets.zero,
-                    ),
-                  ),
-                  if (caseItem.imageUrls.isNotEmpty)
-                    Tooltip(
-                      message: 'View Images',
-                      child: IconButton(
-                        icon: Icon(Icons.image_outlined,
-                            color: colorScheme.primary, size: 20),
-                        onPressed: () => _showCaseImages(context, caseItem),
-                        constraints:
-                            const BoxConstraints(minWidth: 40, minHeight: 40),
-                        padding: EdgeInsets.zero,
-                      ),
-                    ),
-                  Tooltip(
-                    message: 'Download Report',
-                    child: IconButton(
-                      icon: Icon(Icons.download_outlined,
-                          color: colorScheme.primary, size: 20),
-                      onPressed: () => _downloadReport(context, caseItem),
-                      constraints:
-                          const BoxConstraints(minWidth: 40, minHeight: 40),
-                      padding: EdgeInsets.zero,
-                    ),
-                  ),
-                  PopupMenuButton<String>(
-                    icon: Icon(Icons.more_vert,
-                        color: colorScheme.onSurfaceVariant, size: 20),
-                    constraints:
-                        const BoxConstraints(minWidth: 40, minHeight: 40),
-                    padding: EdgeInsets.zero,
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: 'edit',
-                        child: Row(
-                          children: [
-                            Icon(Icons.edit_outlined,
-                                size: 18, color: colorScheme.primary),
-                            const SizedBox(width: 12),
-                            const Text('Edit'),
-                          ],
-                        ),
-                      ),
-                      if (caseItem.caseStatus != 'Archived')
-                        PopupMenuItem(
-                          value: 'archive',
-                          child: Row(
-                            children: [
-                              Icon(Icons.archive_outlined,
-                                  size: 18,
-                                  color:
-                                      semanticColors?.warning ?? Colors.orange),
-                              const SizedBox(width: 12),
-                              const Text('Archive'),
-                            ],
-                          ),
-                        ),
-                      if (caseItem.caseStatus == 'Archived')
-                        PopupMenuItem(
-                          value: 'unarchive',
-                          child: Row(
-                            children: [
-                              Icon(Icons.unarchive_outlined,
-                                  size: 18,
-                                  color: colorScheme.primary),
-                              const SizedBox(width: 12),
-                              const Text('Unarchive'),
-                            ],
-                          ),
-                        ),
-                      PopupMenuItem(
-                        value: 'delete',
-                        child: Row(
-                          children: [
-                            Icon(Icons.delete_outlined,
-                                size: 18, color: colorScheme.error),
-                            const SizedBox(width: 12),
-                            Text('Delete',
-                                style: TextStyle(color: colorScheme.error)),
-                          ],
-                        ),
-                      ),
-                    ],
-                    onSelected: (value) {
-                      switch (value) {
-                        case 'edit':
-                          _editCase(context, caseItem);
-                          break;
-                        case 'archive':
-                          _archiveCase(context, caseItem);
-                          break;
-                        case 'unarchive':
-                          _unarchiveCase(context, caseItem);
-                          break;
-                        case 'delete':
-                          _deleteCase(context, caseItem);
-                          break;
-                      }
-                    },
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showCaseDetails(BuildContext context, Case caseItem) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 600),
-          padding: const EdgeInsets.all(28),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Case Information',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Content
-              SingleChildScrollView(
-                child: Column(
-                  children: [
-                    // Case Title
-                    if (caseItem.caseTitle.isNotEmpty)
-                      _DetailItemRow(
-                        icon: Icons.info_outlined,
-                        label: 'Case Title',
-                        value: caseItem.caseTitle,
-                      ),
-                    if (caseItem.caseTitle.isNotEmpty)
-                      const SizedBox(height: 16),
-                    
-                    // Case Status
-                    _DetailItemRow(
-                      icon: Icons.assignment_outlined,
-                      label: 'Case Status',
-                      value: caseItem.caseStatus,
-                      valueColor: _getStatusColor(caseItem.caseStatus, colorScheme),
-                    ),
-                    const SizedBox(height: 12),
-                    
-                    // Patient Name
-                    _DetailItemRow(
-                      icon: Icons.person_outlined,
-                      label: 'Patient',
-                      value: caseItem.patientName,
-                    ),
-                    const SizedBox(height: 12),
-                    
-                    // Date
-                    _DetailItemRow(
-                      icon: Icons.calendar_today,
-                      label: 'Date',
-                      value: _formatDateTime(caseItem.caseDate),
-                    ),
-                    const SizedBox(height: 12),
-                    
-                    // Tooth Number
-                    if (caseItem.toothNumber.isNotEmpty)
-                      _DetailItemRow(
-                        icon: Icons.medical_services_outlined,
-                        label: 'Tooth',
-                        value: 'FDI #${caseItem.toothNumber}',
-                      ),
-                    if (caseItem.toothNumber.isNotEmpty)
-                      const SizedBox(height: 12),
-                    
-                    // Images Count
-                    if (caseItem.imageUrls.isNotEmpty)
-                      _DetailItemRow(
-                        icon: Icons.image_outlined,
-                        label: 'Images',
-                        value: '${caseItem.imageUrls.length} X-ray(s)',
-                      ),
-                    if (caseItem.imageUrls.isNotEmpty)
-                      const SizedBox(height: 12),
-                    
-                    // Analysis Status
-                    _DetailItemRow(
-                      icon: Icons.analytics_outlined,
-                      label: 'Analysis Status',
-                      value: caseItem.analysisStatus,
-                      valueColor: _getAnalysisStatusColor(caseItem, colorScheme),
-                    ),
-                    const SizedBox(height: 12),
-                    
-                    // Analysis Result
-                    if (caseItem.isAnalysisComplete)
-                      _DetailItemRow(
-                        icon: caseItem.hasCavity
-                            ? Icons.warning_amber_rounded
-                            : Icons.check_circle_rounded,
-                        label: 'Result',
-                        value: caseItem.hasCavity
-                            ? 'Cavity Detected'
-                            : 'Healthy/No Cavity',
-                        valueColor: caseItem.hasCavity
-                            ? colorScheme.error
-                            : colorScheme.primary,
-                      ),
-                    if (caseItem.isAnalysisComplete)
-                      const SizedBox(height: 12),
-                    
-                    // Confidence Score (if available)
-                    if (caseItem.analysisResults.containsKey('confidence'))
-                      _DetailItemRow(
-                        icon: Icons.verified_outlined,
-                        label: 'Confidence',
-                        value: '${(caseItem.analysisResults['confidence'] as num?)?.toStringAsFixed(1) ?? 'N/A'}%',
-                      ),
-                    if (caseItem.analysisResults.containsKey('confidence'))
-                      const SizedBox(height: 12),
-                    
-                    // Notes
-                    if (caseItem.notes.isNotEmpty) ...[
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.note_outlined,
-                                  size: 18,
-                                  color: colorScheme.onSurfaceVariant),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Notes',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: colorScheme.onSurface,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: colorScheme.surfaceContainerLowest,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              caseItem.notes,
-                              style: TextStyle(
-                                color: colorScheme.onSurfaceVariant,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                    
-                    // Review Notes
-                    if (caseItem.reviewNotes.isNotEmpty) ...[
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(Icons.comment_outlined,
-                                  size: 18,
-                                  color: colorScheme.onSurfaceVariant),
-                              const SizedBox(width: 12),
-                              Text(
-                                'Review Notes',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w600,
-                                  color: colorScheme.onSurface,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 8),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: colorScheme.primary.withValues(alpha: 0.05),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(
-                                color: colorScheme.primary.withValues(alpha: 0.2),
-                              ),
-                            ),
-                            child: Text(
-                              caseItem.reviewNotes,
-                              style: TextStyle(
-                                color: colorScheme.onSurfaceVariant,
-                                fontSize: 13,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                    ],
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Action buttons
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Close'),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Color _getStatusColor(String status, ColorScheme colorScheme) {
-    switch (status) {
-      case 'Completed':
-        return Colors.green;
-      case 'Under Review':
-        return colorScheme.primary;
-      case 'Archived':
-        return colorScheme.onSurfaceVariant;
-      default:
-        return Colors.orange;
-    }
-  }
-
-  Color _getAnalysisStatusColor(Case caseItem, ColorScheme colorScheme) {
-    if (!caseItem.isAnalysisComplete) {
-      return colorScheme.primary;
-    }
-    return caseItem.hasCavity ? colorScheme.error : Colors.green;
-  }
-
-  void _showCaseImages(BuildContext context, Case caseItem) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 700, maxHeight: 600),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          child: Column(
-            children: [
-              // Header
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'X-ray Images',
+                      'Try changing filters or add a new case.',
                       style: Theme.of(context)
                           .textTheme
-                          .titleLarge
-                          ?.copyWith(fontWeight: FontWeight.bold),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close),
-                      onPressed: () => Navigator.pop(context),
+                          .bodyMedium
+                          ?.copyWith(color: colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
-              ),
-              const Divider(),
+              )
+            else
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: caseProvider.cases.length,
+                itemBuilder: (context, index) {
+                  final caseItem = caseProvider.cases[index];
+                  final patientName =
+                      _patientNameFor(caseItem, patientProvider);
+                  final condition = caseItem.isAnalysisComplete
+                      ? caseItem.cavityStatus
+                      : caseItem.analysisStatus;
+                  final statusColor =
+                      _statusColor(colorScheme, caseItem.caseStatus);
 
-              // Images grid
-              Expanded(
-                child: GridView.builder(
-                  padding: const EdgeInsets.all(20),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                  ),
-                  itemCount: caseItem.imageUrls.length,
-                  itemBuilder: (context, index) {
-                    return GestureDetector(
-                      onTap: () => _showFullScreenImage(
-                          context, caseItem.imageUrls[index]),
-                      child: Card(
-                        clipBehavior: Clip.antiAlias,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Container(
-                          color: Theme.of(context).colorScheme.surfaceContainer,
-                          child: Stack(
-                            fit: StackFit.expand,
-                            children: [
-                              Image.network(
-                                caseItem.imageUrls[index],
-                                fit: BoxFit.cover,
-                                loadingBuilder:
-                                    (context, child, loadingProgress) {
-                                  if (loadingProgress == null) return child;
-                                  return Center(
-                                    child: AppLoader(size: 32),
-                                  );
-                                },
-                                errorBuilder: (context, error, stackTrace) {
-                                  return Center(
-                                    child: Icon(
-                                      Icons.image_not_supported_outlined,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 14),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: colorScheme.outlineVariant),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    patientName,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .titleMedium
+                                        ?.copyWith(fontWeight: FontWeight.w700),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    'Date: ${_formatDate(caseItem.caseDate)}',
+                                    style: TextStyle(
+                                      color: colorScheme.onSurfaceVariant,
+                                      fontSize: 13,
                                     ),
-                                  );
-                                },
+                                  ),
+                                ],
                               ),
-                              Positioned(
-                                bottom: 0,
-                                right: 0,
-                                child: Container(
-                                  padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black.withValues(alpha: 0.7),
-                                    borderRadius: const BorderRadius.only(
-                                      topLeft: Radius.circular(8),
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.zoom_in,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
+                            ),
+                            PopupMenuButton<String>(
+                              tooltip: 'Case actions',
+                              onSelected: (value) async {
+                                if (value == 'copy_id') {
+                                  await Clipboard.setData(
+                                    ClipboardData(text: caseItem.id),
+                                  );
+                                  if (!context.mounted) return;
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content: Text('Case ID copied')),
+                                  );
+                                } else if (value == 'uploaded') {
+                                  await _updateCaseStatus(context, caseProvider,
+                                      caseItem, 'Uploaded');
+                                } else if (value == 'review') {
+                                  await _updateCaseStatus(context, caseProvider,
+                                      caseItem, 'Under Review');
+                                } else if (value == 'completed') {
+                                  await _updateCaseStatus(context, caseProvider,
+                                      caseItem, 'Completed');
+                                } else if (value == 'delete') {
+                                  await _deleteCase(
+                                      context, caseProvider, caseItem);
+                                }
+                              },
+                              itemBuilder: (context) => const [
+                                PopupMenuItem(
+                                  value: 'uploaded',
+                                  child: Text('Mark as Uploaded'),
                                 ),
-                              ),
-                            ],
-                          ),
+                                PopupMenuItem(
+                                  value: 'review',
+                                  child: Text('Mark as Under Review'),
+                                ),
+                                PopupMenuItem(
+                                  value: 'completed',
+                                  child: Text('Mark as Completed'),
+                                ),
+                                PopupMenuDivider(),
+                                PopupMenuItem(
+                                  value: 'copy_id',
+                                  child: Text('Copy Case ID'),
+                                ),
+                                PopupMenuItem(
+                                  value: 'delete',
+                                  child: Text('Delete Case'),
+                                ),
+                              ],
+                            ),
+                          ],
                         ),
-                      ),
-                    );
-                  },
-                ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _CaseChip(
+                              icon: Icons.tag,
+                              label: 'Tooth ${_toothLabel(caseItem)}',
+                              background: colorScheme.secondaryContainer,
+                              foreground: colorScheme.onSecondaryContainer,
+                            ),
+                            _CaseChip(
+                              icon: Icons.medical_information,
+                              label: 'Condition: $condition',
+                              background: colorScheme.tertiaryContainer,
+                              foreground: colorScheme.onTertiaryContainer,
+                            ),
+                            _CaseChip(
+                              icon: Icons.flag,
+                              label: 'Status: ${caseItem.caseStatus}',
+                              background: statusColor.withValues(alpha: 0.12),
+                              foreground: statusColor,
+                            ),
+                          ],
+                        ),
+                        if (caseItem.notes.trim().isNotEmpty) ...[
+                          const SizedBox(height: 10),
+                          Text(
+                            caseItem.notes,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style:
+                                TextStyle(color: colorScheme.onSurfaceVariant),
+                          ),
+                        ],
+                      ],
+                    ),
+                  );
+                },
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showFullScreenImage(BuildContext context, String imageUrl) {
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.black,
-        insetPadding: EdgeInsets.zero,
-        child: Stack(
-          children: [
-            Center(
-              child: InteractiveViewer(
-                minScale: 0.5,
-                maxScale: 5.0,
-                child: Image.network(
-                  imageUrl,
-                  fit: BoxFit.contain,
-                  loadingBuilder: (context, child, loadingProgress) {
-                    if (loadingProgress == null) return child;
-                    return const Center(child: AppLoader(size: 48));
-                  },
-                ),
-              ),
-            ),
-            Positioned(
-              top: 16,
-              right: 16,
-              child: IconButton(
-                icon: const Icon(Icons.close, color: Colors.white, size: 32),
-                onPressed: () => Navigator.pop(context),
-              ),
-            ),
           ],
         ),
       ),
     );
   }
+}
 
-  Future<void> _downloadReport(BuildContext context, Case caseItem) async {
-    try {
-      final doc = pw.Document();
-      final dateText = _formatDateTime(caseItem.caseDate);
+class _FilterRow extends StatelessWidget {
+  final CaseProvider caseProvider;
+  final PatientProvider patientProvider;
+  final TextEditingController searchController;
+  final List<String> statusOptions;
+  final VoidCallback onPickStartDate;
+  final VoidCallback onPickEndDate;
 
-      doc.addPage(
-        pw.Page(
-          build: (context) {
-            return pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(
-                  'Dental Case Report',
-                  style: pw.TextStyle(
-                    fontSize: 24,
-                    fontWeight: pw.FontWeight.bold,
+  const _FilterRow({
+    required this.caseProvider,
+    required this.patientProvider,
+    required this.searchController,
+    required this.statusOptions,
+    required this.onPickStartDate,
+    required this.onPickEndDate,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+
+    searchController.value = TextEditingValue(
+      text: caseProvider.searchQuery,
+      selection:
+          TextSelection.collapsed(offset: caseProvider.searchQuery.length),
+    );
+
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        children: [
+          SizedBox(
+            width: 250,
+            child: DropdownButtonFormField<String?>(
+              initialValue: caseProvider.filterPatientId,
+              decoration: const InputDecoration(
+                labelText: 'Patient',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('All Patients'),
+                ),
+                ...patientProvider.patients.map(
+                  (p) => DropdownMenuItem<String?>(
+                    value: p.id,
+                    child: Text(p.name),
                   ),
-                ),
-                pw.SizedBox(height: 20),
-                pw.Divider(),
-                pw.SizedBox(height: 12),
-                _buildPdfRow('Case ID', caseItem.id),
-                if (caseItem.caseTitle.isNotEmpty)
-                  _buildPdfRow('Title', caseItem.caseTitle),
-                _buildPdfRow('Date', dateText),
-                if (caseItem.toothNumber.isNotEmpty)
-                  _buildPdfRow('Tooth Number', 'FDI #${caseItem.toothNumber}'),
-                _buildPdfRow('Status', caseItem.caseStatus),
-                _buildPdfRow('Analysis Status', caseItem.analysisStatus),
-                if (caseItem.isAnalysisComplete)
-                  _buildPdfRow(
-                    'Result',
-                    caseItem.hasCavity ? 'Cavity Detected' : 'Healthy',
-                  ),
-                _buildPdfRow('Images', '${caseItem.imageUrls.length} X-ray(s)'),
-                pw.SizedBox(height: 16),
-                pw.Text(
-                  'Notes',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                ),
-                pw.Text(caseItem.notes.isNotEmpty ? caseItem.notes : '—'),
-                pw.SizedBox(height: 16),
-                pw.Text(
-                  'Review Notes',
-                  style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-                ),
-                pw.Text(
-                  caseItem.reviewNotes.isNotEmpty
-                      ? caseItem.reviewNotes
-                      : 'Pending',
                 ),
               ],
-            );
-          },
-        ),
-      );
-
-      final bytes = await doc.save();
-      await Printing.sharePdf(
-        bytes: bytes,
-        filename:
-            'case_${caseItem.id}_${DateTime.now().millisecondsSinceEpoch}.pdf',
-      );
-    } catch (e) {
-      if (context.mounted) {
-        AppDialogs.showErrorDialog(
-          context,
-          message: 'Failed to generate report. Please try again.',
-        );
-      }
-    }
+              onChanged: caseProvider.setPatientFilter,
+            ),
+          ),
+          SizedBox(
+            width: 220,
+            child: DropdownButtonFormField<String?>(
+              initialValue: caseProvider.filterCaseStatus,
+              decoration: const InputDecoration(
+                labelText: 'Case Status',
+                border: OutlineInputBorder(),
+                isDense: true,
+              ),
+              items: [
+                const DropdownMenuItem<String?>(
+                  value: null,
+                  child: Text('All Statuses'),
+                ),
+                ...statusOptions.map(
+                  (s) => DropdownMenuItem<String?>(
+                    value: s,
+                    child: Text(s),
+                  ),
+                ),
+              ],
+              onChanged: caseProvider.setCaseStatusFilter,
+            ),
+          ),
+          SizedBox(
+            width: 180,
+            child: OutlinedButton.icon(
+              onPressed: onPickStartDate,
+              icon: const Icon(Icons.calendar_month),
+              label: Text(
+                caseProvider.filterStartDate == null
+                    ? 'Start Date'
+                    : _formatDate(caseProvider.filterStartDate!),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 180,
+            child: OutlinedButton.icon(
+              onPressed: onPickEndDate,
+              icon: const Icon(Icons.event),
+              label: Text(
+                caseProvider.filterEndDate == null
+                    ? 'End Date'
+                    : _formatDate(caseProvider.filterEndDate!),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 360,
+            child: TextFormField(
+              controller: searchController,
+              onChanged: caseProvider.setSearchQuery,
+              decoration: InputDecoration(
+                labelText: 'Search patient, tooth, condition, status',
+                border: const OutlineInputBorder(),
+                isDense: true,
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: caseProvider.searchQuery.isEmpty
+                    ? null
+                    : IconButton(
+                        onPressed: () {
+                          searchController.clear();
+                          caseProvider.setSearchQuery('');
+                        },
+                        icon: const Icon(Icons.clear),
+                      ),
+              ),
+            ),
+          ),
+          SizedBox(
+            width: 130,
+            child: FilledButton.tonalIcon(
+              onPressed: () {
+                searchController.clear();
+                caseProvider.clearFilters();
+              },
+              icon: const Icon(Icons.close),
+              label: const Text('Clear'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
-  void _editCase(BuildContext context, Case caseItem) {
-    final titleController = TextEditingController(text: caseItem.caseTitle);
-    final notesController = TextEditingController(text: caseItem.notes);
-    final reviewController = TextEditingController(text: caseItem.reviewNotes);
-    String selectedStatus = caseItem.caseStatus;
+  String _formatDate(DateTime dt) {
+    return '${dt.day.toString().padLeft(2, '0')}/${dt.month.toString().padLeft(2, '0')}/${dt.year}';
+  }
+}
 
-    showDialog(
-      context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 500),
-          padding: const EdgeInsets.all(28),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+class _SummaryCard extends StatelessWidget {
+  final String title;
+  final String value;
+  final IconData icon;
+
+  const _SummaryCard({
+    required this.title,
+    required this.value,
+    required this.icon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final cs = Theme.of(context).colorScheme;
+    return Container(
+      width: 220,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: cs.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: cs.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: cs.primaryContainer,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: cs.onPrimaryContainer),
+          ),
+          const SizedBox(width: 12),
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Edit Case',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(fontWeight: FontWeight.bold),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                ],
+              Text(
+                value,
+                style: Theme.of(context)
+                    .textTheme
+                    .titleLarge
+                    ?.copyWith(fontWeight: FontWeight.w800),
               ),
-              const SizedBox(height: 20),
-              SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextField(
-                      controller: titleController,
-                      decoration: InputDecoration(
-                        labelText: 'Case Title',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    DropdownButtonFormField<String>(
-                      value: selectedStatus,
-                      decoration: InputDecoration(
-                        labelText: 'Status',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      items:
-                          ['Uploaded', 'Under Review', 'Completed', 'Archived']
-                              .map(
-                                (status) => DropdownMenuItem(
-                                  value: status,
-                                  child: Text(status),
-                                ),
-                              )
-                              .toList(),
-                      onChanged: (value) {
-                        if (value != null) selectedStatus = value;
-                      },
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: notesController,
-                      decoration: InputDecoration(
-                        labelText: 'Notes',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      maxLines: 3,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: reviewController,
-                      decoration: InputDecoration(
-                        labelText: 'Review Notes',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                      ),
-                      maxLines: 3,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Cancel'),
-                  ),
-                  const SizedBox(width: 12),
-                  ElevatedButton(
-                    onPressed: () async {
-                      final caseProvider = Provider.of<CaseProvider>(
-                        context,
-                        listen: false,
-                      );
-                      final success =
-                          await caseProvider.updateCase(caseItem.id, {
-                        'caseTitle': titleController.text,
-                        'caseStatus': selectedStatus,
-                        'notes': notesController.text,
-                        'reviewNotes': reviewController.text,
-                      });
-
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                        if (success) {
-                          AppDialogs.showInfoDialog(context,
-                              title: 'Success',
-                              message: 'Case updated successfully');
-                        } else {
-                          AppDialogs.showErrorDialog(context,
-                              message: 'Failed to update case.');
-                        }
-                      }
-                    },
-                    child: const Text('Save Changes'),
-                  ),
-                ],
+              Text(
+                title,
+                style: TextStyle(color: cs.onSurfaceVariant),
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  void _archiveCase(BuildContext context, Case caseItem) {
-    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text('Archive Case'),
-        content: const Text(
-            'Are you sure you want to archive this case? It will be moved to the archive.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final caseProvider = Provider.of<CaseProvider>(
-                context,
-                listen: false,
-              );
-              final success = await caseProvider.archiveCase(caseItem.id);
-
-              if (context.mounted) {
-                Navigator.pop(context);
-                if (success) {
-                  AppDialogs.showInfoDialog(context,
-                      title: 'Success', message: 'Case archived successfully');
-                } else {
-                  AppDialogs.showErrorDialog(context,
-                      message: 'Failed to archive case.');
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: semanticColors?.warning ?? Colors.orange,
-            ),
-            child: const Text('Archive'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _unarchiveCase(BuildContext context, Case caseItem) {
-    final colorScheme = Theme.of(context).colorScheme;
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text('Unarchive Case'),
-        content: const Text(
-            'Are you sure you want to unarchive this case? It will be restored to active status.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final caseProvider = Provider.of<CaseProvider>(
-                context,
-                listen: false,
-              );
-              final success = await caseProvider.updateCase(caseItem.id, {
-                'caseStatus': 'Completed',
-              });
-
-              if (context.mounted) {
-                Navigator.pop(context);
-                if (success) {
-                  AppDialogs.showInfoDialog(context,
-                      title: 'Success', message: 'Case unarchived successfully');
-                } else {
-                  AppDialogs.showErrorDialog(context,
-                      message: 'Failed to unarchive case.');
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colorScheme.primary,
-            ),
-            child: const Text('Unarchive'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _deleteCase(BuildContext context, Case caseItem) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final semanticColors = Theme.of(context).extension<AppSemanticColors>();
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text('Delete Case'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-                'Are you sure you want to permanently delete this case?'),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: colorScheme.errorContainer,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'This action cannot be undone. All images will be permanently deleted.',
-                style: TextStyle(
-                  color: colorScheme.error,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              final caseProvider = Provider.of<CaseProvider>(
-                context,
-                listen: false,
-              );
-              final success = await caseProvider.deleteCase(caseItem.id);
-
-              if (context.mounted) {
-                Navigator.pop(context);
-                if (success) {
-                  AppDialogs.showInfoDialog(context,
-                      title: 'Success', message: 'Case deleted successfully');
-                } else {
-                  AppDialogs.showErrorDialog(context,
-                      message: 'Failed to delete case.');
-                }
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: semanticColors?.danger ?? colorScheme.error,
-            ),
-            child: const Text('Delete'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  String _formatDateTime(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year} ${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-  }
-
-  pw.Widget _buildPdfRow(String label, String value) {
-    return pw.Padding(
-      padding: const pw.EdgeInsets.symmetric(vertical: 6),
-      child: pw.Row(
-        crossAxisAlignment: pw.CrossAxisAlignment.start,
-        children: [
-          pw.SizedBox(
-            width: 120,
-            child: pw.Text(
-              '$label:',
-              style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-            ),
-          ),
-          pw.Expanded(child: pw.Text(value)),
         ],
       ),
     );
   }
 }
 
-class _DetailItemRow extends StatelessWidget {
-  const _DetailItemRow({
-    required this.icon,
-    required this.label,
-    required this.value,
-    this.valueColor,
-  });
-
+class _CaseChip extends StatelessWidget {
   final IconData icon;
   final String label;
-  final String value;
-  final Color? valueColor;
+  final Color background;
+  final Color foreground;
+
+  const _CaseChip({
+    required this.icon,
+    required this.label,
+    required this.background,
+    required this.foreground,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: colorScheme.onSurfaceVariant),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: colorScheme.onSurface,
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                value,
-                style: TextStyle(
-                  color: valueColor ?? colorScheme.onSurfaceVariant,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            ],
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: foreground),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              color: foreground,
+              fontWeight: FontWeight.w600,
+              fontSize: 12,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

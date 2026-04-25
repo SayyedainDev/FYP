@@ -716,12 +716,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                     child: TextButton.icon(
                       onPressed: loadingState.isLoading
                           ? null
-                          : () => loadingState.runAsyncAction(() async {
-                                final _op =
-                                    () => setState(() => _currentStep = 0);
-                                if (_op != null)
-                                  await Future.sync(() => (_op as dynamic)());
-                              }),
+                          : () async {
+                              setState(() => _currentStep = 0);
+                            },
                       icon: const Icon(Icons.arrow_back),
                       label: const Text('Back'),
                       style: TextButton.styleFrom(
@@ -738,12 +735,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                     child: ElevatedButton.icon(
                       onPressed: loadingState.isLoading
                           ? null
-                          : () => loadingState.runAsyncAction(() async {
-                                final _op =
-                                    () => setState(() => _currentStep = 2);
-                                if (_op != null)
-                                  await Future.sync(() => (_op as dynamic)());
-                              }),
+                          : () async {
+                              setState(() => _currentStep = 2);
+                            },
                       icon: const Icon(Icons.check),
                       label: const Text('Next'),
                       style: ElevatedButton.styleFrom(
@@ -891,15 +885,10 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                         child: ElevatedButton.icon(
                           onPressed: loadingState.isLoading
                               ? null
-                              : () => loadingState.runAsyncAction(() async {
-                                    final _op = () {
-                                      quizProvider.clearGroqError();
-                                      _generateQuiz(quizProvider, authProvider);
-                                    };
-                                    if (_op != null)
-                                      await Future.sync(
-                                          () => (_op as dynamic)());
-                                  }),
+                              : () async {
+                                  quizProvider.clearGroqError();
+                                  _generateQuiz(quizProvider, authProvider);
+                                },
                           icon: const Icon(Icons.refresh, size: 18),
                           label: const Text('Retry Generation'),
                           style: ElevatedButton.styleFrom(
@@ -923,12 +912,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                     child: ElevatedButton.icon(
                       onPressed: loadingState.isLoading
                           ? null
-                          : () => loadingState.runAsyncAction(() async {
-                                final _op = () =>
-                                    _generateQuiz(quizProvider, authProvider);
-                                if (_op != null)
-                                  await Future.sync(() => (_op as dynamic)());
-                              }),
+                          : () async {
+                              _generateQuiz(quizProvider, authProvider);
+                            },
                       icon: const Icon(Icons.auto_awesome, size: 20),
                       label: const Text('Generate Questions with AI'),
                       style: ElevatedButton.styleFrom(
@@ -960,12 +946,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                   child: TextButton.icon(
                     onPressed: loadingState.isLoading
                         ? null
-                        : () => loadingState.runAsyncAction(() async {
-                              final _op =
-                                  () => setState(() => _currentStep = 1);
-                              if (_op != null)
-                                await Future.sync(() => (_op as dynamic)());
-                            }),
+                        : () async {
+                            setState(() => _currentStep = 1);
+                          },
                     icon: const Icon(Icons.arrow_back),
                     label: const Text('Back to Settings'),
                     style: TextButton.styleFrom(
@@ -1049,11 +1032,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                     child: OutlinedButton.icon(
                       onPressed: loadingState.isLoading
                           ? null
-                          : () => loadingState.runAsyncAction(() async {
-                                final _op = _addManualQuestion;
-                                if (_op != null)
-                                  await Future.sync(() => (_op as dynamic)());
-                              }),
+                          : () async {
+                              _addManualQuestion();
+                            },
                       icon: const Icon(Icons.add, size: 18),
                       label: const Text('Add Question'),
                       style: OutlinedButton.styleFrom(
@@ -1146,16 +1127,12 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                         child: OutlinedButton.icon(
                           onPressed: loadingState.isLoading
                               ? null
-                              : () => loadingState.runAsyncAction(() async {
-                                    final _op = _generatedQuestions.isEmpty
-                                        ? null
-                                        : () => _saveQuiz(
-                                            quizProvider, authProvider,
-                                            asDraft: true);
-                                    if (_op != null)
-                                      await Future.sync(
-                                          () => (_op as dynamic)());
-                                  }),
+                              : () async {
+                                  if (_generatedQuestions.isNotEmpty) {
+                                    _saveQuiz(quizProvider, authProvider,
+                                        asDraft: true);
+                                  }
+                                },
                           icon: const Icon(Icons.save_outlined, size: 18),
                           label: const Text('Save as Draft'),
                           style: OutlinedButton.styleFrom(
@@ -1178,16 +1155,12 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                         child: ElevatedButton.icon(
                           onPressed: loadingState.isLoading
                               ? null
-                              : () => loadingState.runAsyncAction(() async {
-                                    final _op = _generatedQuestions.length < 3
-                                        ? null
-                                        : () => _saveQuiz(
-                                            quizProvider, authProvider,
-                                            asDraft: false);
-                                    if (_op != null)
-                                      await Future.sync(
-                                          () => (_op as dynamic)());
-                                  }),
+                              : () async {
+                                  if (_generatedQuestions.length >= 3) {
+                                    _saveQuiz(quizProvider, authProvider,
+                                        asDraft: false);
+                                  }
+                                },
                           icon: const Icon(Icons.publish, size: 18),
                           label: const Text('Publish Now'),
                           style: ElevatedButton.styleFrom(

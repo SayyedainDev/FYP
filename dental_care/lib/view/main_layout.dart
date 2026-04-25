@@ -4,6 +4,7 @@ import '../core/animation_constants.dart';
 import '../providers/navigation_provider.dart';
 import '../provider/auth_provider.dart';
 import '../features/analytics/view/analytics_dashboard_screen.dart';
+import 'login.dart';
 import 'dashboard_screen.dart';
 import 'student_lms_dashboard.dart';
 import 'history_screen.dart';
@@ -33,12 +34,24 @@ class _MainLayoutState extends State<MainLayout>
   late AnimationController _controller;
 
   static const Set<String> _studentPages = {
-    'Overview',
     'Available Quizzes',
     'My Results',
     'My Analytics',
     'Assignments',
     'Notifications',
+    'Settings',
+    'Profile',
+  };
+
+  static const Set<String> _doctorPages = {
+    'Overview',
+    'Disease Detection',
+    'Patients',
+    'Scan History',
+    'Create Quiz',
+    'My Quizzes',
+    'Lecture Notes',
+    'Quiz Results',
     'Settings',
     'Profile',
   };
@@ -61,42 +74,43 @@ class _MainLayoutState extends State<MainLayout>
 
   Widget _getCurrentScreen(String page, bool isStudent) {
     if (isStudent && !_studentPages.contains(page)) {
-      return const StudentLMSDashboard(key: ValueKey('Student Overview'));
+      return const StudentLMSDashboard(key: ValueKey('Student Dashboard'));
+    }
+    if (!isStudent && !_doctorPages.contains(page)) {
+      return const DashboardScreen(key: ValueKey('Dashboard'));
     }
 
     switch (page) {
-      case 'Overview':
-        return isStudent
-            ? const StudentLMSDashboard(key: ValueKey('Student Overview'))
-            : const DashboardScreen(key: ValueKey('Overview'));
+      case 'Notifications':
+        return const StudentNotificationsScreen();
       case 'Patients':
         if (isStudent) {
-          return const StudentLMSDashboard(key: ValueKey('Student Overview'));
+          return const StudentLMSDashboard(key: ValueKey('Student Dashboard'));
         }
         return const PatientsScreen(key: ValueKey('Patients'));
       case 'Scan History':
         if (isStudent) {
-          return const StudentLMSDashboard(key: ValueKey('Student Overview'));
+          return const StudentLMSDashboard(key: ValueKey('Student Dashboard'));
         }
         return const HistoryScreen(key: ValueKey('Scan History'));
       case 'Create Quiz':
         if (isStudent) {
-          return const StudentLMSDashboard(key: ValueKey('Student Overview'));
+          return const StudentLMSDashboard(key: ValueKey('Student Dashboard'));
         }
         return const AIQuizScreen(key: ValueKey('Create Quiz'));
       case 'My Quizzes':
         if (isStudent) {
-          return const StudentLMSDashboard(key: ValueKey('Student Overview'));
+          return const StudentLMSDashboard(key: ValueKey('Student Dashboard'));
         }
         return const QuizListScreen(key: ValueKey('My Quizzes'));
       case 'Lecture Notes':
         if (isStudent) {
-          return const StudentLMSDashboard(key: ValueKey('Student Overview'));
+          return const StudentLMSDashboard(key: ValueKey('Student Dashboard'));
         }
         return const LectureNotesScreen(key: ValueKey('Lecture Notes'));
       case 'Quiz Results':
         if (isStudent) {
-          return const StudentLMSDashboard(key: ValueKey('Student Overview'));
+          return const StudentLMSDashboard(key: ValueKey('Student Dashboard'));
         }
         return const AnalyticsDashboardScreen(key: ValueKey('Quiz Results'));
       case 'Settings':
@@ -105,24 +119,30 @@ class _MainLayoutState extends State<MainLayout>
         return const DentistProfileScreen(key: ValueKey('Profile'));
       case 'Disease Detection':
         if (isStudent) {
-          return const StudentLMSDashboard(key: ValueKey('Student Overview'));
+          return const StudentLMSDashboard(key: ValueKey('Student Dashboard'));
         }
         return const DentalDetectionScreen(key: ValueKey('Disease Detection'));
       // Student-specific screens
       case 'Available Quizzes':
-        return const StudentQuizListScreen(key: ValueKey('Available Quizzes'));
+        return isStudent
+            ? const StudentQuizListScreen(key: ValueKey('Available Quizzes'))
+            : const DashboardScreen(key: ValueKey('Overview'));
       case 'My Results':
-        return const StudentMyResultsScreen(key: ValueKey('My Results'));
+        return isStudent
+            ? const StudentMyResultsScreen(key: ValueKey('My Results'))
+            : const DashboardScreen(key: ValueKey('Overview'));
       case 'My Analytics':
-        return const StudentAnalyticsScreen(key: ValueKey('My Analytics'));
-      case 'Notifications':
-        return const StudentNotificationsScreen(key: ValueKey('Notifications'));
+        return isStudent
+            ? const StudentAnalyticsScreen(key: ValueKey('My Analytics'))
+            : const DashboardScreen(key: ValueKey('Overview'));
       case 'Assignments':
-        return const StudentAssignmentsScreen(key: ValueKey('Assignments'));
+        return isStudent
+            ? const StudentAssignmentsScreen(key: ValueKey('Assignments'))
+            : const DashboardScreen(key: ValueKey('Overview'));
       default:
         return isStudent
-            ? const StudentLMSDashboard(key: ValueKey('Student Overview'))
-            : const DashboardScreen(key: ValueKey('Overview'));
+            ? const StudentLMSDashboard(key: ValueKey('Student Dashboard'))
+            : const DashboardScreen(key: ValueKey('Dashboard'));
     }
   }
 
@@ -130,9 +150,21 @@ class _MainLayoutState extends State<MainLayout>
   Widget build(BuildContext context) {
     return Consumer2<NavigationProvider, AuthProvider>(
       builder: (context, navProvider, auth, _) {
+        // Prevent direct refresh/URL entry from opening a portal without a live session.
+        if (auth.user == null) {
+          return const LoginPage();
+        }
+
         final isStudent = auth.userRole.toLowerCase() == 'student';
 
         if (isStudent && !_studentPages.contains(navProvider.currentPage)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              context.read<NavigationProvider>().setPage('Overview');
+            }
+          });
+        }
+        if (!isStudent && !_doctorPages.contains(navProvider.currentPage)) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
               context.read<NavigationProvider>().setPage('Overview');

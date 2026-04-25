@@ -4,7 +4,6 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'student_lms_dashboard.dart' as student_dashboard;
 import 'student_auth_flow_screens.dart';
 import '../provider/auth_provider.dart';
 import '../utils/app_dialogs.dart';
@@ -375,17 +374,8 @@ class _LoginCardState extends State<_LoginCard> {
 
                                 // Check login success *after* await
                                 if (widget.auth.uid != null && mounted) {
-                                  if (_selectedRole == 'Student') {
-                                    Navigator.pushReplacement(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (_) =>
-                                                const student_dashboard
-                                                    .StudentLMSDashboard()));
-                                  } else {
-                                    Navigator.pushReplacementNamed(
-                                        context, '/dashboard');
-                                  }
+                                  Navigator.pushReplacementNamed(
+                                      context, '/dashboard');
                                 }
                               } on TimeoutException catch (_) {
                                 if (!mounted) return;

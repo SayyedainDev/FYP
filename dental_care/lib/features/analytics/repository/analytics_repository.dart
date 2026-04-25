@@ -76,7 +76,7 @@ class AnalyticsRepository {
       (sum, item) =>
           sum +
           item.questions
-              .where((question) => question.difficulty == 'Easy')
+              .where((question) => question.difficulty == DifficultyLevel.easy)
               .length,
     );
     final mediumQuestions = filteredQuizzes.fold<int>(
@@ -84,7 +84,8 @@ class AnalyticsRepository {
       (sum, item) =>
           sum +
           item.questions
-              .where((question) => question.difficulty == 'Medium')
+              .where(
+                  (question) => question.difficulty == DifficultyLevel.medium)
               .length,
     );
     final hardQuestions = filteredQuizzes.fold<int>(
@@ -92,7 +93,7 @@ class AnalyticsRepository {
       (sum, item) =>
           sum +
           item.questions
-              .where((question) => question.difficulty == 'Hard')
+              .where((question) => question.difficulty == DifficultyLevel.hard)
               .length,
     );
 

@@ -210,12 +210,25 @@ class ScanProvider extends ChangeNotifier {
 
       return querySnapshot.docs.map((doc) => Scan.fromFirestore(doc)).toList();
     } catch (e) {
-      debugPrint('Error fetching scans for patient: $e');
-      // Rethrow Firestore index errors so UI can display helpful message
-      if (e is FirebaseException && e.code == 'failed-precondition') {
-        rethrow;
+      debugPrint('Error fetching scans for patient with orderBy: $e');
+
+      // Fallback for environments missing composite indexes.
+      try {
+        final fallback = await _firestore
+            .collection('scans')
+            .where('patientId', isEqualTo: patientId)
+            .get()
+            .timeout(ProviderErrorUtils.requestTimeout);
+
+        final items =
+            fallback.docs.map((doc) => Scan.fromFirestore(doc)).toList();
+        items.sort((a, b) => b.scanDate.compareTo(a.scanDate));
+        return items;
+      } catch (fallbackError) {
+        debugPrint(
+            'Error fetching scans for patient (fallback): $fallbackError');
+        return [];
       }
-      return [];
     }
   }
 

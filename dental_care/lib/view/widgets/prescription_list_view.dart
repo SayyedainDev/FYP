@@ -29,30 +29,17 @@ class _PrescriptionListViewState extends State<PrescriptionListView> {
   @override
   void initState() {
     super.initState();
-    // Initialize with empty list to avoid LateInitializationError
-    _prescriptionsFuture = Future.value([]);
-
-    // Defer provider access until after the first frame so the surrounding
-    // widget tree (which may include dialogs or routes) has mounted the
-    // providers. This avoids ProviderNotFoundError when this widget is
-    // instantiated from contexts that are ancestors of the providers.
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      _loadPrescriptions();
-    });
+    _prescriptionsFuture = _fetchPrescriptions();
   }
 
-  void _loadPrescriptions() {
+  Future<List<Prescription>> _fetchPrescriptions() async {
     try {
       final provider =
           Provider.of<PrescriptionProvider>(context, listen: false);
-      _prescriptionsFuture =
-          provider.fetchPatientPrescriptions(widget.patientId);
+      return await provider.fetchPatientPrescriptions(widget.patientId);
     } catch (e) {
-      // In case provider is still not available, return an empty list to
-      // avoid crashing the UI. Caller can refresh once provider becomes
-      // available.
-      _prescriptionsFuture = Future.value(<Prescription>[]);
+      debugPrint('Error fetching prescriptions: $e');
+      return [];
     }
   }
 
@@ -73,6 +60,7 @@ class _PrescriptionListViewState extends State<PrescriptionListView> {
 
       if (await canLaunchUrl(Uri.parse(whatsappUrl))) {
         await launchUrl(Uri.parse(whatsappUrl));
+        if (!mounted) return;
 
         // Mark as shared in provider
         final prescriptionProvider =
@@ -81,7 +69,7 @@ class _PrescriptionListViewState extends State<PrescriptionListView> {
 
         if (mounted) {
           setState(() {
-            _loadPrescriptions();
+            _prescriptionsFuture = _fetchPrescriptions();
           });
         }
       } else {
@@ -109,6 +97,7 @@ class _PrescriptionListViewState extends State<PrescriptionListView> {
       title: 'Delete Prescription',
       message: 'Are you sure you want to delete this prescription?',
     );
+    if (!mounted) return;
 
     if (confirmed == true) {
       final provider =
@@ -122,7 +111,7 @@ class _PrescriptionListViewState extends State<PrescriptionListView> {
             message: 'Prescription deleted successfully',
           );
           setState(() {
-            _loadPrescriptions();
+            _prescriptionsFuture = _fetchPrescriptions();
           });
         } else {
           AppDialogs.showErrorDialog(
