@@ -1,3 +1,6 @@
+import '../widgets/loading_button.dart';
+import '../../providers/loading_provider.dart';
+import 'package:provider/provider.dart';
 import 'dart:math' as math;
 import 'dart:async';
 import 'dart:io';
@@ -518,17 +521,31 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
           if (_selectedFiles.isNotEmpty) ...[
             const SizedBox(height: 12),
             Center(
-              child: TextButton.icon(
-                onPressed: _isAnalyzing ? null : _pickImages,
-                icon: const Icon(Icons.add_photo_alternate_outlined, size: 18),
-                label: const Text('Add More Images'),
-                style: TextButton.styleFrom(
-                  foregroundColor: colorScheme.primary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 8,
-                  ),
-                ),
+              child: Consumer<LoadingProvider>(
+                builder: (context, loadingState, _) {
+                  return LoadingButton(
+                    isLoading: loadingState.isLoading,
+                    child: TextButton.icon(
+                      onPressed: loadingState.isLoading
+                          ? null
+                          : () => loadingState.runAsyncAction(() async {
+                                final _op = _isAnalyzing ? null : _pickImages;
+                                if (_op != null)
+                                  await Future.sync(() => (_op as dynamic)());
+                              }),
+                      icon: const Icon(Icons.add_photo_alternate_outlined,
+                          size: 18),
+                      label: const Text('Add More Images'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: colorScheme.primary,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -708,13 +725,27 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                 ),
               ),
               const Spacer(),
-              TextButton.icon(
-                onPressed: _showAddPatientDialog,
-                icon: const Icon(Icons.add, size: 16),
-                label: const Text(
-                  'Add New Patient',
-                  style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                ),
+              Consumer<LoadingProvider>(
+                builder: (context, loadingState, _) {
+                  return LoadingButton(
+                    isLoading: loadingState.isLoading,
+                    child: TextButton.icon(
+                      onPressed: loadingState.isLoading
+                          ? null
+                          : () => loadingState.runAsyncAction(() async {
+                                final _op = _showAddPatientDialog;
+                                if (_op != null)
+                                  await Future.sync(() => (_op as dynamic)());
+                              }),
+                      icon: const Icon(Icons.add, size: 16),
+                      label: const Text(
+                        'Add New Patient',
+                        style: TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -824,34 +855,63 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
     return Row(
       children: [
         Expanded(
-          child: ElevatedButton(
-            onPressed: (canDiagnose && !_isAnalyzing) ? _diagnoseCase : null,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: colorScheme.primary,
-              foregroundColor: colorScheme.onPrimary,
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-              elevation: 2,
-              shadowColor: colorScheme.primary.withValues(alpha: 0.5),
-            ),
-            child: _isAnalyzing
-                ? const SizedBox(
-                    height: 20,
-                    width: 20,
-                    child: AppLoader(size: 20),
-                  )
-                : const Text(
-                    'Analyze & Save Case',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+          child: Consumer<LoadingProvider>(
+            builder: (context, loadingState, _) {
+              return LoadingButton(
+                isLoading: loadingState.isLoading,
+                child: ElevatedButton(
+                  onPressed: loadingState.isLoading
+                      ? null
+                      : () => loadingState.runAsyncAction(() async {
+                            final _op = (canDiagnose && !_isAnalyzing)
+                                ? _diagnoseCase
+                                : null;
+                            if (_op != null)
+                              await Future.sync(() => (_op as dynamic)());
+                          }),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: colorScheme.onPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    elevation: 2,
+                    shadowColor: colorScheme.primary.withValues(alpha: 0.5),
                   ),
+                  child: _isAnalyzing
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: AppLoader(size: 20),
+                        )
+                      : const Text(
+                          'Analyze & Save Case',
+                          style: TextStyle(
+                              fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                ),
+              );
+            },
           ),
         ),
         const SizedBox(width: 16),
-        TextButton(
-          onPressed: _isAnalyzing ? null : _clearCase,
-          child: const Text('Clear', style: TextStyle(fontSize: 16)),
+        Consumer<LoadingProvider>(
+          builder: (context, loadingState, _) {
+            return LoadingButton(
+              isLoading: loadingState.isLoading,
+              child: TextButton(
+                onPressed: loadingState.isLoading
+                    ? null
+                    : () => loadingState.runAsyncAction(() async {
+                          final _op = _isAnalyzing ? null : _clearCase;
+                          if (_op != null)
+                            await Future.sync(() => (_op as dynamic)());
+                        }),
+                child: const Text('Clear', style: TextStyle(fontSize: 16)),
+              ),
+            );
+          },
         ),
       ],
     );
@@ -987,15 +1047,28 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
         // Add a "New Case" button to clear the results
         SizedBox(
           width: double.infinity,
-          child: TextButton.icon(
-            onPressed: _clearCase,
-            icon: const Icon(Icons.add, size: 20),
-            label: const Text('Start New Case'),
-            style: TextButton.styleFrom(
-              padding: const EdgeInsets.symmetric(vertical: 12),
-              foregroundColor: colorScheme.onSurface,
-              backgroundColor: colorScheme.surfaceContainerHighest,
-            ),
+          child: Consumer<LoadingProvider>(
+            builder: (context, loadingState, _) {
+              return LoadingButton(
+                isLoading: loadingState.isLoading,
+                child: TextButton.icon(
+                  onPressed: loadingState.isLoading
+                      ? null
+                      : () => loadingState.runAsyncAction(() async {
+                            final _op = _clearCase;
+                            if (_op != null)
+                              await Future.sync(() => (_op as dynamic)());
+                          }),
+                  icon: const Icon(Icons.add, size: 20),
+                  label: const Text('Start New Case'),
+                  style: TextButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    foregroundColor: colorScheme.onSurface,
+                    backgroundColor: colorScheme.surfaceContainerHighest,
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ],
@@ -1478,28 +1551,59 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton(
-                    onPressed: _isLoading ? null : () => Navigator.pop(context),
-                    child: const Text('Cancel'),
+                  Consumer<LoadingProvider>(
+                    builder: (context, loadingState, _) {
+                      return LoadingButton(
+                        isLoading: loadingState.isLoading,
+                        child: TextButton(
+                          onPressed: loadingState.isLoading
+                              ? null
+                              : () => loadingState.runAsyncAction(() async {
+                                    final _op = _isLoading
+                                        ? null
+                                        : () => Navigator.pop(context);
+                                    if (_op != null)
+                                      await Future.sync(
+                                          () => (_op as dynamic)());
+                                  }),
+                          child: const Text('Cancel'),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(width: 16),
-                  ElevatedButton(
-                    onPressed: _isLoading ? null : _savePatient,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: colorScheme.primary,
-                      foregroundColor: colorScheme.onPrimary,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 12,
-                      ),
-                    ),
-                    child: _isLoading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: AppLoader(size: 20),
-                          )
-                        : const Text('Save Patient'),
+                  Consumer<LoadingProvider>(
+                    builder: (context, loadingState, _) {
+                      return LoadingButton(
+                        isLoading: loadingState.isLoading,
+                        child: ElevatedButton(
+                          onPressed: loadingState.isLoading
+                              ? null
+                              : () => loadingState.runAsyncAction(() async {
+                                    final _op =
+                                        _isLoading ? null : _savePatient;
+                                    if (_op != null)
+                                      await Future.sync(
+                                          () => (_op as dynamic)());
+                                  }),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: colorScheme.primary,
+                            foregroundColor: colorScheme.onPrimary,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24,
+                              vertical: 12,
+                            ),
+                          ),
+                          child: _isLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: AppLoader(size: 20),
+                                )
+                              : const Text('Save Patient'),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),

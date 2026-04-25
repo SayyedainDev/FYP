@@ -25,6 +25,7 @@ import 'package:dental_care/providers/audit_log_provider.dart';
 import 'package:dental_care/providers/performance_provider.dart';
 import 'package:dental_care/providers/assignment_provider.dart';
 import 'package:dental_care/providers/prescription_provider.dart';
+import 'package:dental_care/providers/loading_provider.dart';
 import 'package:dental_care/utils/firebase_test.dart';
 import 'firebase_options.dart';
 
@@ -75,6 +76,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => PerformanceProvider()),
         ChangeNotifierProvider(create: (_) => AssignmentProvider()),
         ChangeNotifierProvider(create: (_) => PrescriptionProvider()),
+        ChangeNotifierProvider(create: (_) => LoadingProvider()),
       ],
       child: const MyApp(),
     ),

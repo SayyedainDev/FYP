@@ -1,3 +1,6 @@
+import '../widgets/loading_button.dart';
+import '../../providers/loading_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:dental_care/providers/quiz_provider.dart';
@@ -402,8 +405,12 @@ class _StudentQuizAvailableScreenV2State
               // Review Button
               SizedBox(
                 width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: onReview,
+                child: Consumer<LoadingProvider>(
+                  builder: (context, loadingState, _) {
+                    return LoadingButton(
+                      isLoading: loadingState.isLoading,
+                      child: OutlinedButton.icon(
+                  onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = onReview; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
                   icon: const Icon(Icons.preview, size: 18),
                   label: const Text('Review Answers'),
                   style: OutlinedButton.styleFrom(
@@ -413,6 +420,9 @@ class _StudentQuizAvailableScreenV2State
                       borderRadius: BorderRadius.circular(8),
                     ),
                   ),
+                ),
+                    );
+                  },
                 ),
               ),
             ],

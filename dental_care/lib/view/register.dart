@@ -16,6 +16,8 @@ import '../provider/auth_provider.dart';
 import '../utils/app_dialogs.dart';
 import '../utils/global_error_handler.dart';
 import '../widgets/loaders/app_loader.dart';
+import '../widgets/loading_button.dart';
+import '../../providers/loading_provider.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -350,29 +352,39 @@ class _RegisterPageState extends State<RegisterPage>
               _AnimatedFormField(
                 animation: curvedAnimation,
                 delay: 0.55,
-                child: ElevatedButton(
-                  onPressed: auth.loading ? null : () => _submit(auth),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme.tertiary,
-                    foregroundColor: colorScheme.onTertiary,
-                    padding: const EdgeInsets.symmetric(vertical: 20),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    textStyle: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  child: auth.loading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: AppLoader(size: 20),
-                        )
-                      : Text(_isStudent
-                          ? 'Create Student Account'
-                          : 'Create Doctor/Dentist Account'),
+                child: Consumer<LoadingProvider>(
+                  builder: (context, loadingState, _) {
+                    return LoadingButton(
+                      isLoading: auth.loading || loadingState.isLoading,
+                      child: ElevatedButton(
+                        onPressed: (auth.loading || loadingState.isLoading)
+                            ? null
+                            : () => loadingState
+                                .runAsyncAction(() async => _submit(auth)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: colorScheme.tertiary,
+                          foregroundColor: colorScheme.onTertiary,
+                          padding: const EdgeInsets.symmetric(vertical: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        child: auth.loading
+                            ? const SizedBox(
+                                height: 20,
+                                width: 20,
+                                child: AppLoader(size: 20),
+                              )
+                            : Text(_isStudent
+                                ? 'Create Student Account'
+                                : 'Create Doctor/Dentist Account'),
+                      ),
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 16),

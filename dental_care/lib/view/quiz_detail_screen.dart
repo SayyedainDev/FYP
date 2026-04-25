@@ -1,3 +1,6 @@
+import '../widgets/loading_button.dart';
+import '../../providers/loading_provider.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
 import '../models/quiz.dart';
 import '../core/theme/app_semantic_colors.dart';
@@ -20,9 +23,13 @@ class QuizDetailScreen extends StatelessWidget {
         foregroundColor: colorScheme.onSurface,
         elevation: 0,
         actions: [
-          IconButton(
+          Consumer<LoadingProvider>(
+            builder: (context, loadingState, _) {
+              return LoadingButton(
+                isLoading: loadingState.isLoading,
+                child: IconButton(
             icon: const Icon(Icons.print),
-            onPressed: () async {
+            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () async {
               try {
                 await QuizPdfService.printQuiz(quiz);
               } catch (e) {
@@ -36,12 +43,19 @@ class QuizDetailScreen extends StatelessWidget {
                   );
                 }
               }
-            },
+            }; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
             tooltip: 'Print Quiz',
           ),
-          IconButton(
+              );
+            },
+          ),
+          Consumer<LoadingProvider>(
+            builder: (context, loadingState, _) {
+              return LoadingButton(
+                isLoading: loadingState.isLoading,
+                child: IconButton(
             icon: const Icon(Icons.share),
-            onPressed: () async {
+            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () async {
               try {
                 await QuizPdfService.shareQuiz(quiz);
               } catch (e) {
@@ -55,8 +69,11 @@ class QuizDetailScreen extends StatelessWidget {
                   );
                 }
               }
-            },
+            }; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
             tooltip: 'Share Quiz',
+          ),
+              );
+            },
           ),
         ],
       ),

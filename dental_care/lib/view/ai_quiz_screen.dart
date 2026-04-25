@@ -1,3 +1,6 @@
+import '../widgets/loading_button.dart';
+import '../../providers/loading_provider.dart';
+import 'package:provider/provider.dart';
 // ignore_for_file: unused_field, unused_element
 
 import 'dart:async';
@@ -462,38 +465,55 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                ElevatedButton.icon(
-                  onPressed: () {
-                    final hasUpload = quizProvider.uploadedFile != null ||
-                        quizProvider.uploadedBytes != null;
-                    final hasLectureNotes =
-                        _selectedLectureNoteIds.isNotEmpty || hasUpload;
-                    if (hasLectureNotes && _titleController.text.isNotEmpty) {
-                      setState(() => _currentStep = 1);
-                    } else {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text(
-                            'Please select or upload lecture notes and enter a quiz title',
+                Consumer<LoadingProvider>(
+                  builder: (context, loadingState, _) {
+                    return LoadingButton(
+                      isLoading: loadingState.isLoading,
+                      child: ElevatedButton.icon(
+                        onPressed: loadingState.isLoading
+                            ? null
+                            : () => loadingState.runAsyncAction(() async {
+                                  final _op = () {
+                                    final hasUpload =
+                                        quizProvider.uploadedFile != null ||
+                                            quizProvider.uploadedBytes != null;
+                                    final hasLectureNotes =
+                                        _selectedLectureNoteIds.isNotEmpty ||
+                                            hasUpload;
+                                    if (hasLectureNotes &&
+                                        _titleController.text.isNotEmpty) {
+                                      setState(() => _currentStep = 1);
+                                    } else {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                            'Please select or upload lecture notes and enter a quiz title',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  };
+                                  if (_op != null)
+                                    await Future.sync(() => (_op as dynamic)());
+                                }),
+                        icon: const Icon(Icons.arrow_forward),
+                        label: const Text('Next'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _cs.primary,
+                          foregroundColor: _cs.onPrimary,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 14,
                           ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          elevation: 0,
                         ),
-                      );
-                    }
+                      ),
+                    );
                   },
-                  icon: const Icon(Icons.arrow_forward),
-                  label: const Text('Next'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _cs.primary,
-                    foregroundColor: _cs.onPrimary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24,
-                      vertical: 14,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    elevation: 0,
-                  ),
                 ),
               ],
             ),
@@ -689,30 +709,58 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              TextButton.icon(
-                onPressed: () => setState(() => _currentStep = 0),
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Back'),
-                style: TextButton.styleFrom(
-                  foregroundColor: _cs.onSurfaceVariant,
-                ),
+              Consumer<LoadingProvider>(
+                builder: (context, loadingState, _) {
+                  return LoadingButton(
+                    isLoading: loadingState.isLoading,
+                    child: TextButton.icon(
+                      onPressed: loadingState.isLoading
+                          ? null
+                          : () => loadingState.runAsyncAction(() async {
+                                final _op =
+                                    () => setState(() => _currentStep = 0);
+                                if (_op != null)
+                                  await Future.sync(() => (_op as dynamic)());
+                              }),
+                      icon: const Icon(Icons.arrow_back),
+                      label: const Text('Back'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: _cs.onSurfaceVariant,
+                      ),
+                    ),
+                  );
+                },
               ),
-              ElevatedButton.icon(
-                onPressed: () => setState(() => _currentStep = 2),
-                icon: const Icon(Icons.check),
-                label: const Text('Next'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _cs.primary,
-                  foregroundColor: _cs.onPrimary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 14,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 0,
-                ),
+              Consumer<LoadingProvider>(
+                builder: (context, loadingState, _) {
+                  return LoadingButton(
+                    isLoading: loadingState.isLoading,
+                    child: ElevatedButton.icon(
+                      onPressed: loadingState.isLoading
+                          ? null
+                          : () => loadingState.runAsyncAction(() async {
+                                final _op =
+                                    () => setState(() => _currentStep = 2);
+                                if (_op != null)
+                                  await Future.sync(() => (_op as dynamic)());
+                              }),
+                      icon: const Icon(Icons.check),
+                      label: const Text('Next'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _cs.primary,
+                        foregroundColor: _cs.onPrimary,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -836,17 +884,31 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  ElevatedButton.icon(
-                    onPressed: () {
-                      quizProvider.clearGroqError();
-                      _generateQuiz(quizProvider, authProvider);
+                  Consumer<LoadingProvider>(
+                    builder: (context, loadingState, _) {
+                      return LoadingButton(
+                        isLoading: loadingState.isLoading,
+                        child: ElevatedButton.icon(
+                          onPressed: loadingState.isLoading
+                              ? null
+                              : () => loadingState.runAsyncAction(() async {
+                                    final _op = () {
+                                      quizProvider.clearGroqError();
+                                      _generateQuiz(quizProvider, authProvider);
+                                    };
+                                    if (_op != null)
+                                      await Future.sync(
+                                          () => (_op as dynamic)());
+                                  }),
+                          icon: const Icon(Icons.refresh, size: 18),
+                          label: const Text('Retry Generation'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _cs.primary,
+                            foregroundColor: _cs.onPrimary,
+                          ),
+                        ),
+                      );
                     },
-                    icon: const Icon(Icons.refresh, size: 18),
-                    label: const Text('Retry Generation'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _cs.primary,
-                      foregroundColor: _cs.onPrimary,
-                    ),
                   ),
                 ],
               ),
@@ -854,22 +916,36 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
           ] else ...[
             // Ready to generate
             Center(
-              child: ElevatedButton.icon(
-                onPressed: () => _generateQuiz(quizProvider, authProvider),
-                icon: const Icon(Icons.auto_awesome, size: 20),
-                label: const Text('Generate Questions with AI'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _cs.primary,
-                  foregroundColor: _cs.onPrimary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  elevation: 0,
-                ),
+              child: Consumer<LoadingProvider>(
+                builder: (context, loadingState, _) {
+                  return LoadingButton(
+                    isLoading: loadingState.isLoading,
+                    child: ElevatedButton.icon(
+                      onPressed: loadingState.isLoading
+                          ? null
+                          : () => loadingState.runAsyncAction(() async {
+                                final _op = () =>
+                                    _generateQuiz(quizProvider, authProvider);
+                                if (_op != null)
+                                  await Future.sync(() => (_op as dynamic)());
+                              }),
+                      icon: const Icon(Icons.auto_awesome, size: 20),
+                      label: const Text('Generate Questions with AI'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _cs.primary,
+                        foregroundColor: _cs.onPrimary,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 16,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        elevation: 0,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ],
@@ -877,13 +953,27 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
           const SizedBox(height: 24),
 
           if (!isGenerating)
-            TextButton.icon(
-              onPressed: () => setState(() => _currentStep = 1),
-              icon: const Icon(Icons.arrow_back),
-              label: const Text('Back to Settings'),
-              style: TextButton.styleFrom(
-                foregroundColor: _cs.onSurfaceVariant,
-              ),
+            Consumer<LoadingProvider>(
+              builder: (context, loadingState, _) {
+                return LoadingButton(
+                  isLoading: loadingState.isLoading,
+                  child: TextButton.icon(
+                    onPressed: loadingState.isLoading
+                        ? null
+                        : () => loadingState.runAsyncAction(() async {
+                              final _op =
+                                  () => setState(() => _currentStep = 1);
+                              if (_op != null)
+                                await Future.sync(() => (_op as dynamic)());
+                            }),
+                    icon: const Icon(Icons.arrow_back),
+                    label: const Text('Back to Settings'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: _cs.onSurfaceVariant,
+                    ),
+                  ),
+                );
+              },
             ),
         ],
       ),
@@ -952,14 +1042,27 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                 ),
               ),
               // Add question button
-              OutlinedButton.icon(
-                onPressed: _addManualQuestion,
-                icon: const Icon(Icons.add, size: 18),
-                label: const Text('Add Question'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: _cs.primary,
-                  side: BorderSide(color: _cs.primary),
-                ),
+              Consumer<LoadingProvider>(
+                builder: (context, loadingState, _) {
+                  return LoadingButton(
+                    isLoading: loadingState.isLoading,
+                    child: OutlinedButton.icon(
+                      onPressed: loadingState.isLoading
+                          ? null
+                          : () => loadingState.runAsyncAction(() async {
+                                final _op = _addManualQuestion;
+                                if (_op != null)
+                                  await Future.sync(() => (_op as dynamic)());
+                              }),
+                      icon: const Icon(Icons.add, size: 18),
+                      label: const Text('Add Question'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _cs.primary,
+                        side: BorderSide(color: _cs.primary),
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -1012,52 +1115,96 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              TextButton.icon(
-                onPressed: () => setState(() => _currentStep = 2),
-                icon: const Icon(Icons.arrow_back),
-                label: const Text('Regenerate'),
-                style: TextButton.styleFrom(
-                  foregroundColor: _cs.onSurfaceVariant,
-                ),
+              Consumer<LoadingProvider>(
+                builder: (context, loadingState, _) {
+                  return LoadingButton(
+                    isLoading: loadingState.isLoading,
+                    child: TextButton.icon(
+                      onPressed: loadingState.isLoading
+                          ? null
+                          : () => loadingState.runAsyncAction(() async {
+                                final _op =
+                                    () => setState(() => _currentStep = 2);
+                                if (_op != null)
+                                  await Future.sync(() => (_op as dynamic)());
+                              }),
+                      icon: const Icon(Icons.arrow_back),
+                      label: const Text('Regenerate'),
+                      style: TextButton.styleFrom(
+                        foregroundColor: _cs.onSurfaceVariant,
+                      ),
+                    ),
+                  );
+                },
               ),
               Row(
                 children: [
-                  OutlinedButton.icon(
-                    onPressed: _generatedQuestions.isEmpty
-                        ? null
-                        : () => _saveQuiz(quizProvider, authProvider,
-                            asDraft: true),
-                    icon: const Icon(Icons.save_outlined, size: 18),
-                    label: const Text('Save as Draft'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: _cs.primary,
-                      side: BorderSide(color: _cs.primary),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 14,
-                      ),
-                    ),
+                  Consumer<LoadingProvider>(
+                    builder: (context, loadingState, _) {
+                      return LoadingButton(
+                        isLoading: loadingState.isLoading,
+                        child: OutlinedButton.icon(
+                          onPressed: loadingState.isLoading
+                              ? null
+                              : () => loadingState.runAsyncAction(() async {
+                                    final _op = _generatedQuestions.isEmpty
+                                        ? null
+                                        : () => _saveQuiz(
+                                            quizProvider, authProvider,
+                                            asDraft: true);
+                                    if (_op != null)
+                                      await Future.sync(
+                                          () => (_op as dynamic)());
+                                  }),
+                          icon: const Icon(Icons.save_outlined, size: 18),
+                          label: const Text('Save as Draft'),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: _cs.primary,
+                            side: BorderSide(color: _cs.primary),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 14,
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(width: 12),
-                  ElevatedButton.icon(
-                    onPressed: _generatedQuestions.length < 3
-                        ? null
-                        : () => _saveQuiz(quizProvider, authProvider,
-                            asDraft: false),
-                    icon: const Icon(Icons.publish, size: 18),
-                    label: const Text('Publish Now'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _sem?.success ?? _cs.secondary,
-                      foregroundColor: _cs.onSecondary,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 20,
-                        vertical: 14,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      elevation: 0,
-                    ),
+                  Consumer<LoadingProvider>(
+                    builder: (context, loadingState, _) {
+                      return LoadingButton(
+                        isLoading: loadingState.isLoading,
+                        child: ElevatedButton.icon(
+                          onPressed: loadingState.isLoading
+                              ? null
+                              : () => loadingState.runAsyncAction(() async {
+                                    final _op = _generatedQuestions.length < 3
+                                        ? null
+                                        : () => _saveQuiz(
+                                            quizProvider, authProvider,
+                                            asDraft: false);
+                                    if (_op != null)
+                                      await Future.sync(
+                                          () => (_op as dynamic)());
+                                  }),
+                          icon: const Icon(Icons.publish, size: 18),
+                          label: const Text('Publish Now'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: _sem?.success ?? _cs.secondary,
+                            foregroundColor: _cs.onSecondary,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 14,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 0,
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ],
               ),
@@ -1100,14 +1247,27 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                 ),
               ),
               const Spacer(),
-              IconButton(
-                onPressed: () => _deleteQuestion(index),
-                icon: Icon(
-                  Icons.delete_outline,
-                  color: _sem?.danger ?? _cs.error,
-                  size: 20,
-                ),
-                tooltip: 'Delete question',
+              Consumer<LoadingProvider>(
+                builder: (context, loadingState, _) {
+                  return LoadingButton(
+                    isLoading: loadingState.isLoading,
+                    child: IconButton(
+                      onPressed: loadingState.isLoading
+                          ? null
+                          : () => loadingState.runAsyncAction(() async {
+                                final _op = () => _deleteQuestion(index);
+                                if (_op != null)
+                                  await Future.sync(() => (_op as dynamic)());
+                              }),
+                      icon: Icon(
+                        Icons.delete_outline,
+                        color: _sem?.danger ?? _cs.error,
+                        size: 20,
+                      ),
+                      tooltip: 'Delete question',
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -1269,20 +1429,47 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
         title: const Text('Delete Question?'),
         content: Text('Remove question ${index + 1}?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              setState(() => _generatedQuestions.removeAt(index));
-              Navigator.pop(ctx);
+          Consumer<LoadingProvider>(
+            builder: (context, loadingState, _) {
+              return LoadingButton(
+                isLoading: loadingState.isLoading,
+                child: TextButton(
+                  onPressed: loadingState.isLoading
+                      ? null
+                      : () => loadingState.runAsyncAction(() async {
+                            final _op = () => Navigator.pop(ctx);
+                            if (_op != null)
+                              await Future.sync(() => (_op as dynamic)());
+                          }),
+                  child: const Text('Cancel'),
+                ),
+              );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _sem?.danger ?? _cs.error,
-              foregroundColor: _cs.onError,
-            ),
-            child: const Text('Delete'),
+          ),
+          Consumer<LoadingProvider>(
+            builder: (context, loadingState, _) {
+              return LoadingButton(
+                isLoading: loadingState.isLoading,
+                child: ElevatedButton(
+                  onPressed: loadingState.isLoading
+                      ? null
+                      : () => loadingState.runAsyncAction(() async {
+                            final _op = () {
+                              setState(
+                                  () => _generatedQuestions.removeAt(index));
+                              Navigator.pop(ctx);
+                            };
+                            if (_op != null)
+                              await Future.sync(() => (_op as dynamic)());
+                          }),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _sem?.danger ?? _cs.error,
+                    foregroundColor: _cs.onError,
+                  ),
+                  child: const Text('Delete'),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -1557,87 +1744,145 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
             spacing: 12,
             runSpacing: 12,
             children: [
-              OutlinedButton.icon(
-                onPressed: () {
-                  setState(() {
-                    _currentStep = 0;
-                    _titleController.clear();
-                    _descriptionController.clear();
-                  });
-                  Provider.of<QuizProvider>(
-                    context,
-                    listen: false,
-                  ).clearCurrentQuiz();
-                },
-                icon: const Icon(Icons.add),
-                label: const Text('Create Another'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: _cs.primary,
-                  side: BorderSide(color: _cs.primary),
-                ),
-              ),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  try {
-                    await QuizPdfService.printQuiz(quiz);
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Print failed. Please try again.'),
-                        backgroundColor: _sem?.danger ?? _cs.error,
+              Consumer<LoadingProvider>(
+                builder: (context, loadingState, _) {
+                  return LoadingButton(
+                    isLoading: loadingState.isLoading,
+                    child: OutlinedButton.icon(
+                      onPressed: loadingState.isLoading
+                          ? null
+                          : () => loadingState.runAsyncAction(() async {
+                                final _op = () {
+                                  setState(() {
+                                    _currentStep = 0;
+                                    _titleController.clear();
+                                    _descriptionController.clear();
+                                  });
+                                  Provider.of<QuizProvider>(
+                                    context,
+                                    listen: false,
+                                  ).clearCurrentQuiz();
+                                };
+                                if (_op != null)
+                                  await Future.sync(() => (_op as dynamic)());
+                              }),
+                      icon: const Icon(Icons.add),
+                      label: const Text('Create Another'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: _cs.primary,
+                        side: BorderSide(color: _cs.primary),
                       ),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.print),
-                label: const Text('Print'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _cs.primary,
-                  foregroundColor: _cs.onPrimary,
-                ),
-              ),
-              ElevatedButton.icon(
-                onPressed: () async {
-                  try {
-                    await QuizPdfService.shareQuiz(quiz);
-                  } catch (e) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: const Text('Share failed. Please try again.'),
-                        backgroundColor: _sem?.danger ?? _cs.error,
-                      ),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.share),
-                label: const Text('Share'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _cs.primary,
-                  foregroundColor: _cs.onPrimary,
-                ),
-              ),
-              ElevatedButton.icon(
-                onPressed: () {
-                  final navProvider = Provider.of<NavigationProvider>(
-                    context,
-                    listen: false,
-                  );
-                  navProvider.setPage('My Quizzes');
-
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: const Text('Opening your quiz list...'),
-                      backgroundColor: _cs.primary,
-                      duration: const Duration(seconds: 2),
                     ),
                   );
                 },
-                icon: const Icon(Icons.visibility),
-                label: const Text('View Quiz'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _sem?.success ?? _cs.secondary,
-                  foregroundColor: _cs.onSecondary,
-                ),
+              ),
+              Consumer<LoadingProvider>(
+                builder: (context, loadingState, _) {
+                  return LoadingButton(
+                    isLoading: loadingState.isLoading,
+                    child: ElevatedButton.icon(
+                      onPressed: loadingState.isLoading
+                          ? null
+                          : () => loadingState.runAsyncAction(() async {
+                                final _op = () async {
+                                  try {
+                                    await QuizPdfService.printQuiz(quiz);
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: const Text(
+                                            'Print failed. Please try again.'),
+                                        backgroundColor:
+                                            _sem?.danger ?? _cs.error,
+                                      ),
+                                    );
+                                  }
+                                };
+                                if (_op != null)
+                                  await Future.sync(() => (_op as dynamic)());
+                              }),
+                      icon: const Icon(Icons.print),
+                      label: const Text('Print'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _cs.primary,
+                        foregroundColor: _cs.onPrimary,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              Consumer<LoadingProvider>(
+                builder: (context, loadingState, _) {
+                  return LoadingButton(
+                    isLoading: loadingState.isLoading,
+                    child: ElevatedButton.icon(
+                      onPressed: loadingState.isLoading
+                          ? null
+                          : () => loadingState.runAsyncAction(() async {
+                                final _op = () async {
+                                  try {
+                                    await QuizPdfService.shareQuiz(quiz);
+                                  } catch (e) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: const Text(
+                                            'Share failed. Please try again.'),
+                                        backgroundColor:
+                                            _sem?.danger ?? _cs.error,
+                                      ),
+                                    );
+                                  }
+                                };
+                                if (_op != null)
+                                  await Future.sync(() => (_op as dynamic)());
+                              }),
+                      icon: const Icon(Icons.share),
+                      label: const Text('Share'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _cs.primary,
+                        foregroundColor: _cs.onPrimary,
+                      ),
+                    ),
+                  );
+                },
+              ),
+              Consumer<LoadingProvider>(
+                builder: (context, loadingState, _) {
+                  return LoadingButton(
+                    isLoading: loadingState.isLoading,
+                    child: ElevatedButton.icon(
+                      onPressed: loadingState.isLoading
+                          ? null
+                          : () => loadingState.runAsyncAction(() async {
+                                final _op = () {
+                                  final navProvider =
+                                      Provider.of<NavigationProvider>(
+                                    context,
+                                    listen: false,
+                                  );
+                                  navProvider.setPage('My Quizzes');
+
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: const Text(
+                                          'Opening your quiz list...'),
+                                      backgroundColor: _cs.primary,
+                                      duration: const Duration(seconds: 2),
+                                    ),
+                                  );
+                                };
+                                if (_op != null)
+                                  await Future.sync(() => (_op as dynamic)());
+                              }),
+                      icon: const Icon(Icons.visibility),
+                      label: const Text('View Quiz'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _sem?.success ?? _cs.secondary,
+                        foregroundColor: _cs.onSecondary,
+                      ),
+                    ),
+                  );
+                },
               ),
             ],
           ),

@@ -1,3 +1,6 @@
+import '../widgets/loading_button.dart';
+import '../../providers/loading_provider.dart';
+import 'package:provider/provider.dart';
 import 'student_quiz_taking_screen.dart';
 
 import 'package:flutter/material.dart';
@@ -226,13 +229,20 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
               ),
             ),
             // Refresh button
-            IconButton(
-              onPressed: _loadData,
+            Consumer<LoadingProvider>(
+              builder: (context, loadingState, _) {
+                return LoadingButton(
+                  isLoading: loadingState.isLoading,
+                  child: IconButton(
+              onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = _loadData; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
               icon: Icon(Icons.refresh, color: _cs.onPrimary),
               tooltip: 'Refresh',
               style: IconButton.styleFrom(
                 backgroundColor: _cs.onPrimary.withValues(alpha: 0.15),
               ),
+            ),
+                );
+              },
             ),
           ],
         ),
@@ -257,13 +267,20 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
               prefixIcon:
                   Icon(Icons.search, color: _cs.onSurfaceVariant, size: 22),
               suffixIcon: _searchQuery.isNotEmpty
-                  ? IconButton(
+                  ? Consumer<LoadingProvider>(
+                    builder: (context, loadingState, _) {
+                      return LoadingButton(
+                        isLoading: loadingState.isLoading,
+                        child: IconButton(
                       icon: const Icon(Icons.clear, size: 20),
-                      onPressed: () {
+                      onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () {
                         _searchController.clear();
                         setState(() => _searchQuery = '');
-                      },
-                    )
+                      }; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+                    ),
+                      );
+                    },
+                  )
                   : null,
               filled: true,
               fillColor: _cs.surface,
@@ -399,8 +416,12 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
           ),
           if (showRefresh) ...[
             const SizedBox(height: 24),
-            ElevatedButton.icon(
-              onPressed: _loadData,
+            Consumer<LoadingProvider>(
+              builder: (context, loadingState, _) {
+                return LoadingButton(
+                  isLoading: loadingState.isLoading,
+                  child: ElevatedButton.icon(
+              onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = _loadData; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
               icon: const Icon(Icons.refresh),
               label: const Text('Refresh'),
               style: ElevatedButton.styleFrom(
@@ -410,6 +431,9 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
+            ),
+                );
+              },
             ),
           ],
         ],
@@ -543,12 +567,16 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
                 // Action button
                 SizedBox(
                   width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _handleQuizTap(
+                  child: Consumer<LoadingProvider>(
+                    builder: (context, loadingState, _) {
+                      return LoadingButton(
+                        isLoading: loadingState.isLoading,
+                        child: ElevatedButton.icon(
+                    onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () => _handleQuizTap(
                       quiz,
                       existingAttempt,
                       authProvider,
-                    ),
+                    ); if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
                     icon: Icon(
                       isCompleted
                           ? Icons.visibility
@@ -575,6 +603,9 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
                       ),
                       elevation: 0,
                     ),
+                  ),
+                      );
+                    },
                   ),
                 ),
               ],
@@ -789,23 +820,37 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
+          Consumer<LoadingProvider>(
+            builder: (context, loadingState, _) {
+              return LoadingButton(
+                isLoading: loadingState.isLoading,
+                child: TextButton(
+            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () => Navigator.pop(context); if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
             child: const Text('Cancel'),
           ),
-          ElevatedButton.icon(
-            onPressed: () {
+              );
+            },
+          ),
+          Consumer<LoadingProvider>(
+            builder: (context, loadingState, _) {
+              return LoadingButton(
+                isLoading: loadingState.isLoading,
+                child: ElevatedButton.icon(
+            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () {
               Navigator.pop(context);
               context
                   .push('/student/quiz/take', extra: quiz)
                   .then((_) => _loadData());
-            },
+            }; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
             icon: const Icon(Icons.play_arrow, size: 18),
             label: const Text('Start Quiz'),
             style: ElevatedButton.styleFrom(
               backgroundColor: _cs.primary,
               foregroundColor: _cs.onPrimary,
             ),
+          ),
+              );
+            },
           ),
         ],
       ),

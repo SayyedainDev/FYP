@@ -1,3 +1,6 @@
+import '../widgets/loading_button.dart';
+import '../../providers/loading_provider.dart';
+import 'package:provider/provider.dart';
 import 'student_quiz_result_screen.dart';
 import 'student_quiz_taking_screen.dart';
 import 'package:flutter/material.dart';
@@ -125,10 +128,17 @@ class _StudentQuizDetailScreenState extends State<StudentQuizDetailScreen> {
               const SizedBox(height: 12),
               const Text('This quiz is no longer available'),
               const SizedBox(height: 12),
-              ElevatedButton(
-                onPressed: () =>
-                    Navigator.pushReplacementNamed(context, '/dashboard'),
+              Consumer<LoadingProvider>(
+                builder: (context, loadingState, _) {
+                  return LoadingButton(
+                    isLoading: loadingState.isLoading,
+                    child: ElevatedButton(
+                onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () =>
+                    Navigator.pushReplacementNamed(context, '/dashboard'); if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
                 child: const Text('Go to dashboard'),
+              ),
+                  );
+                },
               ),
             ],
           ),
@@ -164,13 +174,20 @@ class _StudentQuizDetailScreenState extends State<StudentQuizDetailScreen> {
       appBar: AppBar(
         title: const Text('Quiz detail'),
         actions: [
-          IconButton(
-            onPressed: _toggleBookmark,
+          Consumer<LoadingProvider>(
+            builder: (context, loadingState, _) {
+              return LoadingButton(
+                isLoading: loadingState.isLoading,
+                child: IconButton(
+            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = _toggleBookmark; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
             icon: Icon(
               _bookmarks.contains(quiz.id)
                   ? Icons.bookmark
                   : Icons.bookmark_border,
             ),
+          ),
+              );
+            },
           ),
         ],
       ),
@@ -268,10 +285,17 @@ class _StudentQuizDetailScreenState extends State<StudentQuizDetailScreen> {
                         : Icons.play_circle_outline,
                   ),
                   trailing: a.isSubmitted
-                      ? TextButton(
-                          onPressed: () => _openResult(quiz, a),
+                      ? Consumer<LoadingProvider>(
+                        builder: (context, loadingState, _) {
+                          return LoadingButton(
+                            isLoading: loadingState.isLoading,
+                            child: TextButton(
+                          onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () => _openResult(quiz, a); if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
                           child: const Text('View'),
-                        )
+                        ),
+                          );
+                        },
+                      )
                       : const SizedBox.shrink(),
                   title: Text('${a.score}/${a.totalMarks} • ${a.durationText}'),
                   subtitle: Text(
@@ -282,8 +306,12 @@ class _StudentQuizDetailScreenState extends State<StudentQuizDetailScreen> {
             const SizedBox(height: 20),
             SizedBox(
               width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _actionLoading
+              child: Consumer<LoadingProvider>(
+                builder: (context, loadingState, _) {
+                  return LoadingButton(
+                    isLoading: loadingState.isLoading,
+                    child: ElevatedButton(
+                onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = _actionLoading
                     ? null
                     : inProgressAttempt != null
                         ? () => _startOrResume(quiz)
@@ -291,7 +319,7 @@ class _StudentQuizDetailScreenState extends State<StudentQuizDetailScreen> {
                             ? () => _openResult(quiz, latestSubmitted)
                             : canStartNew
                                 ? () => _startOrResume(quiz)
-                                : null,
+                                : null; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
                 child: Text(
                   _actionLoading
                       ? 'Opening...'
@@ -301,6 +329,9 @@ class _StudentQuizDetailScreenState extends State<StudentQuizDetailScreen> {
                               ? 'View Results'
                               : 'Start Quiz',
                 ),
+              ),
+                  );
+                },
               ),
             ),
           ],

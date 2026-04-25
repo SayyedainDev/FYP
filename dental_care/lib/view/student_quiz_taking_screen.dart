@@ -1,3 +1,6 @@
+import '../widgets/loading_button.dart';
+import '../../providers/loading_provider.dart';
+import 'package:provider/provider.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -189,13 +192,26 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                 'Leaving the quiz tab has been recorded ($count/3 times).\n\nAfter 3 violations, your quiz will be auto-submitted.',
               ),
               actions: [
-                ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Theme.of(ctx).colorScheme.primary,
-                    foregroundColor: Theme.of(ctx).colorScheme.onPrimary,
-                  ),
-                  child: const Text('I Understand'),
+                Consumer<LoadingProvider>(
+                  builder: (context, loadingState, _) {
+                    return LoadingButton(
+                      isLoading: loadingState.isLoading,
+                      child: ElevatedButton(
+                        onPressed: loadingState.isLoading
+                            ? null
+                            : () => loadingState.runAsyncAction(() async {
+                                  final _op = () => Navigator.pop(ctx);
+                                  if (_op != null)
+                                    await Future.sync(() => (_op as dynamic)());
+                                }),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Theme.of(ctx).colorScheme.primary,
+                          foregroundColor: Theme.of(ctx).colorScheme.onPrimary,
+                        ),
+                        child: const Text('I Understand'),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
@@ -230,16 +246,29 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
             'No activity has been detected for 3 minutes. Please click below to continue your quiz.',
           ),
           actions: [
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(ctx);
-                _resetInactivityTimer();
+            Consumer<LoadingProvider>(
+              builder: (context, loadingState, _) {
+                return LoadingButton(
+                  isLoading: loadingState.isLoading,
+                  child: ElevatedButton(
+                    onPressed: loadingState.isLoading
+                        ? null
+                        : () => loadingState.runAsyncAction(() async {
+                              final _op = () {
+                                Navigator.pop(ctx);
+                                _resetInactivityTimer();
+                              };
+                              if (_op != null)
+                                await Future.sync(() => (_op as dynamic)());
+                            }),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Theme.of(ctx).colorScheme.primary,
+                      foregroundColor: Theme.of(ctx).colorScheme.onPrimary,
+                    ),
+                    child: const Text('I\'m Here'),
+                  ),
+                );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Theme.of(ctx).colorScheme.primary,
-                foregroundColor: Theme.of(ctx).colorScheme.onPrimary,
-              ),
-              child: const Text('I\'m Here'),
             ),
           ],
         ),
@@ -440,21 +469,47 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
           'Note: Tab switching and other activities will be monitored.',
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Skip'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _requestFullscreen();
+          Consumer<LoadingProvider>(
+            builder: (context, loadingState, _) {
+              return LoadingButton(
+                isLoading: loadingState.isLoading,
+                child: TextButton(
+                  onPressed: loadingState.isLoading
+                      ? null
+                      : () => loadingState.runAsyncAction(() async {
+                            final _op = () => Navigator.pop(ctx);
+                            if (_op != null)
+                              await Future.sync(() => (_op as dynamic)());
+                          }),
+                  child: const Text('Skip'),
+                ),
+              );
             },
-            icon: const Icon(Icons.fullscreen, size: 18),
-            label: const Text('Go Fullscreen'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.primary,
-              foregroundColor: Theme.of(ctx).colorScheme.onPrimary,
-            ),
+          ),
+          Consumer<LoadingProvider>(
+            builder: (context, loadingState, _) {
+              return LoadingButton(
+                isLoading: loadingState.isLoading,
+                child: ElevatedButton.icon(
+                  onPressed: loadingState.isLoading
+                      ? null
+                      : () => loadingState.runAsyncAction(() async {
+                            final _op = () {
+                              Navigator.pop(ctx);
+                              _requestFullscreen();
+                            };
+                            if (_op != null)
+                              await Future.sync(() => (_op as dynamic)());
+                          }),
+                  icon: const Icon(Icons.fullscreen, size: 18),
+                  label: const Text('Go Fullscreen'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(ctx).colorScheme.primary,
+                    foregroundColor: Theme.of(ctx).colorScheme.onPrimary,
+                  ),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -475,16 +530,29 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
         title: const Text('Quiz Submitted'),
         content: Text(message),
         actions: [
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              _submitQuiz();
+          Consumer<LoadingProvider>(
+            builder: (context, loadingState, _) {
+              return LoadingButton(
+                isLoading: loadingState.isLoading,
+                child: ElevatedButton(
+                  onPressed: loadingState.isLoading
+                      ? null
+                      : () => loadingState.runAsyncAction(() async {
+                            final _op = () {
+                              Navigator.pop(ctx);
+                              _submitQuiz();
+                            };
+                            if (_op != null)
+                              await Future.sync(() => (_op as dynamic)());
+                          }),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Theme.of(ctx).colorScheme.primary,
+                    foregroundColor: Theme.of(ctx).colorScheme.onPrimary,
+                  ),
+                  child: const Text('View Results'),
+                ),
+              );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(ctx).colorScheme.primary,
-              foregroundColor: Theme.of(ctx).colorScheme.onPrimary,
-            ),
-            child: const Text('View Results'),
           ),
         ],
       ),
@@ -723,9 +791,23 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
         child: Row(
           children: [
             // Back button
-            IconButton(
-              onPressed: () => _showExitConfirmation(),
-              icon: Icon(Icons.close, color: colorScheme.onSurfaceVariant),
+            Consumer<LoadingProvider>(
+              builder: (context, loadingState, _) {
+                return LoadingButton(
+                  isLoading: loadingState.isLoading,
+                  child: IconButton(
+                    onPressed: loadingState.isLoading
+                        ? null
+                        : () => loadingState.runAsyncAction(() async {
+                              final _op = () => _showExitConfirmation();
+                              if (_op != null)
+                                await Future.sync(() => (_op as dynamic)());
+                            }),
+                    icon:
+                        Icon(Icons.close, color: colorScheme.onSurfaceVariant),
+                  ),
+                );
+              },
             ),
             const SizedBox(width: 8),
 
@@ -864,28 +946,42 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
             if (hasTimeLimit) const SizedBox(width: 12) else const Spacer(),
 
             // Submit Button moved to Top Bar
-            ElevatedButton.icon(
-              onPressed: _isSubmitting
-                  ? null
-                  : () => _showSubmitConfirmation(
-                        attemptProvider.currentResponses.length,
-                        totalQuestions,
-                      ),
-              icon: _isSubmitting
-                  ? const SizedBox(
-                      width: 16, height: 16, child: AppLoader(size: 16))
-                  : const Icon(Icons.send, size: 16),
-              label: Text(
-                  AppBreakpoints.isDesktop(context) ? 'Submit Quiz' : 'Submit'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    semanticColors?.success ?? colorScheme.secondary,
-                foregroundColor: colorScheme.onSecondary,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8)),
-              ),
+            Consumer<LoadingProvider>(
+              builder: (context, loadingState, _) {
+                return LoadingButton(
+                  isLoading: loadingState.isLoading,
+                  child: ElevatedButton.icon(
+                    onPressed: loadingState.isLoading
+                        ? null
+                        : () => loadingState.runAsyncAction(() async {
+                              final _op = _isSubmitting
+                                  ? null
+                                  : () => _showSubmitConfirmation(
+                                        attemptProvider.currentResponses.length,
+                                        totalQuestions,
+                                      );
+                              if (_op != null)
+                                await Future.sync(() => (_op as dynamic)());
+                            }),
+                    icon: _isSubmitting
+                        ? const SizedBox(
+                            width: 16, height: 16, child: AppLoader(size: 16))
+                        : const Icon(Icons.send, size: 16),
+                    label: Text(AppBreakpoints.isDesktop(context)
+                        ? 'Submit Quiz'
+                        : 'Submit'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          semanticColors?.success ?? colorScheme.secondary,
+                      foregroundColor: colorScheme.onSecondary,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -1361,28 +1457,42 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
               ),
               const Spacer(),
               // Flag for Review toggle button
-              IconButton(
-                onPressed: () {
-                  setState(() {
-                    if (_flaggedQuestions.contains(question.id)) {
-                      _flaggedQuestions.remove(question.id);
-                    } else {
-                      _flaggedQuestions.add(question.id);
-                    }
-                  });
-                  _recordInteraction();
+              Consumer<LoadingProvider>(
+                builder: (context, loadingState, _) {
+                  return LoadingButton(
+                    isLoading: loadingState.isLoading,
+                    child: IconButton(
+                      onPressed: loadingState.isLoading
+                          ? null
+                          : () => loadingState.runAsyncAction(() async {
+                                final _op = () {
+                                  setState(() {
+                                    if (_flaggedQuestions
+                                        .contains(question.id)) {
+                                      _flaggedQuestions.remove(question.id);
+                                    } else {
+                                      _flaggedQuestions.add(question.id);
+                                    }
+                                  });
+                                  _recordInteraction();
+                                };
+                                if (_op != null)
+                                  await Future.sync(() => (_op as dynamic)());
+                              }),
+                      icon: Icon(
+                        _flaggedQuestions.contains(question.id)
+                            ? Icons.flag
+                            : Icons.flag_outlined,
+                      ),
+                      color: _flaggedQuestions.contains(question.id)
+                          ? Colors.orange
+                          : colorScheme.onSurfaceVariant,
+                      tooltip: _flaggedQuestions.contains(question.id)
+                          ? 'Remove from Review'
+                          : 'Flag for Review',
+                    ),
+                  );
                 },
-                icon: Icon(
-                  _flaggedQuestions.contains(question.id)
-                      ? Icons.flag
-                      : Icons.flag_outlined,
-                ),
-                color: _flaggedQuestions.contains(question.id)
-                    ? Colors.orange
-                    : colorScheme.onSurfaceVariant,
-                tooltip: _flaggedQuestions.contains(question.id)
-                    ? 'Remove from Review'
-                    : 'Flag for Review',
               ),
             ],
           ),
@@ -1527,83 +1637,139 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
         children: [
           // Previous button
           if (_currentQuestionIndex > 0)
-            OutlinedButton.icon(
-              onPressed: () {
-                _recordInteraction();
-                setState(() => _currentQuestionIndex--);
+            Consumer<LoadingProvider>(
+              builder: (context, loadingState, _) {
+                return LoadingButton(
+                  isLoading: loadingState.isLoading,
+                  child: OutlinedButton.icon(
+                    onPressed: loadingState.isLoading
+                        ? null
+                        : () => loadingState.runAsyncAction(() async {
+                              final _op = () {
+                                _recordInteraction();
+                                setState(() => _currentQuestionIndex--);
+                              };
+                              if (_op != null)
+                                await Future.sync(() => (_op as dynamic)());
+                            }),
+                    icon: const Icon(Icons.arrow_back, size: 18),
+                    label: const Text('Previous'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: colorScheme.onSurfaceVariant,
+                      side: BorderSide(color: colorScheme.outlineVariant),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                );
               },
-              icon: const Icon(Icons.arrow_back, size: 18),
-              label: const Text('Previous'),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: colorScheme.onSurfaceVariant,
-                side: BorderSide(color: colorScheme.outlineVariant),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-              ),
             ),
 
           const Spacer(),
 
           // Review mode: show "Close Review" on last question, disabled on earlier questions
           if (widget.isReview) ...[
-            ElevatedButton.icon(
-              onPressed: isLastQuestion ? () => _showExitConfirmation() : null,
-              icon: const Icon(Icons.close, size: 18),
-              label: const Text('Close Review'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isLastQuestion
-                    ? Colors.blue.shade600
-                    : colorScheme.outlineVariant.withValues(alpha: 0.3),
-                foregroundColor: isLastQuestion
-                    ? Colors.white
-                    : colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-                elevation: 0,
-              ),
+            Consumer<LoadingProvider>(
+              builder: (context, loadingState, _) {
+                return LoadingButton(
+                  isLoading: loadingState.isLoading,
+                  child: ElevatedButton.icon(
+                    onPressed: loadingState.isLoading
+                        ? null
+                        : () => loadingState.runAsyncAction(() async {
+                              final _op = isLastQuestion
+                                  ? () => _showExitConfirmation()
+                                  : null;
+                              if (_op != null)
+                                await Future.sync(() => (_op as dynamic)());
+                            }),
+                    icon: const Icon(Icons.close, size: 18),
+                    label: const Text('Close Review'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isLastQuestion
+                          ? Colors.blue.shade600
+                          : colorScheme.outlineVariant.withValues(alpha: 0.3),
+                      foregroundColor: isLastQuestion
+                          ? Colors.white
+                          : colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      elevation: 0,
+                    ),
+                  ),
+                );
+              },
             )
           ]
           // Normal mode: Next button or Submit button
           else if (_currentQuestionIndex < totalQuestions - 1) ...[
-            ElevatedButton.icon(
-              onPressed: () {
-                _recordInteraction();
-                setState(() => _currentQuestionIndex++);
+            Consumer<LoadingProvider>(
+              builder: (context, loadingState, _) {
+                return LoadingButton(
+                  isLoading: loadingState.isLoading,
+                  child: ElevatedButton.icon(
+                    onPressed: loadingState.isLoading
+                        ? null
+                        : () => loadingState.runAsyncAction(() async {
+                              final _op = () {
+                                _recordInteraction();
+                                setState(() => _currentQuestionIndex++);
+                              };
+                              if (_op != null)
+                                await Future.sync(() => (_op as dynamic)());
+                            }),
+                    icon: const Icon(Icons.arrow_forward, size: 18),
+                    label: const Text('Next'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colorScheme.primary,
+                      foregroundColor: colorScheme.onPrimary,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      elevation: 0,
+                    ),
+                  ),
+                );
               },
-              icon: const Icon(Icons.arrow_forward, size: 18),
-              label: const Text('Next'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colorScheme.primary,
-                foregroundColor: colorScheme.onPrimary,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-                elevation: 0,
-              ),
             )
           ] else ...[
-            ElevatedButton.icon(
-              onPressed: () {
-                final answered =
-                    attemptProvider.currentAttempt?.responses.length ?? 0;
-                _showSubmitConfirmation(answered, totalQuestions);
+            Consumer<LoadingProvider>(
+              builder: (context, loadingState, _) {
+                return LoadingButton(
+                  isLoading: loadingState.isLoading,
+                  child: ElevatedButton.icon(
+                    onPressed: loadingState.isLoading
+                        ? null
+                        : () => loadingState.runAsyncAction(() async {
+                              final _op = () {
+                                final answered = attemptProvider
+                                        .currentAttempt?.responses.length ??
+                                    0;
+                                _showSubmitConfirmation(
+                                    answered, totalQuestions);
+                              };
+                              if (_op != null)
+                                await Future.sync(() => (_op as dynamic)());
+                            }),
+                    icon: const Icon(Icons.check, size: 18),
+                    label: const Text('Submit Quiz'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: colorScheme.secondary,
+                      foregroundColor: colorScheme.onSecondary,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      elevation: 0,
+                    ),
+                  ),
+                );
               },
-              icon: const Icon(Icons.check, size: 18),
-              label: const Text('Submit Quiz'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: colorScheme.secondary,
-                foregroundColor: colorScheme.onSecondary,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-                elevation: 0,
-              ),
             )
           ],
         ],
@@ -1647,20 +1813,47 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Review Answers'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _submitQuiz();
+          Consumer<LoadingProvider>(
+            builder: (context, loadingState, _) {
+              return LoadingButton(
+                isLoading: loadingState.isLoading,
+                child: TextButton(
+                  onPressed: loadingState.isLoading
+                      ? null
+                      : () => loadingState.runAsyncAction(() async {
+                            final _op = () => Navigator.pop(context);
+                            if (_op != null)
+                              await Future.sync(() => (_op as dynamic)());
+                          }),
+                  child: const Text('Review Answers'),
+                ),
+              );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: semanticColors?.success ?? colorScheme.secondary,
-              foregroundColor: colorScheme.onSecondary,
-            ),
-            child: const Text('Submit'),
+          ),
+          Consumer<LoadingProvider>(
+            builder: (context, loadingState, _) {
+              return LoadingButton(
+                isLoading: loadingState.isLoading,
+                child: ElevatedButton(
+                  onPressed: loadingState.isLoading
+                      ? null
+                      : () => loadingState.runAsyncAction(() async {
+                            final _op = () {
+                              Navigator.pop(context);
+                              _submitQuiz();
+                            };
+                            if (_op != null)
+                              await Future.sync(() => (_op as dynamic)());
+                          }),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor:
+                        semanticColors?.success ?? colorScheme.secondary,
+                    foregroundColor: colorScheme.onSecondary,
+                  ),
+                  child: const Text('Submit'),
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -1682,20 +1875,46 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
           content: const Text(
               'You are viewing a completed quiz. Your answers cannot be changed.'),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Keep Reviewing'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pop(context);
+            Consumer<LoadingProvider>(
+              builder: (context, loadingState, _) {
+                return LoadingButton(
+                  isLoading: loadingState.isLoading,
+                  child: TextButton(
+                    onPressed: loadingState.isLoading
+                        ? null
+                        : () => loadingState.runAsyncAction(() async {
+                              final _op = () => Navigator.pop(context);
+                              if (_op != null)
+                                await Future.sync(() => (_op as dynamic)());
+                            }),
+                    child: const Text('Keep Reviewing'),
+                  ),
+                );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue.shade600,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Close Review'),
+            ),
+            Consumer<LoadingProvider>(
+              builder: (context, loadingState, _) {
+                return LoadingButton(
+                  isLoading: loadingState.isLoading,
+                  child: ElevatedButton(
+                    onPressed: loadingState.isLoading
+                        ? null
+                        : () => loadingState.runAsyncAction(() async {
+                              final _op = () {
+                                Navigator.pop(context);
+                                Navigator.pop(context);
+                              };
+                              if (_op != null)
+                                await Future.sync(() => (_op as dynamic)());
+                            }),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.blue.shade600,
+                      foregroundColor: Colors.white,
+                    ),
+                    child: const Text('Close Review'),
+                  ),
+                );
+              },
             ),
           ],
         ),
@@ -1712,20 +1931,47 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
             'Your progress has been saved. You can continue later, but the timer will keep running.',
           ),
           actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Stay'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                Navigator.pop(context);
+            Consumer<LoadingProvider>(
+              builder: (context, loadingState, _) {
+                return LoadingButton(
+                  isLoading: loadingState.isLoading,
+                  child: TextButton(
+                    onPressed: loadingState.isLoading
+                        ? null
+                        : () => loadingState.runAsyncAction(() async {
+                              final _op = () => Navigator.pop(context);
+                              if (_op != null)
+                                await Future.sync(() => (_op as dynamic)());
+                            }),
+                    child: const Text('Stay'),
+                  ),
+                );
               },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: semanticColors?.danger ?? colorScheme.error,
-                foregroundColor: colorScheme.onError,
-              ),
-              child: const Text('Leave'),
+            ),
+            Consumer<LoadingProvider>(
+              builder: (context, loadingState, _) {
+                return LoadingButton(
+                  isLoading: loadingState.isLoading,
+                  child: ElevatedButton(
+                    onPressed: loadingState.isLoading
+                        ? null
+                        : () => loadingState.runAsyncAction(() async {
+                              final _op = () {
+                                Navigator.pop(context);
+                                Navigator.pop(context);
+                              };
+                              if (_op != null)
+                                await Future.sync(() => (_op as dynamic)());
+                            }),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          semanticColors?.danger ?? colorScheme.error,
+                      foregroundColor: colorScheme.onError,
+                    ),
+                    child: const Text('Leave'),
+                  ),
+                );
+              },
             ),
           ],
         ),

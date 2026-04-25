@@ -10,6 +10,8 @@ import '../provider/auth_provider.dart';
 import '../utils/app_dialogs.dart';
 import '../utils/global_error_handler.dart';
 import '../widgets/loaders/app_loader.dart';
+import '../widgets/loading_button.dart';
+import '../../providers/loading_provider.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -341,152 +343,176 @@ class _LoginCardState extends State<_LoginCard> {
                 const SizedBox(height: 16),
 
                 // Sign In Button
-                ElevatedButton.icon(
-                  onPressed: _isSubmitting
-                      ? null
-                      : () async {
-                          FocusScope.of(context).unfocus();
-                          if (!widget.formKey.currentState!.validate()) {
-                            AppDialogs.showWarningDialog(
-                              context,
-                              title: 'Missing Fields',
-                              message: 'Please fill in all required fields.',
-                              confirmLabel: 'OK',
-                              onConfirm: () {},
-                            );
-                            return;
-                          }
-                          try {
-                            setState(() => _isSubmitting = true);
-                            // Call the provider to log in
-                            await widget.auth
-                                .login(
-                                  widget.email.text.trim(),
-                                  widget.password.text.trim(),
-                                  rememberMe: _rememberMe,
-                                  studentOnly: _selectedRole == 'Student',
-                                )
-                                .timeout(const Duration(seconds: 30));
-
-                            // Check login success *after* await
-                            if (widget.auth.uid != null && mounted) {
-                              if (_selectedRole == 'Student') {
-                                Navigator.pushReplacement(
-                                    context,
-                                    MaterialPageRoute(
-                                        builder: (_) => const student_dashboard
-                                            .StudentLMSDashboard()));
-                              } else {
-                                Navigator.pushReplacementNamed(
-                                    context, '/dashboard');
+                Consumer<LoadingProvider>(
+                  builder: (context, loadingState, _) {
+                    return ElevatedButton.icon(
+                      onPressed: (_isSubmitting || loadingState.isLoading)
+                          ? null
+                          : () async {
+                              FocusScope.of(context).unfocus();
+                              if (!widget.formKey.currentState!.validate()) {
+                                AppDialogs.showWarningDialog(
+                                  context,
+                                  title: 'Missing Fields',
+                                  message:
+                                      'Please fill in all required fields.',
+                                  confirmLabel: 'OK',
+                                  onConfirm: () {},
+                                );
+                                return;
                               }
-                            }
-                          } on TimeoutException catch (_) {
-                            if (!mounted) return;
-                            AppDialogs.showErrorDialog(context,
-                                message:
-                                    "The request timed out. Check your connection and try again.");
-                          } on SocketException catch (_) {
-                            if (!mounted) return;
-                            AppDialogs.showNoInternetDialog(context);
-                          } on FirebaseAuthException catch (e) {
-                            if (!mounted) return;
-                            if (e.code == 'user-not-found') {
-                              setState(() {
-                                _emailInlineError =
-                                    'No account found with this email';
-                              });
-                              return;
-                            }
-                            if (e.code == 'wrong-password' ||
-                                e.code == 'invalid-credential') {
-                              AppDialogs.showErrorDialog(
-                                context,
-                                message:
-                                    'Incorrect email or password. Please try again.',
-                              );
-                              return;
-                            }
-                            if (e.code == 'too-many-requests') {
-                              AppDialogs.showErrorDialog(
-                                context,
-                                message:
-                                    'Account temporarily locked. Try again in 15 minutes.',
-                              );
-                              return;
-                            }
-                            if (e.code == 'network-request-failed') {
-                              AppDialogs.showNoInternetDialog(context);
-                              return;
-                            }
-                            AppDialogs.showErrorDialog(
-                              context,
-                              message: e.message ?? 'Login failed',
-                            );
-                          } catch (e, stack) {
-                            if (!mounted) return;
-                            if (e
-                                .toString()
-                                .contains('teacher_account_detected')) {
-                              AppDialogs.showErrorDialog(
-                                context,
-                                message:
-                                    'This is a teacher account. Please switch role to Doctor/Dentist.',
-                              );
-                              return;
-                            }
-                            if (e
-                                .toString()
-                                .contains('student_account_detected')) {
-                              AppDialogs.showErrorDialog(
-                                context,
-                                message:
-                                    'This is a student account. Please switch role to Student.',
-                              );
-                              return;
-                            }
-                            // Check if it's a known auth exception message string
-                            final errStr = e.toString();
-                            if (errStr.contains('firebase_auth') ||
-                                errStr.contains('Exception:')) {
-                              final msg = e is Exception
-                                  ? errStr.replaceFirst('Exception: ', '')
-                                  : 'Login failed';
-                              AppDialogs.showErrorDialog(context, message: msg);
-                            } else {
-                              GlobalErrorHandler.instance.handleError(e, stack);
-                            }
-                          } finally {
-                            if (mounted) {
-                              setState(() => _isSubmitting = false);
-                            }
-                          }
-                        },
-                  icon: _isSubmitting
-                      ? const SizedBox(
-                          width: 18,
-                          height: 18,
-                          child: AppLoader(size: 18),
-                        )
-                      : const Icon(Icons.login_rounded),
-                  label: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 4),
-                    child: Text(
-                      _isSubmitting ? 'Signing you in...' : 'Sign in',
-                    ),
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: colorScheme.primary,
-                    foregroundColor: colorScheme.onPrimary,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    textStyle: const TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 16,
-                    ),
-                  ),
+                              try {
+                                setState(() => _isSubmitting = true);
+                                // Call the provider to log in
+                                await widget.auth
+                                    .login(
+                                      widget.email.text.trim(),
+                                      widget.password.text.trim(),
+                                      rememberMe: _rememberMe,
+                                      studentOnly: _selectedRole == 'Student',
+                                    )
+                                    .timeout(const Duration(seconds: 30));
+
+                                // Check login success *after* await
+                                if (widget.auth.uid != null && mounted) {
+                                  if (_selectedRole == 'Student') {
+                                    Navigator.pushReplacement(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                const student_dashboard
+                                                    .StudentLMSDashboard()));
+                                  } else {
+                                    Navigator.pushReplacementNamed(
+                                        context, '/dashboard');
+                                  }
+                                }
+                              } on TimeoutException catch (_) {
+                                if (!mounted) return;
+                                AppDialogs.showErrorDialog(context,
+                                    message:
+                                        "The request timed out. Check your connection and try again.");
+                              } on SocketException catch (_) {
+                                if (!mounted) return;
+                                AppDialogs.showNoInternetDialog(context);
+                              } on FirebaseAuthException catch (e) {
+                                if (!mounted) return;
+                                if (e.code == 'user-not-found') {
+                                  setState(() {
+                                    _emailInlineError =
+                                        'No account found with this email';
+                                  });
+                                  return;
+                                }
+                                if (e.code == 'wrong-password' ||
+                                    e.code == 'invalid-credential') {
+                                  AppDialogs.showErrorDialog(
+                                    context,
+                                    message:
+                                        'Incorrect email or password. Please try again.',
+                                  );
+                                  return;
+                                }
+                                if (e.code == 'too-many-requests') {
+                                  AppDialogs.showErrorDialog(
+                                    context,
+                                    message:
+                                        'Account temporarily locked. Try again in 15 minutes.',
+                                  );
+                                  return;
+                                }
+                                if (e.code == 'network-request-failed') {
+                                  AppDialogs.showNoInternetDialog(context);
+                                  return;
+                                }
+                                AppDialogs.showErrorDialog(
+                                  context,
+                                  message: e.message ?? 'Login failed',
+                                );
+                              } catch (e, stack) {
+                                if (!mounted) return;
+                                if (e
+                                    .toString()
+                                    .contains('teacher_account_detected')) {
+                                  AppDialogs.showErrorDialog(
+                                    context,
+                                    message:
+                                        'This is a teacher account. Please switch role to Doctor/Dentist.',
+                                  );
+                                  return;
+                                }
+                                if (e
+                                    .toString()
+                                    .contains('student_account_detected')) {
+                                  AppDialogs.showErrorDialog(
+                                    context,
+                                    message:
+                                        'This is a student account. Please switch role to Student.',
+                                  );
+                                  return;
+                                }
+                                // Check if it's a known auth exception message string
+                                final errStr = e.toString();
+                                if (errStr.contains('firebase_auth') ||
+                                    errStr.contains('Exception:')) {
+                                  final msg = e is Exception
+                                      ? errStr.replaceFirst('Exception: ', '')
+                                      : 'Login failed';
+                                  AppDialogs.showErrorDialog(context,
+                                      message: msg);
+                                } else {
+                                  GlobalErrorHandler.instance
+                                      .handleError(e, stack);
+                                }
+                              } finally {
+                                if (mounted) {
+                                  setState(() => _isSubmitting = false);
+                                }
+                              }
+                            },
+                      icon: (_isSubmitting || loadingState.isLoading)
+                          ? SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  colorScheme.onPrimary.withValues(alpha: 0.9),
+                                ),
+                              ),
+                            )
+                          : const Icon(Icons.login_rounded, size: 24),
+                      label: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Text(
+                          (_isSubmitting || loadingState.isLoading)
+                              ? 'Signing you in...'
+                              : 'Sign in',
+                          style:
+                              const TextStyle(fontSize: 18, letterSpacing: 0.5),
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: colorScheme.primary,
+                        foregroundColor: colorScheme.onPrimary,
+                        disabledBackgroundColor:
+                            colorScheme.primary.withValues(alpha: 0.7),
+                        disabledForegroundColor:
+                            colorScheme.onPrimary.withValues(alpha: 0.9),
+                        minimumSize: const Size(
+                            double.infinity, 56), // Thick, large button
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        textStyle: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                        ),
+                        elevation: 2,
+                      ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 20),
 

@@ -1,3 +1,6 @@
+import '../widgets/loading_button.dart';
+import '../../providers/loading_provider.dart';
+import 'package:provider/provider.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -118,14 +121,21 @@ class _StudentQuizResultScreenState extends State<StudentQuizResultScreen> {
                     const SizedBox(height: 16),
                     const Text('Grading takes longer than expected.'),
                     const SizedBox(height: 8),
-                    ElevatedButton(
-                      onPressed: () {
+                    Consumer<LoadingProvider>(
+                      builder: (context, loadingState, _) {
+                        return LoadingButton(
+                          isLoading: loadingState.isLoading,
+                          child: ElevatedButton(
+                      onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () {
                         setState(() {
                           _isGradingError = false;
                         });
                         _startPolling();
-                      },
+                      }; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
                       child: const Text('Try Again'),
+                    ),
+                        );
+                      },
                     ),
                   ],
                 )
@@ -320,9 +330,16 @@ class _StudentQuizResultScreenState extends State<StudentQuizResultScreen> {
         bottom: false,
         child: Row(
           children: [
-            IconButton(
-              onPressed: () => Navigator.pop(context),
+            Consumer<LoadingProvider>(
+              builder: (context, loadingState, _) {
+                return LoadingButton(
+                  isLoading: loadingState.isLoading,
+                  child: IconButton(
+              onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () => Navigator.pop(context); if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
               icon: Icon(Icons.arrow_back, color: colorScheme.onPrimary),
+            ),
+                );
+              },
             ),
             const SizedBox(width: 8),
             Hero(
