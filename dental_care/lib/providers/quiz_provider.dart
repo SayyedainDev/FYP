@@ -501,7 +501,7 @@ class QuizProvider with ChangeNotifier {
       debugPrint('🔍 Fetching published quizzes for students...');
       _isLoading = true;
       _errorMessage = null;
-      
+
       // Defer notification until after build phase to avoid "setState during build" error
       WidgetsBinding.instance.addPostFrameCallback((_) {
         notifyListeners();

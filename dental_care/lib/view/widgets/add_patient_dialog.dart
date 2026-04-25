@@ -24,6 +24,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
   final _notesController = TextEditingController();
   DateTime? _selectedDate;
   String _selectedGender = 'Male';
+  String _selectedHealthStatus = 'Healthy';
 
   @override
   void dispose() {
@@ -110,6 +111,7 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
         contactEmail: _emailController.text.trim(),
         notes: _notesController.text.trim(),
         createdAt: DateTime.now(),
+        healthStatus: _selectedHealthStatus,
       );
 
       final patientId = await patientProvider.addPatient(patient, uid);
@@ -430,6 +432,61 @@ class _AddPatientDialogState extends State<AddPatientDialog> {
                         label: 'Medical History / Notes',
                         icon: Icons.medical_services,
                         maxLines: 4,
+                      ),
+                      const SizedBox(height: 28),
+
+                      // Health Status
+                      _buildSectionLabel('Health Status'),
+                      const SizedBox(height: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: colorScheme.outlineVariant,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          color: colorScheme.surfaceContainerLowest,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedHealthStatus,
+                            isExpanded: true,
+                            icon: Icon(
+                              Icons.arrow_drop_down,
+                              color: colorScheme.primary,
+                            ),
+                            items: ['Healthy', 'At Risk', 'Critical', 'Pending']
+                                .map(
+                                  (status) => DropdownMenuItem(
+                                    value: status,
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 12,
+                                          height: 12,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Color(
+                                              Patient.statusColors[status] ?? 0xFF2196F3,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(status),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedHealthStatus = value!;
+                              });
+                            },
+                          ),
+                        ),
                       ),
                     ],
                   ),

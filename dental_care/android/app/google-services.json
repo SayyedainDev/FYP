@@ -12,7 +12,16 @@
           "package_name": "com.example.dental_care"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "874657566001-a1d6pqep2vth1mv9nufd539vge4h4mlu.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.dental_care",
+            "cert_hash": "ab59bf1a4dc58e4e0b0a64e1804b0a63ee5e352d"
+          }
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyB0uRs2j2AyGsr_vz6zm5hvJsmPvyt00uc"

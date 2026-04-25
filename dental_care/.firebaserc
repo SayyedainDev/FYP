@@ -1,6 +1,7 @@
 {
   "projects": {
-    "default": "dental-care-6daf8",
-    "fyp": "fyp26-a22b9"
-  }
+    "default": "fyp26-a22b9"
+  },
+  "targets": {},
+  "etags": {}
 }

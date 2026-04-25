@@ -22,6 +22,7 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
   late TextEditingController _notesController;
   late DateTime _selectedDate;
   late String _selectedGender;
+  late String _selectedHealthStatus;
 
   @override
   void initState() {
@@ -32,6 +33,7 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
     _notesController = TextEditingController(text: widget.patient.notes);
     _selectedDate = widget.patient.dob;
     _selectedGender = widget.patient.gender;
+    _selectedHealthStatus = widget.patient.healthStatus;
   }
 
   @override
@@ -102,6 +104,7 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
         contactPhone: _phoneController.text.trim(),
         contactEmail: _emailController.text.trim(),
         notes: _notesController.text.trim(),
+        healthStatus: _selectedHealthStatus,
       );
 
       await patientProvider.updatePatient(updatedPatient, uid);
@@ -413,6 +416,61 @@ class _EditPatientDialogState extends State<EditPatientDialog> {
                         label: 'Medical History / Notes',
                         icon: Icons.medical_services,
                         maxLines: 4,
+                      ),
+                      const SizedBox(height: 28),
+
+                      // Health Status
+                      _buildSectionLabel('Health Status'),
+                      const SizedBox(height: 12),
+                      Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(
+                            color: colorScheme.outlineVariant,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                          color: colorScheme.surfaceContainerLowest,
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: _selectedHealthStatus,
+                            isExpanded: true,
+                            icon: Icon(
+                              Icons.arrow_drop_down,
+                              color: colorScheme.primary,
+                            ),
+                            items: ['Healthy', 'At Risk', 'Critical', 'Pending']
+                                .map(
+                                  (status) => DropdownMenuItem(
+                                    value: status,
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 12,
+                                          height: 12,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            color: Color(
+                                              Patient.statusColors[status] ?? 0xFF2196F3,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(status),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                                .toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedHealthStatus = value!;
+                              });
+                            },
+                          ),
+                        ),
                       ),
                     ],
                   ),

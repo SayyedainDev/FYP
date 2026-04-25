@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:dental_care/providers/quiz_provider.dart';
 import 'package:dental_care/models/quiz_attempt.dart';
 import 'package:intl/intl.dart';
+import 'package:dental_care/utils/csv_export_helper.dart';
+import 'dart:html' as html;
+import 'dart:convert';
 
 class QuizResultsScreen extends StatefulWidget {
   final String quizId;
@@ -160,55 +163,94 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
                               fontWeight: FontWeight.bold,
                             ),
                           ),
-                          PopupMenuButton<String>(
-                            initialValue: _sortBy,
-                            onSelected: (value) {
-                              setState(() => _sortBy = value);
-                            },
-                            itemBuilder: (BuildContext context) => [
-                              const PopupMenuItem(
-                                value: 'score',
-                                child: Text('Sort by Score'),
-                              ),
-                              const PopupMenuItem(
-                                value: 'percentage',
-                                child: Text('Sort by Percentage'),
-                              ),
-                              const PopupMenuItem(
-                                value: 'name',
-                                child: Text('Sort by Name'),
-                              ),
-                              const PopupMenuItem(
-                                value: 'date',
-                                child: Text('Sort by Date'),
-                              ),
-                            ],
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 6,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.blue.shade50,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(
-                                  color: Colors.blue.shade200,
-                                ),
-                              ),
-                              child: const Row(
-                                children: [
-                                  Icon(Icons.sort, color: Colors.blue),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'Sort',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
+                          Row(
+                            children: [
+                              // Download CSV Button
+                              Tooltip(
+                                message: 'Download Results as CSV',
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.green.shade50,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: Colors.green.shade200,
                                     ),
                                   ),
-                                ],
+                                  child: InkWell(
+                                    onTap: () => _downloadResultsAsCSV(submittedAttempts),
+                                    child: const Row(
+                                      children: [
+                                        Icon(Icons.download, color: Colors.green),
+                                        SizedBox(width: 4),
+                                        Text(
+                                          'CSV',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.green,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
+                              const SizedBox(width: 12),
+                              PopupMenuButton<String>(
+                                initialValue: _sortBy,
+                                onSelected: (value) {
+                                  setState(() => _sortBy = value);
+                                },
+                                itemBuilder: (BuildContext context) => [
+                                  const PopupMenuItem(
+                                    value: 'score',
+                                    child: Text('Sort by Score'),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'percentage',
+                                    child: Text('Sort by Percentage'),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'name',
+                                    child: Text('Sort by Name'),
+                                  ),
+                                  const PopupMenuItem(
+                                    value: 'date',
+                                    child: Text('Sort by Date'),
+                                  ),
+                                ],
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 6,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.blue.shade50,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: Colors.blue.shade200,
+                                    ),
+                                  ),
+                                  child: const Row(
+                                    children: [
+                                      Icon(Icons.sort, color: Colors.blue),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Sort',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ],
                       ),
@@ -699,6 +741,45 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
         ],
       ),
     );
+  }
+
+  void _downloadResultsAsCSV(List<QuizAttempt> attempts) {
+    try {
+      // Generate CSV content
+      final csvContent = CSVExportHelper.generateQuizResultsCSV(
+        widget.quizTitle,
+        attempts,
+      );
+
+      // Create a blob and download
+      final bytes = utf8.encode(csvContent);
+      final blob = html.Blob([bytes]);
+      final url = html.Url.createObjectUrl(blob);
+      final link = html.document.createElement('a') as html.AnchorElement
+        ..href = url
+        ..download = CSVExportHelper.generateFileName(widget.quizTitle);
+
+      link.click();
+      html.Url.revokeObjectUrl(url);
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Results downloaded successfully!'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } catch (e) {
+      // Show error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error downloading file: $e'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
   }
 
   String _formatDuration(Duration duration) {

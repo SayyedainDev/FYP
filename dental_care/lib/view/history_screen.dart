@@ -668,6 +668,19 @@ class _CaseHistoryCard extends StatelessWidget {
                             ],
                           ),
                         ),
+                      if (caseItem.caseStatus == 'Archived')
+                        PopupMenuItem(
+                          value: 'unarchive',
+                          child: Row(
+                            children: [
+                              Icon(Icons.unarchive_outlined,
+                                  size: 18,
+                                  color: colorScheme.primary),
+                              const SizedBox(width: 12),
+                              const Text('Unarchive'),
+                            ],
+                          ),
+                        ),
                       PopupMenuItem(
                         value: 'delete',
                         child: Row(
@@ -688,6 +701,9 @@ class _CaseHistoryCard extends StatelessWidget {
                           break;
                         case 'archive':
                           _archiveCase(context, caseItem);
+                          break;
+                        case 'unarchive':
+                          _unarchiveCase(context, caseItem);
                           break;
                         case 'delete':
                           _deleteCase(context, caseItem);
@@ -712,7 +728,7 @@ class _CaseHistoryCard extends StatelessWidget {
       builder: (context) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         child: Container(
-          constraints: const BoxConstraints(maxWidth: 500),
+          constraints: const BoxConstraints(maxWidth: 600),
           padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
@@ -738,40 +754,78 @@ class _CaseHistoryCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
               // Content
               SingleChildScrollView(
                 child: Column(
                   children: [
+                    // Case Title
+                    if (caseItem.caseTitle.isNotEmpty)
+                      _DetailItemRow(
+                        icon: Icons.info_outlined,
+                        label: 'Case Title',
+                        value: caseItem.caseTitle,
+                      ),
+                    if (caseItem.caseTitle.isNotEmpty)
+                      const SizedBox(height: 16),
+                    
+                    // Case Status
+                    _DetailItemRow(
+                      icon: Icons.assignment_outlined,
+                      label: 'Case Status',
+                      value: caseItem.caseStatus,
+                      valueColor: _getStatusColor(caseItem.caseStatus, colorScheme),
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // Patient Name
+                    _DetailItemRow(
+                      icon: Icons.person_outlined,
+                      label: 'Patient',
+                      value: caseItem.patientName,
+                    ),
+                    const SizedBox(height: 12),
+                    
+                    // Date
                     _DetailItemRow(
                       icon: Icons.calendar_today,
                       label: 'Date',
                       value: _formatDateTime(caseItem.caseDate),
                     ),
                     const SizedBox(height: 12),
+                    
+                    // Tooth Number
                     if (caseItem.toothNumber.isNotEmpty)
                       _DetailItemRow(
                         icon: Icons.medical_services_outlined,
                         label: 'Tooth',
                         value: 'FDI #${caseItem.toothNumber}',
                       ),
-                    if (caseItem.imageUrls.isNotEmpty) ...[
+                    if (caseItem.toothNumber.isNotEmpty)
                       const SizedBox(height: 12),
+                    
+                    // Images Count
+                    if (caseItem.imageUrls.isNotEmpty)
                       _DetailItemRow(
                         icon: Icons.image_outlined,
                         label: 'Images',
                         value: '${caseItem.imageUrls.length} X-ray(s)',
                       ),
-                    ],
-                    const SizedBox(height: 12),
+                    if (caseItem.imageUrls.isNotEmpty)
+                      const SizedBox(height: 12),
+                    
+                    // Analysis Status
                     _DetailItemRow(
                       icon: Icons.analytics_outlined,
-                      label: 'Analysis',
+                      label: 'Analysis Status',
                       value: caseItem.analysisStatus,
+                      valueColor: _getAnalysisStatusColor(caseItem, colorScheme),
                     ),
-                    if (caseItem.isAnalysisComplete) ...[
-                      const SizedBox(height: 12),
+                    const SizedBox(height: 12),
+                    
+                    // Analysis Result
+                    if (caseItem.isAnalysisComplete)
                       _DetailItemRow(
                         icon: caseItem.hasCavity
                             ? Icons.warning_amber_rounded
@@ -779,14 +833,26 @@ class _CaseHistoryCard extends StatelessWidget {
                         label: 'Result',
                         value: caseItem.hasCavity
                             ? 'Cavity Detected'
-                            : 'Healthy/Pending',
+                            : 'Healthy/No Cavity',
                         valueColor: caseItem.hasCavity
                             ? colorScheme.error
                             : colorScheme.primary,
                       ),
-                    ],
-                    if (caseItem.notes.isNotEmpty) ...[
+                    if (caseItem.isAnalysisComplete)
                       const SizedBox(height: 12),
+                    
+                    // Confidence Score (if available)
+                    if (caseItem.analysisResults.containsKey('confidence'))
+                      _DetailItemRow(
+                        icon: Icons.verified_outlined,
+                        label: 'Confidence',
+                        value: '${(caseItem.analysisResults['confidence'] as num?)?.toStringAsFixed(1) ?? 'N/A'}%',
+                      ),
+                    if (caseItem.analysisResults.containsKey('confidence'))
+                      const SizedBox(height: 12),
+                    
+                    // Notes
+                    if (caseItem.notes.isNotEmpty) ...[
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -801,6 +867,7 @@ class _CaseHistoryCard extends StatelessWidget {
                                 style: TextStyle(
                                   fontWeight: FontWeight.w600,
                                   color: colorScheme.onSurface,
+                                  fontSize: 12,
                                 ),
                               ),
                             ],
@@ -823,6 +890,52 @@ class _CaseHistoryCard extends StatelessWidget {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 16),
+                    ],
+                    
+                    // Review Notes
+                    if (caseItem.reviewNotes.isNotEmpty) ...[
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(Icons.comment_outlined,
+                                  size: 18,
+                                  color: colorScheme.onSurfaceVariant),
+                              const SizedBox(width: 12),
+                              Text(
+                                'Review Notes',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  color: colorScheme.onSurface,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: colorScheme.primary.withValues(alpha: 0.05),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: colorScheme.primary.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            child: Text(
+                              caseItem.reviewNotes,
+                              style: TextStyle(
+                                color: colorScheme.onSurfaceVariant,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
                     ],
                   ],
                 ),
@@ -844,6 +957,26 @@ class _CaseHistoryCard extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Color _getStatusColor(String status, ColorScheme colorScheme) {
+    switch (status) {
+      case 'Completed':
+        return Colors.green;
+      case 'Under Review':
+        return colorScheme.primary;
+      case 'Archived':
+        return colorScheme.onSurfaceVariant;
+      default:
+        return Colors.orange;
+    }
+  }
+
+  Color _getAnalysisStatusColor(Case caseItem, ColorScheme colorScheme) {
+    if (!caseItem.isAnalysisComplete) {
+      return colorScheme.primary;
+    }
+    return caseItem.hasCavity ? colorScheme.error : Colors.green;
   }
 
   void _showCaseImages(BuildContext context, Case caseItem) {
@@ -1246,6 +1379,52 @@ class _CaseHistoryCard extends StatelessWidget {
               backgroundColor: semanticColors?.warning ?? Colors.orange,
             ),
             child: const Text('Archive'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _unarchiveCase(BuildContext context, Case caseItem) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: const Text('Unarchive Case'),
+        content: const Text(
+            'Are you sure you want to unarchive this case? It will be restored to active status.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final caseProvider = Provider.of<CaseProvider>(
+                context,
+                listen: false,
+              );
+              final success = await caseProvider.updateCase(caseItem.id, {
+                'caseStatus': 'Completed',
+              });
+
+              if (context.mounted) {
+                Navigator.pop(context);
+                if (success) {
+                  AppDialogs.showInfoDialog(context,
+                      title: 'Success', message: 'Case unarchived successfully');
+                } else {
+                  AppDialogs.showErrorDialog(context,
+                      message: 'Failed to unarchive case.');
+                }
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: colorScheme.primary,
+            ),
+            child: const Text('Unarchive'),
           ),
         ],
       ),

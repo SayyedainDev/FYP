@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 280" fill="none">
+  <!-- Tooth Shape -->
+  <path d="M 60 20 
+           C 40 35, 35 60, 35 85
+           L 35 140
+           C 35 165, 50 185, 70 195
+           L 100 220
+           L 130 195
+           C 150 185, 165 165, 165 140
+           L 165 85
+           C 165 60, 160 35, 140 20
+           C 130 12, 115 8, 100 8
+           C 85 8, 70 12, 60 20 Z" 
+        stroke="#3B9FD9" stroke-width="8" stroke-linejoin="round" stroke-linecap="round" fill="none"/>
+  
+  <!-- Highlight/Shine on tooth -->
+  <path d="M 75 35 
+           C 70 50, 68 70, 68 90
+           C 68 110, 75 125, 85 135" 
+        stroke="#3B9FD9" stroke-width="6" stroke-linecap="round" fill="none" opacity="0.6"/>
+</svg>

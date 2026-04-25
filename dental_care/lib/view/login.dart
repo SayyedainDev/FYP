@@ -156,16 +156,16 @@ class _LoginCardState extends State<_LoginCard> {
                   child: Column(
                     children: [
                       Container(
-                        width: 64,
-                        height: 64,
+                        width: 80,
+                        height: 80,
                         decoration: BoxDecoration(
-                          color: colorScheme.primary,
+                          color: colorScheme.primary.withValues(alpha: 0.1),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
                           Icons.medical_services_outlined,
-                          color: colorScheme.onPrimary,
-                          size: 32,
+                          color: colorScheme.primary,
+                          size: 40,
                         ),
                       ),
                       const SizedBox(height: 16),

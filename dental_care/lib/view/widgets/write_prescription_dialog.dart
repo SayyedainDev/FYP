@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../models/patient.dart';
 import '../../models/case.dart';
-import '../../models/prescription.dart';
 import '../../provider/auth_provider.dart';
 import '../../providers/prescription_provider.dart';
 import '../../utils/app_dialogs.dart';
@@ -53,93 +51,6 @@ class _WritePrescriptionDialogState extends State<WritePrescriptionDialog> {
     _followUpController.dispose();
     _precautionsController.dispose();
     super.dispose();
-  }
-
-  Future<void> _shareOnWhatsApp(Prescription prescription) async {
-    try {
-      final message = prescription.toWhatsAppMessage();
-      final encodedMessage = Uri.encodeComponent(message);
-      final phone = prescription.patientPhone.replaceAll(RegExp(r'\D'), '');
-
-      if (phone.isEmpty) {
-        if (mounted) {
-          AppDialogs.showErrorDialog(
-            context,
-            message:
-                'Patient phone number not found. Cannot share on WhatsApp.',
-          );
-        }
-        return;
-      }
-
-      final whatsappUrl = 'https://wa.me/$phone?text=$encodedMessage';
-
-      if (await canLaunchUrl(Uri.parse(whatsappUrl))) {
-        await launchUrl(
-          Uri.parse(whatsappUrl),
-          mode: LaunchMode.externalApplication,
-        );
-
-        // Mark as shared
-        if (mounted) {
-          final prescriptionProvider =
-              Provider.of<PrescriptionProvider>(context, listen: false);
-          await prescriptionProvider.markAsShared(prescription.id);
-
-          AppDialogs.showSuccessDialog(
-            context,
-            message: 'Prescription shared on WhatsApp!',
-          ).then((_) {
-            if (mounted) Navigator.pop(context, true);
-          });
-        }
-      } else {
-        if (mounted) {
-          AppDialogs.showErrorDialog(
-            context,
-            message:
-                'WhatsApp is not installed. Please install WhatsApp to share.',
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        AppDialogs.showErrorDialog(
-          context,
-          message: 'Error sharing on WhatsApp: $e',
-        );
-      }
-    }
-  }
-
-  void _showWhatsAppShareDialog(Prescription prescription) {
-    showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Share on WhatsApp?'),
-        content: Text(
-          'Do you want to send this prescription to ${prescription.patientName} via WhatsApp?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('No'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx, true);
-              _shareOnWhatsApp(prescription);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.green,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Share on WhatsApp'),
-          ),
-        ],
-      ),
-    );
   }
 
   Future<void> _savePrescription() async {
