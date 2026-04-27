@@ -4,7 +4,7 @@ import 'package:dental_care/providers/performance_provider.dart';
 import 'package:dental_care/provider/auth_provider.dart';
 
 class DoctorStudentListScreen extends StatefulWidget {
-  const DoctorStudentListScreen({Key? key}) : super(key: key);
+  const DoctorStudentListScreen({super.key});
 
   @override
   State<DoctorStudentListScreen> createState() =>

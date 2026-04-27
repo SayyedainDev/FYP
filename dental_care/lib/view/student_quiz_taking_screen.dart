@@ -5,7 +5,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:provider/provider.dart';
 import '../models/quiz.dart';
 import '../models/quiz_attempt.dart';
 import '../provider/auth_provider.dart';
@@ -200,10 +199,9 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                         onPressed: loadingState.isLoading
                             ? null
                             : () => loadingState.runAsyncAction(() async {
-                                  final _op = () => Navigator.pop(ctx);
-                                  if (_op != null)
-                                    await Future.sync(() => (_op as dynamic)());
-                                }),
+                                  op() => Navigator.pop(ctx);
+                                  await Future.sync(() => (op as dynamic)());
+                                                                }),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Theme.of(ctx).colorScheme.primary,
                           foregroundColor: Theme.of(ctx).colorScheme.onPrimary,
@@ -254,13 +252,12 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                     onPressed: loadingState.isLoading
                         ? null
                         : () => loadingState.runAsyncAction(() async {
-                              final _op = () {
+                              op() {
                                 Navigator.pop(ctx);
                                 _resetInactivityTimer();
-                              };
-                              if (_op != null)
-                                await Future.sync(() => (_op as dynamic)());
-                            }),
+                              }
+                              await Future.sync(() => (op as dynamic)());
+                                                        }),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Theme.of(ctx).colorScheme.primary,
                       foregroundColor: Theme.of(ctx).colorScheme.onPrimary,
@@ -477,10 +474,9 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                   onPressed: loadingState.isLoading
                       ? null
                       : () => loadingState.runAsyncAction(() async {
-                            final _op = () => Navigator.pop(ctx);
-                            if (_op != null)
-                              await Future.sync(() => (_op as dynamic)());
-                          }),
+                            op() => Navigator.pop(ctx);
+                            await Future.sync(() => (op as dynamic)());
+                                                    }),
                   child: const Text('Skip'),
                 ),
               );
@@ -494,13 +490,12 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                   onPressed: loadingState.isLoading
                       ? null
                       : () => loadingState.runAsyncAction(() async {
-                            final _op = () {
+                            op() {
                               Navigator.pop(ctx);
                               _requestFullscreen();
-                            };
-                            if (_op != null)
-                              await Future.sync(() => (_op as dynamic)());
-                          }),
+                            }
+                            await Future.sync(() => (op as dynamic)());
+                                                    }),
                   icon: const Icon(Icons.fullscreen, size: 18),
                   label: const Text('Go Fullscreen'),
                   style: ElevatedButton.styleFrom(
@@ -538,13 +533,12 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                   onPressed: loadingState.isLoading
                       ? null
                       : () => loadingState.runAsyncAction(() async {
-                            final _op = () {
+                            op() {
                               Navigator.pop(ctx);
                               _submitQuiz();
-                            };
-                            if (_op != null)
-                              await Future.sync(() => (_op as dynamic)());
-                          }),
+                            }
+                            await Future.sync(() => (op as dynamic)());
+                                                    }),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Theme.of(ctx).colorScheme.primary,
                     foregroundColor: Theme.of(ctx).colorScheme.onPrimary,
@@ -799,10 +793,9 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                     onPressed: loadingState.isLoading
                         ? null
                         : () => loadingState.runAsyncAction(() async {
-                              final _op = () => _showExitConfirmation();
-                              if (_op != null)
-                                await Future.sync(() => (_op as dynamic)());
-                            }),
+                              op() => _showExitConfirmation();
+                              await Future.sync(() => (op as dynamic)());
+                                                        }),
                     icon:
                         Icon(Icons.close, color: colorScheme.onSurfaceVariant),
                   ),
@@ -954,14 +947,15 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                     onPressed: loadingState.isLoading
                         ? null
                         : () => loadingState.runAsyncAction(() async {
-                              final _op = _isSubmitting
+                              final op = _isSubmitting
                                   ? null
                                   : () => _showSubmitConfirmation(
                                         attemptProvider.currentResponses.length,
                                         totalQuestions,
                                       );
-                              if (_op != null)
-                                await Future.sync(() => (_op as dynamic)());
+                              if (op != null) {
+                                await Future.sync(() => (op as dynamic)());
+                              }
                             }),
                     icon: _isSubmitting
                         ? const SizedBox(
@@ -1465,7 +1459,7 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                       onPressed: loadingState.isLoading
                           ? null
                           : () => loadingState.runAsyncAction(() async {
-                                final _op = () {
+                                op() {
                                   setState(() {
                                     if (_flaggedQuestions
                                         .contains(question.id)) {
@@ -1475,10 +1469,9 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                                     }
                                   });
                                   _recordInteraction();
-                                };
-                                if (_op != null)
-                                  await Future.sync(() => (_op as dynamic)());
-                              }),
+                                }
+                                await Future.sync(() => (op as dynamic)());
+                                                            }),
                       icon: Icon(
                         _flaggedQuestions.contains(question.id)
                             ? Icons.flag
@@ -1645,13 +1638,12 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                     onPressed: loadingState.isLoading
                         ? null
                         : () => loadingState.runAsyncAction(() async {
-                              final _op = () {
+                              op() {
                                 _recordInteraction();
                                 setState(() => _currentQuestionIndex--);
-                              };
-                              if (_op != null)
-                                await Future.sync(() => (_op as dynamic)());
-                            }),
+                              }
+                              await Future.sync(() => (op as dynamic)());
+                                                        }),
                     icon: const Icon(Icons.arrow_back, size: 18),
                     label: const Text('Previous'),
                     style: OutlinedButton.styleFrom(
@@ -1679,11 +1671,12 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                     onPressed: loadingState.isLoading
                         ? null
                         : () => loadingState.runAsyncAction(() async {
-                              final _op = isLastQuestion
+                              final op = isLastQuestion
                                   ? () => _showExitConfirmation()
                                   : null;
-                              if (_op != null)
-                                await Future.sync(() => (_op as dynamic)());
+                              if (op != null) {
+                                await Future.sync(() => (op as dynamic)());
+                              }
                             }),
                     icon: const Icon(Icons.close, size: 18),
                     label: const Text('Close Review'),
@@ -1715,13 +1708,12 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                     onPressed: loadingState.isLoading
                         ? null
                         : () => loadingState.runAsyncAction(() async {
-                              final _op = () {
+                              op() {
                                 _recordInteraction();
                                 setState(() => _currentQuestionIndex++);
-                              };
-                              if (_op != null)
-                                await Future.sync(() => (_op as dynamic)());
-                            }),
+                              }
+                              await Future.sync(() => (op as dynamic)());
+                                                        }),
                     icon: const Icon(Icons.arrow_forward, size: 18),
                     label: const Text('Next'),
                     style: ElevatedButton.styleFrom(
@@ -1746,16 +1738,15 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                     onPressed: loadingState.isLoading
                         ? null
                         : () => loadingState.runAsyncAction(() async {
-                              final _op = () {
+                              op() {
                                 final answered = attemptProvider
                                         .currentAttempt?.responses.length ??
                                     0;
                                 _showSubmitConfirmation(
                                     answered, totalQuestions);
-                              };
-                              if (_op != null)
-                                await Future.sync(() => (_op as dynamic)());
-                            }),
+                              }
+                              await Future.sync(() => (op as dynamic)());
+                                                        }),
                     icon: const Icon(Icons.check, size: 18),
                     label: const Text('Submit Quiz'),
                     style: ElevatedButton.styleFrom(
@@ -1821,10 +1812,9 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                   onPressed: loadingState.isLoading
                       ? null
                       : () => loadingState.runAsyncAction(() async {
-                            final _op = () => Navigator.pop(context);
-                            if (_op != null)
-                              await Future.sync(() => (_op as dynamic)());
-                          }),
+                            op() => Navigator.pop(context);
+                            await Future.sync(() => (op as dynamic)());
+                                                    }),
                   child: const Text('Review Answers'),
                 ),
               );
@@ -1838,13 +1828,12 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                   onPressed: loadingState.isLoading
                       ? null
                       : () => loadingState.runAsyncAction(() async {
-                            final _op = () {
+                            op() {
                               Navigator.pop(context);
                               _submitQuiz();
-                            };
-                            if (_op != null)
-                              await Future.sync(() => (_op as dynamic)());
-                          }),
+                            }
+                            await Future.sync(() => (op as dynamic)());
+                                                    }),
                   style: ElevatedButton.styleFrom(
                     backgroundColor:
                         semanticColors?.success ?? colorScheme.secondary,
@@ -1883,10 +1872,9 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                     onPressed: loadingState.isLoading
                         ? null
                         : () => loadingState.runAsyncAction(() async {
-                              final _op = () => Navigator.pop(context);
-                              if (_op != null)
-                                await Future.sync(() => (_op as dynamic)());
-                            }),
+                              op() => Navigator.pop(context);
+                              await Future.sync(() => (op as dynamic)());
+                                                        }),
                     child: const Text('Keep Reviewing'),
                   ),
                 );
@@ -1900,13 +1888,12 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                     onPressed: loadingState.isLoading
                         ? null
                         : () => loadingState.runAsyncAction(() async {
-                              final _op = () {
+                              op() {
                                 Navigator.pop(context);
                                 Navigator.pop(context);
-                              };
-                              if (_op != null)
-                                await Future.sync(() => (_op as dynamic)());
-                            }),
+                              }
+                              await Future.sync(() => (op as dynamic)());
+                                                        }),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.blue.shade600,
                       foregroundColor: Colors.white,
@@ -1939,10 +1926,9 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                     onPressed: loadingState.isLoading
                         ? null
                         : () => loadingState.runAsyncAction(() async {
-                              final _op = () => Navigator.pop(context);
-                              if (_op != null)
-                                await Future.sync(() => (_op as dynamic)());
-                            }),
+                              op() => Navigator.pop(context);
+                              await Future.sync(() => (op as dynamic)());
+                                                        }),
                     child: const Text('Stay'),
                   ),
                 );
@@ -1956,13 +1942,12 @@ class _StudentQuizTakingScreenState extends State<StudentQuizTakingScreen> {
                     onPressed: loadingState.isLoading
                         ? null
                         : () => loadingState.runAsyncAction(() async {
-                              final _op = () {
+                              op() {
                                 Navigator.pop(context);
                                 Navigator.pop(context);
-                              };
-                              if (_op != null)
-                                await Future.sync(() => (_op as dynamic)());
-                            }),
+                              }
+                              await Future.sync(() => (op as dynamic)());
+                                                        }),
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
                           semanticColors?.danger ?? colorScheme.error,

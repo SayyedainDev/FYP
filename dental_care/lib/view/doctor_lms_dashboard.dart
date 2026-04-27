@@ -9,7 +9,7 @@ import 'doctor_assignments_management_screen.dart';
 import 'doctor_analytics_screen.dart';
 
 class DoctorLMSDashboard extends StatefulWidget {
-  const DoctorLMSDashboard({Key? key}) : super(key: key);
+  const DoctorLMSDashboard({super.key});
 
   @override
   State<DoctorLMSDashboard> createState() => _DoctorLMSDashboardState();
@@ -57,7 +57,7 @@ class _DoctorLMSDashboardState extends State<DoctorLMSDashboard> {
                 ),
               ),
               background: Container(
-                decoration: BoxDecoration(
+                decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
@@ -83,9 +83,9 @@ class _DoctorLMSDashboardState extends State<DoctorLMSDashboard> {
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
+                              const Text(
                                 'Class Overview',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,

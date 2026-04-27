@@ -77,7 +77,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
             // Content
             if (caseProvider.loading)
-              SizedBox(
+              const SizedBox(
                 height: 300,
                 child: Center(
                   child: AppLoader(
@@ -1043,7 +1043,7 @@ class _CaseHistoryCard extends StatelessWidget {
                                 loadingBuilder:
                                     (context, child, loadingProgress) {
                                   if (loadingProgress == null) return child;
-                                  return Center(
+                                  return const Center(
                                     child: AppLoader(size: 32),
                                   );
                                 },

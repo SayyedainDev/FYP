@@ -6,11 +6,11 @@ class LoadingButton extends StatelessWidget {
   final Color overlayColor;
 
   const LoadingButton({
-    Key? key,
+    super.key,
     required this.isLoading,
     required this.child,
     this.overlayColor = Colors.white24, // Softer generic overlay color
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -9,8 +9,6 @@ import 'student_auth_flow_screens.dart';
 import '../provider/auth_provider.dart';
 import '../utils/app_dialogs.dart';
 import '../utils/global_error_handler.dart';
-import '../widgets/loaders/app_loader.dart';
-import '../widgets/loading_button.dart';
 import '../../providers/loading_provider.dart';
 
 class LoginPage extends StatefulWidget {

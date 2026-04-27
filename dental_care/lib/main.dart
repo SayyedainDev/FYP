@@ -1,3 +1,4 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart' hide ChangeNotifierProvider;
 import 'package:dental_care/view/login.dart';
 import 'package:dental_care/view/register.dart';
 import 'package:dental_care/view/main_layout.dart';
@@ -26,15 +27,18 @@ import 'package:dental_care/providers/assignment_provider.dart';
 import 'package:dental_care/providers/prescription_provider.dart';
 import 'package:dental_care/providers/loading_provider.dart';
 import 'package:dental_care/utils/firebase_test.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:dental_care/core/config/supabase_config.dart';
 import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // Parallel initialization: run Firebase, SharedPrefs, and Cache Service in parallel
+    // Parallel initialization: run Firebase, Supabase, and SharedPrefs
     await Future.wait([
       _initializeFirebase(),
+      _initializeSupabase(),
       _initializeSharedPreferences(),
     ]);
 
@@ -56,9 +60,10 @@ void main() async {
   final firebaseService = FirebaseService();
 
   runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider(firebaseService)),
+    ProviderScope(
+      child: MultiProvider(
+        providers: [
+          ChangeNotifierProvider(create: (_) => AuthProvider(firebaseService)),
         ChangeNotifierProvider(create: (_) => AppProvider()),
         ChangeNotifierProvider(create: (_) => NavigationProvider()),
         ChangeNotifierProvider(create: (_) => PatientProvider()),
@@ -78,6 +83,7 @@ void main() async {
         ChangeNotifierProvider(create: (_) => LoadingProvider()),
       ],
       child: const MyApp(),
+      ),
     ),
   );
 }
@@ -92,6 +98,20 @@ Future<void> _initializeFirebase() async {
   } catch (e) {
     debugPrint('❌ Firebase Init Error: $e');
     rethrow;
+  }
+}
+
+/// Initialize Supabase in parallel
+Future<void> _initializeSupabase() async {
+  try {
+    await Supabase.initialize(
+      url: SupabaseConfig.url,
+      anonKey: SupabaseConfig.anonKey,
+    );
+    debugPrint('✅ Supabase Initialized');
+  } catch (e) {
+    debugPrint('⚠️ Supabase Init Error: $e');
+    // We don't rethrow as the app might still work without storage
   }
 }
 

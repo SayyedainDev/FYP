@@ -29,7 +29,6 @@ import '../utils/global_error_handler.dart';
 import '../widgets/loaders/app_loader.dart';
 import 'widgets/write_prescription_dialog.dart';
 import '../models/patient.dart';
-import '../models/case.dart';
 import 'package:provider/provider.dart';
 import '../providers/patient_provider.dart';
 import '../providers/case_provider.dart';
@@ -893,33 +892,53 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
                 );
 
                 if (selected != null) {
-                  // find latest case for this patient
-                  final caseProv =
-                      Provider.of<CaseProvider>(context, listen: false);
-                  final cases = caseProv.allCases
-                      .where((c) => c.patientId == selected.id)
-                      .toList();
-                  Case caseData;
-                  if (cases.isNotEmpty) {
-                    caseData = cases.first;
-                  } else {
-                    caseData = Case(
-                      id: '',
-                      patientId: selected.id,
-                      patientName: selected.name,
-                      toothNumber: '',
-                      caseDate: DateTime.now(),
-                      imageUrls: const [],
-                      analysisResults: const {'status': 'From AI Detection'},
-                      notes: '',
-                    );
-                  }
+                  if (_pickedBytes != null) {
+                    try {
+                      showDialog(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (ctx) => const Center(child: CircularProgressIndicator()),
+                      );
 
-                  showDialog<bool>(
-                    context: context,
-                    builder: (_) => WritePrescriptionDialog(
-                        patient: selected, caseData: caseData),
-                  );
+                      final caseProvider = Provider.of<CaseProvider>(context, listen: false);
+                      
+                      final currentResult = _result;
+                      final initialAnalysis = {
+                        'status': 'Analyzed',
+                        'hasCavity': currentResult?.detections.any((d) => d.label.toLowerCase().contains('caries') || d.label.toLowerCase().contains('cavity')) ?? false,
+                        'confidence': currentResult?.detections.fold<double>(0.0, (prev, det) => det.confidence > prev ? det.confidence : prev) ?? 0.0,
+                        'details': currentResult?.detections.map((d) => d.label).join(', ') ?? 'No findings',
+                      };
+
+                      final caseId = await caseProvider.createCase(
+                        patientId: selected.id,
+                        patientName: selected.name,
+                        toothNumber: '', 
+                        imageFiles: [_pickedBytes!],
+                        notes: 'Saved from Detection Screen',
+                        initialAnalysisResults: initialAnalysis,
+                      );
+
+                      if (context.mounted) Navigator.pop(context);
+
+                      if (caseId != null && context.mounted) {
+                        showDialog<bool>(
+                          context: context,
+                          builder: (_) => WritePrescriptionDialog(patient: selected, caseId: caseId),
+                        );
+                      } else if (caseId == null && context.mounted) {
+                        final errMsg = caseProvider.error ?? 'Failed to save case. Please try again.';
+                        AppDialogs.showErrorDialog(context, message: errMsg);
+                      }
+                    } catch (e) {
+                      if (context.mounted) Navigator.pop(context);
+                      if (context.mounted) {
+                        AppDialogs.showErrorDialog(context, message: 'Failed to write prescription: $e');
+                      }
+                    }
+                  } else {
+                    AppDialogs.showErrorDialog(context, message: 'No scan image selected.');
+                  }
                 }
               },
               borderRadius: BorderRadius.circular(4),

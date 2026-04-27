@@ -21,6 +21,9 @@ import '../widgets/loaders/app_loader.dart';
 import 'widgets/create_case_dialog.dart';
 import 'widgets/write_prescription_dialog.dart';
 import 'widgets/prescription_list_view.dart';
+import '../features/dental_detection/screens/detection_detail_screen.dart';
+import '../data/repositories/detection_repository.dart';
+import '../data/models/detection_record.dart';
 
 class PatientsScreen extends StatefulWidget {
   const PatientsScreen({super.key});
@@ -215,7 +218,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                           showDialog<bool>(
                             context: context,
                             builder: (_) => WritePrescriptionDialog(
-                                patient: selected, caseData: caseData),
+                                patient: selected, caseId: caseData.id),
                           ).then((created) {
                             if (created == true) {
                               // optionally refresh patients or show snackbar
@@ -711,7 +714,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                                     GestureDetector(
                                       onTap: () {
                                         // Open Firebase console in browser
-                                        final indexUrl =
+                                        const indexUrl =
                                             'https://console.firebase.google.com/v1/r/project/fyp26-a22b9/firestore/indexes';
                                         debugPrint(
                                             'Open Firestore indexes: $indexUrl');
@@ -800,6 +803,104 @@ class _PatientsScreenState extends State<PatientsScreen> {
                               separatorBuilder: (_, __) =>
                                   const SizedBox(width: 12),
                               itemCount: scans.length,
+                            ),
+                          );
+                        },
+                      ),
+
+                      // AI Detections Section
+                      const SizedBox(height: 20),
+                      const _SectionHeader('AI Detections'),
+                      const SizedBox(height: 12),
+                      FutureBuilder<List<DetectionRecord>>(
+                        future: DetectionRepository().getDetectionsForPatient(patient.id),
+                        builder: (context, snap) {
+                          if (snap.connectionState == ConnectionState.waiting) {
+                            return const SizedBox(
+                              height: 80,
+                              child: Center(child: AppLoader(size: 36)),
+                            );
+                          }
+                          final records = snap.data ?? [];
+                          if (records.isEmpty) {
+                            return Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: colorScheme.surfaceContainerLowest,
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: colorScheme.outlineVariant),
+                              ),
+                              child: Text(
+                                'No AI detections yet',
+                                style: TextStyle(color: colorScheme.onSurfaceVariant),
+                              ),
+                            );
+                          }
+
+                          return SizedBox(
+                            height: 110,
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              itemBuilder: (c, i) {
+                                final r = records[i];
+                                return InkWell(
+                                  onTap: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => DetectionDetailScreen(record: r),
+                                      ),
+                                    );
+                                  },
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: r.annotatedImageUrl != null
+                                            ? Image.network(
+                                                r.annotatedImageUrl!,
+                                                width: 120,
+                                                height: 64,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) => const Icon(Icons.broken_image),
+                                              )
+                                            : Container(
+                                                width: 120,
+                                                height: 64,
+                                                color: colorScheme.surfaceContainerLowest,
+                                                child: const Icon(Icons.biotech),
+                                              ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      SizedBox(
+                                        width: 120,
+                                        child: Text(
+                                          r.conditionsFound.isEmpty 
+                                              ? 'No issues' 
+                                              : "${r.conditionsFound.take(2).join(', ')}${r.conditionsFound.length > 2 ? '...' : ''}",
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                        ),
+                                      ),
+                                      SizedBox(
+                                        width: 120,
+                                        child: Text(
+                                          "${(r.highestConfidence * 100).toStringAsFixed(0)}% trust",
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            color: colorScheme.onSurfaceVariant,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                );
+                              },
+                              separatorBuilder: (_, __) => const SizedBox(width: 12),
+                              itemCount: records.length,
                             ),
                           );
                         },
@@ -941,7 +1042,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                               context: context,
                               builder: (context) => WritePrescriptionDialog(
                                 patient: patient,
-                                caseData: latestCase,
+                                caseId: latestCase.id,
                               ),
                             );
 

@@ -29,7 +29,7 @@ class QuizDetailScreen extends StatelessWidget {
                 isLoading: loadingState.isLoading,
                 child: IconButton(
             icon: const Icon(Icons.print),
-            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () async {
+            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() async {
               try {
                 await QuizPdfService.printQuiz(quiz);
               } catch (e) {
@@ -43,7 +43,7 @@ class QuizDetailScreen extends StatelessWidget {
                   );
                 }
               }
-            }; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+            } await Future.sync(() => (op as dynamic)()); }),
             tooltip: 'Print Quiz',
           ),
               );
@@ -55,7 +55,7 @@ class QuizDetailScreen extends StatelessWidget {
                 isLoading: loadingState.isLoading,
                 child: IconButton(
             icon: const Icon(Icons.share),
-            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () async {
+            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() async {
               try {
                 await QuizPdfService.shareQuiz(quiz);
               } catch (e) {
@@ -69,7 +69,7 @@ class QuizDetailScreen extends StatelessWidget {
                   );
                 }
               }
-            }; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+            } await Future.sync(() => (op as dynamic)()); }),
             tooltip: 'Share Quiz',
           ),
               );

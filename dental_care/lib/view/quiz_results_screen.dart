@@ -12,10 +12,10 @@ class QuizResultsScreen extends StatefulWidget {
   final String quizTitle;
 
   const QuizResultsScreen({
-    Key? key,
+    super.key,
     required this.quizId,
     required this.quizTitle,
-  }) : super(key: key);
+  });
 
   @override
   State<QuizResultsScreen> createState() => _QuizResultsScreenState();
@@ -23,7 +23,7 @@ class QuizResultsScreen extends StatefulWidget {
 
 class _QuizResultsScreenState extends State<QuizResultsScreen> {
   String _sortBy = 'score'; // score, name, date, percentage
-  bool _sortAscending = false;
+  final bool _sortAscending = false;
 
   @override
   Widget build(BuildContext context) {
@@ -37,9 +37,9 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
             pinned: true,
             backgroundColor: Colors.blue.shade700,
             flexibleSpace: FlexibleSpaceBar(
-              title: Text(
+              title: const Text(
                 'Quiz Results',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -764,10 +764,10 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
 
       // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Results downloaded successfully!'),
+        const SnackBar(
+          content: Text('Results downloaded successfully!'),
           backgroundColor: Colors.green,
-          duration: const Duration(seconds: 2),
+          duration: Duration(seconds: 2),
         ),
       );
     } catch (e) {

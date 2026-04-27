@@ -38,7 +38,7 @@ dependencies:
   provider: ^6.1.0
   firebase_auth: 4.7.0
   cloud_firestore: 4.7.0
-  supabase_flutter: ^1.4.0
+  supabase_flutter: ^2.12.4
   firebase_storage: ^11.0.0
   # supabase_flutter: 2.0.0  # removed — not used anymore
   image_picker: ^1.0.0
@@ -65,9 +65,13 @@ dependencies:
   url_launcher: ^6.2.0
   cached_network_image: ^3.3.1
   connectivity_plus: ^5.0.0
+  uuid: ^4.5.3
+  flutter_riverpod: ^2.6.1
+  riverpod_annotation: ^2.6.1
+  flutter_staggered_animations: ^1.1.1
+  freezed_annotation: ^3.1.0
 
-dependency_overrides:
-  app_links: 3.4.4
+
 
   # Optional: For enhanced document parsing (uncomment to enable)
   # docx: ^0.2.7              # For better DOCX parsing
@@ -89,6 +93,9 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^3.0.0
+  build_runner: ^2.5.4
+  riverpod_generator: ^2.6.5
+  freezed: ^3.1.0
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

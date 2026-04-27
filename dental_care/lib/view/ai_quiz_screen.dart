@@ -7,7 +7,6 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import '../providers/quiz_provider.dart';
 import '../providers/navigation_provider.dart';
@@ -473,7 +472,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                         onPressed: loadingState.isLoading
                             ? null
                             : () => loadingState.runAsyncAction(() async {
-                                  final _op = () {
+                                  op() {
                                     final hasUpload =
                                         quizProvider.uploadedFile != null ||
                                             quizProvider.uploadedBytes != null;
@@ -493,10 +492,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                                         ),
                                       );
                                     }
-                                  };
-                                  if (_op != null)
-                                    await Future.sync(() => (_op as dynamic)());
-                                }),
+                                  }
+                                  await Future.sync(() => (op as dynamic)());
+                                                                }),
                         icon: const Icon(Icons.arrow_forward),
                         label: const Text('Next'),
                         style: ElevatedButton.styleFrom(
@@ -629,17 +627,17 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
             DropdownButtonFormField<int?>(
               value: _timeLimitMinutes,
               decoration: _inputDecoration('Select time limit'),
-              items: [
-                const DropdownMenuItem(
+              items: const [
+                DropdownMenuItem(
                   value: null,
                   child: Text('No Time Limit'),
                 ),
-                const DropdownMenuItem(value: 15, child: Text('15 Minutes')),
-                const DropdownMenuItem(value: 30, child: Text('30 Minutes')),
-                const DropdownMenuItem(value: 45, child: Text('45 Minutes')),
-                const DropdownMenuItem(value: 60, child: Text('1 Hour')),
-                const DropdownMenuItem(value: 90, child: Text('1.5 Hours')),
-                const DropdownMenuItem(value: 120, child: Text('2 Hours')),
+                DropdownMenuItem(value: 15, child: Text('15 Minutes')),
+                DropdownMenuItem(value: 30, child: Text('30 Minutes')),
+                DropdownMenuItem(value: 45, child: Text('45 Minutes')),
+                DropdownMenuItem(value: 60, child: Text('1 Hour')),
+                DropdownMenuItem(value: 90, child: Text('1.5 Hours')),
+                DropdownMenuItem(value: 120, child: Text('2 Hours')),
               ],
               onChanged: (value) => setState(() => _timeLimitMinutes = value),
             ),
@@ -717,11 +715,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                       onPressed: loadingState.isLoading
                           ? null
                           : () => loadingState.runAsyncAction(() async {
-                                final _op =
-                                    () => setState(() => _currentStep = 0);
-                                if (_op != null)
-                                  await Future.sync(() => (_op as dynamic)());
-                              }),
+                                op() => setState(() => _currentStep = 0);
+                                await Future.sync(() => (op as dynamic)());
+                                                            }),
                       icon: const Icon(Icons.arrow_back),
                       label: const Text('Back'),
                       style: TextButton.styleFrom(
@@ -739,11 +735,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                       onPressed: loadingState.isLoading
                           ? null
                           : () => loadingState.runAsyncAction(() async {
-                                final _op =
-                                    () => setState(() => _currentStep = 2);
-                                if (_op != null)
-                                  await Future.sync(() => (_op as dynamic)());
-                              }),
+                                op() => setState(() => _currentStep = 2);
+                                await Future.sync(() => (op as dynamic)());
+                                                            }),
                       icon: const Icon(Icons.check),
                       label: const Text('Next'),
                       style: ElevatedButton.styleFrom(
@@ -892,14 +886,13 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                           onPressed: loadingState.isLoading
                               ? null
                               : () => loadingState.runAsyncAction(() async {
-                                    final _op = () {
+                                    op() {
                                       quizProvider.clearGroqError();
                                       _generateQuiz(quizProvider, authProvider);
-                                    };
-                                    if (_op != null)
-                                      await Future.sync(
-                                          () => (_op as dynamic)());
-                                  }),
+                                    }
+                                    await Future.sync(
+                                        () => (op as dynamic)());
+                                                                    }),
                           icon: const Icon(Icons.refresh, size: 18),
                           label: const Text('Retry Generation'),
                           style: ElevatedButton.styleFrom(
@@ -924,11 +917,10 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                       onPressed: loadingState.isLoading
                           ? null
                           : () => loadingState.runAsyncAction(() async {
-                                final _op = () =>
+                                op() =>
                                     _generateQuiz(quizProvider, authProvider);
-                                if (_op != null)
-                                  await Future.sync(() => (_op as dynamic)());
-                              }),
+                                await Future.sync(() => (op as dynamic)());
+                                                            }),
                       icon: const Icon(Icons.auto_awesome, size: 20),
                       label: const Text('Generate Questions with AI'),
                       style: ElevatedButton.styleFrom(
@@ -961,11 +953,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                     onPressed: loadingState.isLoading
                         ? null
                         : () => loadingState.runAsyncAction(() async {
-                              final _op =
-                                  () => setState(() => _currentStep = 1);
-                              if (_op != null)
-                                await Future.sync(() => (_op as dynamic)());
-                            }),
+                              op() => setState(() => _currentStep = 1);
+                              await Future.sync(() => (op as dynamic)());
+                                                        }),
                     icon: const Icon(Icons.arrow_back),
                     label: const Text('Back to Settings'),
                     style: TextButton.styleFrom(
@@ -1050,10 +1040,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                       onPressed: loadingState.isLoading
                           ? null
                           : () => loadingState.runAsyncAction(() async {
-                                final _op = _addManualQuestion;
-                                if (_op != null)
-                                  await Future.sync(() => (_op as dynamic)());
-                              }),
+                                final op = _addManualQuestion;
+                                await Future.sync(() => (op as dynamic)());
+                                                            }),
                       icon: const Icon(Icons.add, size: 18),
                       label: const Text('Add Question'),
                       style: OutlinedButton.styleFrom(
@@ -1123,11 +1112,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                       onPressed: loadingState.isLoading
                           ? null
                           : () => loadingState.runAsyncAction(() async {
-                                final _op =
-                                    () => setState(() => _currentStep = 2);
-                                if (_op != null)
-                                  await Future.sync(() => (_op as dynamic)());
-                              }),
+                                op() => setState(() => _currentStep = 2);
+                                await Future.sync(() => (op as dynamic)());
+                                                            }),
                       icon: const Icon(Icons.arrow_back),
                       label: const Text('Regenerate'),
                       style: TextButton.styleFrom(
@@ -1147,14 +1134,15 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                           onPressed: loadingState.isLoading
                               ? null
                               : () => loadingState.runAsyncAction(() async {
-                                    final _op = _generatedQuestions.isEmpty
+                                    final op = _generatedQuestions.isEmpty
                                         ? null
                                         : () => _saveQuiz(
                                             quizProvider, authProvider,
                                             asDraft: true);
-                                    if (_op != null)
+                                    if (op != null) {
                                       await Future.sync(
-                                          () => (_op as dynamic)());
+                                          () => (op as dynamic)());
+                                    }
                                   }),
                           icon: const Icon(Icons.save_outlined, size: 18),
                           label: const Text('Save as Draft'),
@@ -1179,14 +1167,15 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                           onPressed: loadingState.isLoading
                               ? null
                               : () => loadingState.runAsyncAction(() async {
-                                    final _op = _generatedQuestions.length < 3
+                                    final op = _generatedQuestions.length < 3
                                         ? null
                                         : () => _saveQuiz(
                                             quizProvider, authProvider,
                                             asDraft: false);
-                                    if (_op != null)
+                                    if (op != null) {
                                       await Future.sync(
-                                          () => (_op as dynamic)());
+                                          () => (op as dynamic)());
+                                    }
                                   }),
                           icon: const Icon(Icons.publish, size: 18),
                           label: const Text('Publish Now'),
@@ -1255,10 +1244,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                       onPressed: loadingState.isLoading
                           ? null
                           : () => loadingState.runAsyncAction(() async {
-                                final _op = () => _deleteQuestion(index);
-                                if (_op != null)
-                                  await Future.sync(() => (_op as dynamic)());
-                              }),
+                                op() => _deleteQuestion(index);
+                                await Future.sync(() => (op as dynamic)());
+                                                            }),
                       icon: Icon(
                         Icons.delete_outline,
                         color: _sem?.danger ?? _cs.error,
@@ -1437,10 +1425,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                   onPressed: loadingState.isLoading
                       ? null
                       : () => loadingState.runAsyncAction(() async {
-                            final _op = () => Navigator.pop(ctx);
-                            if (_op != null)
-                              await Future.sync(() => (_op as dynamic)());
-                          }),
+                            op() => Navigator.pop(ctx);
+                            await Future.sync(() => (op as dynamic)());
+                                                    }),
                   child: const Text('Cancel'),
                 ),
               );
@@ -1454,14 +1441,13 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                   onPressed: loadingState.isLoading
                       ? null
                       : () => loadingState.runAsyncAction(() async {
-                            final _op = () {
+                            op() {
                               setState(
                                   () => _generatedQuestions.removeAt(index));
                               Navigator.pop(ctx);
-                            };
-                            if (_op != null)
-                              await Future.sync(() => (_op as dynamic)());
-                          }),
+                            }
+                            await Future.sync(() => (op as dynamic)());
+                                                    }),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _sem?.danger ?? _cs.error,
                     foregroundColor: _cs.onError,
@@ -1752,7 +1738,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                       onPressed: loadingState.isLoading
                           ? null
                           : () => loadingState.runAsyncAction(() async {
-                                final _op = () {
+                                op() {
                                   setState(() {
                                     _currentStep = 0;
                                     _titleController.clear();
@@ -1762,10 +1748,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                                     context,
                                     listen: false,
                                   ).clearCurrentQuiz();
-                                };
-                                if (_op != null)
-                                  await Future.sync(() => (_op as dynamic)());
-                              }),
+                                }
+                                await Future.sync(() => (op as dynamic)());
+                                                            }),
                       icon: const Icon(Icons.add),
                       label: const Text('Create Another'),
                       style: OutlinedButton.styleFrom(
@@ -1784,7 +1769,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                       onPressed: loadingState.isLoading
                           ? null
                           : () => loadingState.runAsyncAction(() async {
-                                final _op = () async {
+                                op() async {
                                   try {
                                     await QuizPdfService.printQuiz(quiz);
                                   } catch (e) {
@@ -1797,10 +1782,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                                       ),
                                     );
                                   }
-                                };
-                                if (_op != null)
-                                  await Future.sync(() => (_op as dynamic)());
-                              }),
+                                }
+                                await Future.sync(() => (op as dynamic)());
+                                                            }),
                       icon: const Icon(Icons.print),
                       label: const Text('Print'),
                       style: ElevatedButton.styleFrom(
@@ -1819,7 +1803,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                       onPressed: loadingState.isLoading
                           ? null
                           : () => loadingState.runAsyncAction(() async {
-                                final _op = () async {
+                                op() async {
                                   try {
                                     await QuizPdfService.shareQuiz(quiz);
                                   } catch (e) {
@@ -1832,10 +1816,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                                       ),
                                     );
                                   }
-                                };
-                                if (_op != null)
-                                  await Future.sync(() => (_op as dynamic)());
-                              }),
+                                }
+                                await Future.sync(() => (op as dynamic)());
+                                                            }),
                       icon: const Icon(Icons.share),
                       label: const Text('Share'),
                       style: ElevatedButton.styleFrom(
@@ -1854,7 +1837,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                       onPressed: loadingState.isLoading
                           ? null
                           : () => loadingState.runAsyncAction(() async {
-                                final _op = () {
+                                op() {
                                   final navProvider =
                                       Provider.of<NavigationProvider>(
                                     context,
@@ -1870,10 +1853,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                                       duration: const Duration(seconds: 2),
                                     ),
                                   );
-                                };
-                                if (_op != null)
-                                  await Future.sync(() => (_op as dynamic)());
-                              }),
+                                }
+                                await Future.sync(() => (op as dynamic)());
+                                                            }),
                       icon: const Icon(Icons.visibility),
                       label: const Text('View Quiz'),
                       style: ElevatedButton.styleFrom(

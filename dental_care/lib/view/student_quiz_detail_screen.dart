@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'student_quiz_result_screen.dart';
 import 'student_quiz_taking_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 
 import '../models/quiz.dart';
 import '../models/quiz_attempt.dart';
@@ -133,8 +132,8 @@ class _StudentQuizDetailScreenState extends State<StudentQuizDetailScreen> {
                   return LoadingButton(
                     isLoading: loadingState.isLoading,
                     child: ElevatedButton(
-                onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () =>
-                    Navigator.pushReplacementNamed(context, '/dashboard'); if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+                onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() =>
+                    Navigator.pushReplacementNamed(context, '/dashboard'); await Future.sync(() => (op as dynamic)()); }),
                 child: const Text('Go to dashboard'),
               ),
                   );
@@ -164,7 +163,7 @@ class _StudentQuizDetailScreenState extends State<StudentQuizDetailScreen> {
         : submittedAttempts.reduce(
             (a, b) => a.scorePercentage >= b.scorePercentage ? a : b,
           );
-    final attemptLimit = 1;
+    const attemptLimit = 1;
     final reachedLimit = submittedAttempts.length >= attemptLimit;
     final latestSubmitted =
         submittedAttempts.isEmpty ? null : submittedAttempts.first;
@@ -179,7 +178,7 @@ class _StudentQuizDetailScreenState extends State<StudentQuizDetailScreen> {
               return LoadingButton(
                 isLoading: loadingState.isLoading,
                 child: IconButton(
-            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = _toggleBookmark; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final op = _toggleBookmark; await Future.sync(() => (op as dynamic)()); }),
             icon: Icon(
               _bookmarks.contains(quiz.id)
                   ? Icons.bookmark
@@ -290,7 +289,7 @@ class _StudentQuizDetailScreenState extends State<StudentQuizDetailScreen> {
                           return LoadingButton(
                             isLoading: loadingState.isLoading,
                             child: TextButton(
-                          onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () => _openResult(quiz, a); if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+                          onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() => _openResult(quiz, a); await Future.sync(() => (op as dynamic)()); }),
                           child: const Text('View'),
                         ),
                           );
@@ -311,7 +310,7 @@ class _StudentQuizDetailScreenState extends State<StudentQuizDetailScreen> {
                   return LoadingButton(
                     isLoading: loadingState.isLoading,
                     child: ElevatedButton(
-                onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = _actionLoading
+                onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final op = _actionLoading
                     ? null
                     : inProgressAttempt != null
                         ? () => _startOrResume(quiz)
@@ -319,7 +318,7 @@ class _StudentQuizDetailScreenState extends State<StudentQuizDetailScreen> {
                             ? () => _openResult(quiz, latestSubmitted)
                             : canStartNew
                                 ? () => _startOrResume(quiz)
-                                : null; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+                                : null; if (op != null) await Future.sync(() => (op as dynamic)()); }),
                 child: Text(
                   _actionLoading
                       ? 'Opening...'

@@ -6,7 +6,7 @@ import '../provider/auth_provider.dart';
 import '../features/analytics/view/analytics_dashboard_screen.dart';
 import 'dashboard_screen.dart';
 import 'student_lms_dashboard.dart';
-import 'history_screen.dart';
+import '../screens/scan_history/scan_history_screen.dart';
 import 'dental_detection_screen.dart';
 import 'dentist_profile_screen.dart';
 import 'patients_screen.dart';
@@ -78,7 +78,7 @@ class _MainLayoutState extends State<MainLayout>
         if (isStudent) {
           return const StudentLMSDashboard(key: ValueKey('Student Overview'));
         }
-        return const HistoryScreen(key: ValueKey('Scan History'));
+        return const ScanHistoryScreen(key: ValueKey('Scan History'));
       case 'Create Quiz':
         if (isStudent) {
           return const StudentLMSDashboard(key: ValueKey('Student Overview'));

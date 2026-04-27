@@ -4,7 +4,7 @@ import 'package:dental_care/providers/lecture_notes_provider.dart';
 import 'package:dental_care/core/theme/app_tokens.dart';
 
 class StudentLectureNotesScreen extends StatefulWidget {
-  const StudentLectureNotesScreen({Key? key}) : super(key: key);
+  const StudentLectureNotesScreen({super.key});
 
   @override
   State<StudentLectureNotesScreen> createState() =>

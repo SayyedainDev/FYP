@@ -61,11 +61,11 @@ class ConnectivityHelper extends ChangeNotifier {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         color: Colors.orange[700],
-        child: Row(
+        child: const Row(
           children: [
             Icon(Icons.wifi_off, color: Colors.white, size: 18),
-            const SizedBox(width: 12),
-            const Expanded(
+            SizedBox(width: 12),
+            Expanded(
               child: Text(
                 'No internet connection. Using cached data.',
                 style: TextStyle(

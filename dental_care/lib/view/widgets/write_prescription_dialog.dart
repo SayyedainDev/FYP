@@ -1,19 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../models/patient.dart';
-import '../../models/case.dart';
-import '../../provider/auth_provider.dart';
+import 'package:provider/provider.dart';
 import '../../providers/prescription_provider.dart';
+import '../../provider/auth_provider.dart';
 import '../../utils/app_dialogs.dart';
 import '../../service/diagnosis_suggestion_service.dart';
 
 class WritePrescriptionDialog extends StatefulWidget {
   final Patient patient;
-  final Case caseData;
+  final String caseId;
 
   const WritePrescriptionDialog({
     required this.patient,
-    required this.caseData,
+    required this.caseId,
     super.key,
   });
 
@@ -56,22 +55,19 @@ class _WritePrescriptionDialogState extends State<WritePrescriptionDialog> {
   Future<void> _savePrescription() async {
     if (!_formKey.currentState!.validate()) return;
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final prescriptionProvider =
-        Provider.of<PrescriptionProvider>(context, listen: false);
-    final userEmail = authProvider.user?.email ?? '';
-    final dentistName = userEmail.split('@')[0];
-
     try {
       setState(() => _isSubmitting = true);
 
-      final result = await prescriptionProvider.createPrescription(
-        dentistUid: authProvider.currentUserId ?? authProvider.uid ?? '',
-        dentistName: dentistName,
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      final prescriptionProvider = Provider.of<PrescriptionProvider>(context, listen: false);
+
+      final rx = await prescriptionProvider.createPrescription(
+        dentistUid: auth.uid ?? '',
+        dentistName: auth.userName ?? 'Dentist',
         patientId: widget.patient.id,
         patientName: widget.patient.name,
         patientPhone: widget.patient.contactPhone,
-        caseId: widget.caseData.id,
+        caseId: widget.caseId,
         diagnosis: _diagnosisController.text.trim(),
         prescription: _prescriptionController.text.trim(),
         followUpTreatment: _followUpController.text.trim(),
@@ -81,19 +77,13 @@ class _WritePrescriptionDialogState extends State<WritePrescriptionDialog> {
       if (!mounted) return;
 
       setState(() => _isSubmitting = false);
-
-      if (result != null) {
-        // Close the dialog and signal success to the caller so parent
-        // can refresh lists. Sharing can be done from the prescriptions
-        // list view if needed.
-        if (mounted) Navigator.pop(context, true);
+      
+      if (rx != null) {
+        Navigator.pop(context, true);
       } else {
-        // Show error from provider
-        final errorMsg = prescriptionProvider.errorMessage ??
-            'Failed to save prescription. Please try again.';
         AppDialogs.showErrorDialog(
           context,
-          message: errorMsg,
+          message: prescriptionProvider.errorMessage ?? 'Error saving prescription',
         );
       }
     } catch (e) {
