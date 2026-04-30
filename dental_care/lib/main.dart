@@ -1,5 +1,7 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart' hide ChangeNotifierProvider;
+import 'package:flutter_riverpod/flutter_riverpod.dart'
+    hide ChangeNotifierProvider;
 import 'package:dental_care/view/login.dart';
+import 'package:dental_care/view/auth_wrapper.dart';
 import 'package:dental_care/view/register.dart';
 import 'package:dental_care/view/main_layout.dart';
 import 'package:dental_care/core/theme/app_theme.dart';
@@ -64,25 +66,25 @@ void main() async {
       child: MultiProvider(
         providers: [
           ChangeNotifierProvider(create: (_) => AuthProvider(firebaseService)),
-        ChangeNotifierProvider(create: (_) => AppProvider()),
-        ChangeNotifierProvider(create: (_) => NavigationProvider()),
-        ChangeNotifierProvider(create: (_) => PatientProvider()),
-        ChangeNotifierProvider(create: (_) => ScanProvider()),
-        ChangeNotifierProvider(create: (_) => CaseProvider()),
-        ChangeNotifierProvider(create: (_) => QuizProvider()),
-        ChangeNotifierProvider(create: (_) => QuizAttemptProvider()),
-        ChangeNotifierProvider(create: (_) => LectureNotesProvider()),
-        ChangeNotifierProvider(create: (_) => AppointmentProvider()),
-        ChangeNotifierProvider(create: (_) => TreatmentPlanProvider()),
-        ChangeNotifierProvider(create: (_) => MedicalHistoryProvider()),
-        ChangeNotifierProvider(create: (_) => AnalyticsProvider()),
-        ChangeNotifierProvider(create: (_) => AuditLogProvider()),
-        ChangeNotifierProvider(create: (_) => PerformanceProvider()),
-        ChangeNotifierProvider(create: (_) => AssignmentProvider()),
-        ChangeNotifierProvider(create: (_) => PrescriptionProvider()),
-        ChangeNotifierProvider(create: (_) => LoadingProvider()),
-      ],
-      child: const MyApp(),
+          ChangeNotifierProvider(create: (_) => AppProvider()),
+          ChangeNotifierProvider(create: (_) => NavigationProvider()),
+          ChangeNotifierProvider(create: (_) => PatientProvider()),
+          ChangeNotifierProvider(create: (_) => ScanProvider()),
+          ChangeNotifierProvider(create: (_) => CaseProvider()),
+          ChangeNotifierProvider(create: (_) => QuizProvider()),
+          ChangeNotifierProvider(create: (_) => QuizAttemptProvider()),
+          ChangeNotifierProvider(create: (_) => LectureNotesProvider()),
+          ChangeNotifierProvider(create: (_) => AppointmentProvider()),
+          ChangeNotifierProvider(create: (_) => TreatmentPlanProvider()),
+          ChangeNotifierProvider(create: (_) => MedicalHistoryProvider()),
+          ChangeNotifierProvider(create: (_) => AnalyticsProvider()),
+          ChangeNotifierProvider(create: (_) => AuditLogProvider()),
+          ChangeNotifierProvider(create: (_) => PerformanceProvider()),
+          ChangeNotifierProvider(create: (_) => AssignmentProvider()),
+          ChangeNotifierProvider(create: (_) => PrescriptionProvider()),
+          ChangeNotifierProvider(create: (_) => LoadingProvider()),
+        ],
+        child: const MyApp(),
       ),
     ),
   );
@@ -139,7 +141,8 @@ class MyApp extends StatelessWidget {
       themeMode: ThemeMode.light,
       initialRoute: '/',
       routes: {
-        '/': (_) => const LoginPage(),
+        '/': (_) => const AuthWrapper(),
+        '/login': (_) => const LoginPage(),
         '/register': (_) => const RegisterPage(),
         '/dashboard': (_) => const MainLayout(),
         '/upload': (_) => const MainLayout(),
