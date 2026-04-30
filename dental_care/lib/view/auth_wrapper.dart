@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+import '../provider/auth_provider.dart' as app_auth;
 import '../utils/session_manager.dart';
 import 'login.dart';
 import 'student_lms_dashboard.dart' as student_dashboard;
@@ -20,11 +22,19 @@ class _AuthWrapperState extends State<AuthWrapper> {
     });
   }
 
-  void _initializeApp() {
-    final user = FirebaseAuth.instance.currentUser;
-    final role = getUserRole(); // Uses our session_manager.dart
+  void _initializeApp() async {
+    // Wait for the first auth state to resolve (fixes null on refresh)
+    final user = await FirebaseAuth.instance.authStateChanges().first;
 
-    if (user != null && role != null) {
+    // Give AuthProvider a moment to restore the session role from remember_me if necessary
+    await Future.delayed(const Duration(milliseconds: 100));
+
+    final provider = context.read<app_auth.AuthProvider>();
+    final role = getUserRole() ?? provider.userRole;
+
+    if (!mounted) return;
+
+    if (user != null && role != null && role.isNotEmpty) {
       if (role.toLowerCase() == 'doctor' || role.toLowerCase() == 'dentist') {
         Navigator.pushReplacementNamed(context, '/dashboard');
       } else if (role.toLowerCase() == 'student') {

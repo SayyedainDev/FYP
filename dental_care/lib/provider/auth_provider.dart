@@ -85,6 +85,32 @@ class AuthProvider extends ChangeNotifier {
     final currentUser = FirebaseAuth.instance.currentUser;
     final sessionRole = getUserRole();
 
+    // Recover session from SharedPreferences if missing (fixes student refresh bug)
+    if (currentUser != null && (sessionRole == null || sessionRole.isEmpty)) {
+      try {
+        final prefs = SharedPrefsHelper();
+        final rawCachedInfo = prefs.getString('user_role_cache');
+        final savedRole =
+            await _secureStorage.read(key: _kSavedRoleKey) ?? 'Dentist';
+        if (savedRole.isNotEmpty) {
+          saveUserRole(savedRole); // put it back into session storage
+        }
+        uid = currentUser.uid;
+        _userEmail = currentUser.email;
+        _role = savedRole;
+        final cachedName = prefs.getString(SharedPrefsHelper.keyUserName);
+        if (cachedName != null) {
+          _userName = cachedName;
+        }
+        notifyListeners();
+        // background fetch to sync data
+        _fetchUserData(currentUser.uid).then((_) => notifyListeners());
+        return;
+      } catch (e) {
+        debugPrint('Error recovering from preferences: $e');
+      }
+    }
+
     if (currentUser != null && sessionRole != null) {
       uid = currentUser.uid;
       _userEmail = currentUser.email;
@@ -95,12 +121,21 @@ class AuthProvider extends ChangeNotifier {
       }
       notifyListeners();
       return;
-    } else {
-      // Force clear if session role is missing (e.g. new tab or logout)
-      await _clearSession();
-      uid = null;
-      _userEmail = null;
-      _userName = null;
+    } else if (currentUser != null && _rememberMe) {
+      // Fallback: If sessionRole is missing but user checked "Remember Me",
+      // load role from secureStorage to restore session (e.g. after full browser close)
+      final savedRole = await _secureStorage.read(key: _kSavedRoleKey);
+      if (savedRole != null && savedRole.isNotEmpty) {
+        saveUserRole(savedRole); // Restore to sessionStorage
+        uid = currentUser.uid;
+        _userEmail = currentUser.email;
+        _role = savedRole;
+        await _fetchUserData(currentUser.uid);
+        notifyListeners();
+        return;
+      } else {
+        await logout();
+      }
       _role = 'Dentist';
     }
 
