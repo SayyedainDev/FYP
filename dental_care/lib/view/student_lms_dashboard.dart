@@ -7,7 +7,7 @@ import 'package:dental_care/providers/quiz_provider.dart';
 import 'package:dental_care/core/theme/app_tokens.dart';
 import 'package:dental_care/core/responsive/app_breakpoints.dart';
 import 'package:dental_care/view/student_quiz_available_screen.dart';
-import 'student_lecture_notes_screen.dart';
+import 'package:dental_care/features/lecture_notes/screens/student/student_lecture_notes_screen.dart';
 import 'student_assignments_screen.dart';
 import 'student_results_screen.dart';
 import 'student_profile_screen.dart';
@@ -51,7 +51,7 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
       case 'My Results':
         return const StudentResultsScreen();
       case 'Lecture Notes':
-        return const StudentLectureNotesScreen();
+        return const StudentLectureNotesScreen(moduleId: 'general');
       case 'Assignments':
         return const StudentAssignmentsScreen();
       case 'Settings':

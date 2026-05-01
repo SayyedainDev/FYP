@@ -12,21 +12,7 @@ import 'package:dental_care/service/firebase_service.dart';
 import 'package:dental_care/service/shared_prefs_helper.dart';
 import 'package:dental_care/provider/auth_provider.dart';
 import 'package:dental_care/providers/app_provider.dart';
-import 'package:dental_care/providers/patient_provider.dart';
-import 'package:dental_care/providers/scan_provider.dart';
-import 'package:dental_care/providers/case_provider.dart';
 import 'package:dental_care/providers/navigation_provider.dart';
-import 'package:dental_care/providers/quiz_provider.dart';
-import 'package:dental_care/providers/quiz_attempt_provider.dart';
-import 'package:dental_care/providers/lecture_notes_provider.dart';
-import 'package:dental_care/providers/appointment_provider.dart';
-import 'package:dental_care/providers/treatment_plan_provider.dart';
-import 'package:dental_care/providers/medical_history_provider.dart';
-import 'package:dental_care/providers/analytics_provider.dart';
-import 'package:dental_care/providers/audit_log_provider.dart';
-import 'package:dental_care/providers/performance_provider.dart';
-import 'package:dental_care/providers/assignment_provider.dart';
-import 'package:dental_care/providers/prescription_provider.dart';
 import 'package:dental_care/providers/loading_provider.dart';
 import 'package:dental_care/utils/firebase_test.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -65,24 +51,20 @@ void main() async {
     ProviderScope(
       child: MultiProvider(
         providers: [
+          // Phase 2.1: Route-Scoped Providers Refactor
+          // Kept GLOBAL: Critical systems required at boot/auth layer level.
           ChangeNotifierProvider(create: (_) => AuthProvider(firebaseService)),
           ChangeNotifierProvider(create: (_) => AppProvider()),
           ChangeNotifierProvider(create: (_) => NavigationProvider()),
-          ChangeNotifierProvider(create: (_) => PatientProvider()),
-          ChangeNotifierProvider(create: (_) => ScanProvider()),
-          ChangeNotifierProvider(create: (_) => CaseProvider()),
-          ChangeNotifierProvider(create: (_) => QuizProvider()),
-          ChangeNotifierProvider(create: (_) => QuizAttemptProvider()),
-          ChangeNotifierProvider(create: (_) => LectureNotesProvider()),
-          ChangeNotifierProvider(create: (_) => AppointmentProvider()),
-          ChangeNotifierProvider(create: (_) => TreatmentPlanProvider()),
-          ChangeNotifierProvider(create: (_) => MedicalHistoryProvider()),
-          ChangeNotifierProvider(create: (_) => AnalyticsProvider()),
-          ChangeNotifierProvider(create: (_) => AuditLogProvider()),
-          ChangeNotifierProvider(create: (_) => PerformanceProvider()),
-          ChangeNotifierProvider(create: (_) => AssignmentProvider()),
-          ChangeNotifierProvider(create: (_) => PrescriptionProvider()),
           ChangeNotifierProvider(create: (_) => LoadingProvider()),
+
+          /* ==============================================================
+             REMOVED 15 FEATURE-SPECIFIC PROVIDERS FROM GLOBAL SCOPE HERE.
+             They are now dynamically injected inside MainLayout via MultiProvider blocks.
+             This prevents the app from downloading thousands of data records over Firestore
+             simultaneously on app launch before a user has even logged in.
+             (Case, Quiz, Appointment, Treatment, Analytics, Assignment, Lecture, etc...)
+             ============================================================== */
         ],
         child: const MyApp(),
       ),

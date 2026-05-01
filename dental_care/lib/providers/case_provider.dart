@@ -80,7 +80,7 @@ class CaseProvider extends ChangeNotifier {
       final querySnapshot = await _firestore
           .collection('cases')
           .where('dentistUid', isEqualTo: uid)
-          .orderBy('caseDate', descending: true)
+          .orderBy('caseDate', descending: true).limit(20)
           .get()
           .timeout(ProviderErrorUtils.requestTimeout);
 
@@ -109,7 +109,7 @@ class CaseProvider extends ChangeNotifier {
       _firestore
           .collection('cases')
           .where('dentistUid', isEqualTo: uid)
-          .orderBy('caseDate', descending: true)
+          .orderBy('caseDate', descending: true).limit(20)
           .snapshots()
           .listen(
         (snapshot) {
@@ -170,26 +170,33 @@ class CaseProvider extends ChangeNotifier {
       for (var file in imageFiles) {
         if (file is Uint8List) {
           try {
-            final storagePath = 'cases/$caseId/image_${DateTime.now().millisecondsSinceEpoch}.jpg';
+            final storagePath =
+                'cases/$caseId/image_${DateTime.now().millisecondsSinceEpoch}.jpg';
             await Supabase.instance.client.storage.from('Image').uploadBinary(
-              storagePath,
-              file,
-              fileOptions: const FileOptions(cacheControl: '3600', upsert: true),
-            );
-            final url = Supabase.instance.client.storage.from('Image').getPublicUrl(storagePath);
+                  storagePath,
+                  file,
+                  fileOptions:
+                      const FileOptions(cacheControl: '3600', upsert: true),
+                );
+            final url = Supabase.instance.client.storage
+                .from('Image')
+                .getPublicUrl(storagePath);
             imageUrls.add(url);
-          } catch (e) {
-            debugPrint('Error uploading image to Supabase: $e');
+          } catch (e, stack) {
+            debugPrint('Error uploading image to Supabase: $e\\n$stack');
+            throw Exception(
+                'Failed to upload image. Please check your connection and try again.');
           }
         }
       }
 
-      final analysisResults = initialAnalysisResults ?? {
-        'status': 'Pending AI Analysis',
-        'hasCavity': false,
-        'confidence': 0.0,
-        'details': 'Analysis will be performed by AI model',
-      };
+      final analysisResults = initialAnalysisResults ??
+          {
+            'status': 'Pending AI Analysis',
+            'hasCavity': false,
+            'confidence': 0.0,
+            'details': 'Analysis will be performed by AI model',
+          };
 
       final newCase = Case(
         id: '', // Will be set by Firestore
@@ -219,14 +226,14 @@ class CaseProvider extends ChangeNotifier {
       await fetchCases();
 
       return caseId;
-    } catch (e) {
+    } catch (e, stack) {
       _error = ProviderErrorUtils.mapErrorMessage(
         e,
         fallback: 'Failed to create case. Please try again.',
       );
       _loading = false;
       notifyListeners();
-      debugPrint('Error creating case: $e');
+      debugPrint('Error creating case: $e\\n$stack');
       rethrow;
     }
   }
@@ -272,7 +279,7 @@ class CaseProvider extends ChangeNotifier {
           .collection('cases')
           .where('dentistUid', isEqualTo: uid)
           .where('patientId', isEqualTo: patientId)
-          .orderBy('caseDate', descending: true)
+          .orderBy('caseDate', descending: true).limit(20)
           .get()
           .timeout(ProviderErrorUtils.requestTimeout);
 
@@ -401,8 +408,9 @@ class CaseProvider extends ChangeNotifier {
             final path = imageUrl.substring(pathIndex + 7); // +7 for '/IMAGE/'
             await Supabase.instance.client.storage.from('Image').remove([path]);
           }
-        } catch (e) {
-          debugPrint('Error deleting image from Supabase Storage: $e');
+        } catch (e, stack) {
+          debugPrint('Error deleting image from Supabase Storage: $e\\n$stack');
+          throw Exception('Failed to delete image from storage.');
         }
       }
 
@@ -418,12 +426,12 @@ class CaseProvider extends ChangeNotifier {
       notifyListeners();
 
       return true;
-    } catch (e) {
+    } catch (e, stack) {
       _error = ProviderErrorUtils.mapErrorMessage(
         e,
         fallback: 'Failed to delete case. Please try again.',
       );
-      debugPrint('Error deleting case: $e');
+      debugPrint('Error deleting case: $e\\n$stack');
       notifyListeners();
       return false;
     }

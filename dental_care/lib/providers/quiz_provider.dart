@@ -170,14 +170,15 @@ class QuizProvider with ChangeNotifier {
       return _firestore
           .collection('quizzes')
           .where('dentistUid', isEqualTo: dentistUid)
-          .orderBy('createdAt', descending: true)
+          .orderBy('createdAt', descending: true).limit(20)
+          .limit(50)
           .snapshots()
           .map(
             (snapshot) =>
                 snapshot.docs.map((doc) => Quiz.fromFirestore(doc)).toList(),
           );
-    } catch (e) {
-      debugPrint('Failed to create quizzes stream: $e');
+    } catch (e, stack) {
+      debugPrint('Failed to create quizzes stream: $e\\n$stack');
       return Stream.value(<Quiz>[]);
     }
   }
@@ -229,7 +230,8 @@ class QuizProvider with ChangeNotifier {
       }
 
       return null;
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('Error preparing file for upload: $e\\n$stack');
       _errorMessage = _mapErrorMessage(
         e,
         fallback: 'Failed to prepare file for upload. Please try again.',
@@ -266,7 +268,8 @@ class QuizProvider with ChangeNotifier {
       notifyListeners();
 
       return downloadUrl;
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('Error in uploadNoteFile: $e\\n$stack');
       _isLoading = false;
       _errorMessage = _mapErrorMessage(
         e,
@@ -297,7 +300,8 @@ class QuizProvider with ChangeNotifier {
       notifyListeners();
 
       return downloadUrl;
-    } catch (e) {
+    } catch (e, stack) {
+      debugPrint('Error in uploadNoteBytes: $e\\n$stack');
       _isLoading = false;
       _errorMessage = _mapErrorMessage(
         e,
@@ -468,7 +472,7 @@ class QuizProvider with ChangeNotifier {
       final snapshot = await _withTimeout(_firestore
           .collection('quizzes')
           .where('dentistUid', isEqualTo: dentistUid)
-          .orderBy('createdAt', descending: true)
+          .orderBy('createdAt', descending: true).limit(20)
           .get());
 
       _quizzes = snapshot.docs.map((doc) => Quiz.fromFirestore(doc)).toList();
@@ -509,7 +513,7 @@ class QuizProvider with ChangeNotifier {
       final snapshot = await _withTimeout(_firestore
           .collection('quizzes')
           .where('status', isEqualTo: QuizStatus.published.name)
-          .orderBy('createdAt', descending: true)
+          .orderBy('createdAt', descending: true).limit(20)
           .get());
 
       var quizzes =
