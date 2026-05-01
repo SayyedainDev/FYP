@@ -22,6 +22,10 @@ class LectureNoteProvider extends ChangeNotifier {
     return LectureNoteService.instance.streamNotesByModule(moduleId);
   }
 
+  Stream<List<LectureNoteModel>> streamByUser(String uid) {
+    return LectureNoteService.instance.streamNotesByUser(uid);
+  }
+
   Future<void> fetchAll() async {
     _status = LectureNoteStatus.loading;
     notifyListeners();
@@ -75,9 +79,8 @@ class LectureNoteProvider extends ChangeNotifier {
       return true;
     } catch (e, stack) {
       _status = LectureNoteStatus.error;
-      _errorMessage =
-          'Failed to upload note. Please verify file size and connection.';
-      debugPrint('Error in uploadNote: $e\\n$stack');
+      _errorMessage = 'Failed to upload note: ${e.toString()}';
+      debugPrint('Error in uploadNote: $e\n$stack');
       notifyListeners();
       return false;
     }

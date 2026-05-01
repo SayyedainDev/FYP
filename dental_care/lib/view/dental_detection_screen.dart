@@ -18,6 +18,7 @@ import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/rendering.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../models/detection_response.dart';
@@ -32,6 +33,8 @@ import '../models/patient.dart';
 import 'package:provider/provider.dart';
 import '../providers/patient_provider.dart';
 import '../providers/case_provider.dart';
+import '../providers/prescription_provider.dart';
+import '../provider/auth_provider.dart';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Design System — clinical palette
@@ -126,6 +129,7 @@ class DentalDetectionScreen extends StatefulWidget {
 
 class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
   final _picker = ImagePicker();
+  final GlobalKey _imageKey = GlobalKey();
 
   // --- server ---
   bool _serverReady = false;
@@ -183,6 +187,22 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
         });
         GlobalErrorHandler.instance.handleError(e, stack);
       }
+    }
+  }
+
+  // ───────────────────────────── capture image ─────────────────────────────
+  Future<Uint8List?> _captureAnnotatedImage() async {
+    try {
+      final boundary = _imageKey.currentContext?.findRenderObject()
+          as RenderRepaintBoundary?;
+      if (boundary == null) return _pickedBytes;
+      // High resolution capture
+      final image = await boundary.toImage(pixelRatio: 2.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      return byteData?.buffer.asUint8List() ?? _pickedBytes;
+    } catch (e) {
+      debugPrint('Error capturing annotated image: $e');
+      return _pickedBytes;
     }
   }
 
@@ -703,21 +723,24 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
                       child: Center(
                         child: LayoutBuilder(
                           builder: (ctx, constraints) {
-                            return _AnnotatedImage(
-                              imageBytes: bytes,
-                              detections: result.detections,
-                              imageDimensions: result.imageDimensions,
-                              highlightedIdx: _highlightIdx,
-                              maxSize: Size(
-                                constraints.maxWidth,
-                                constraints.maxHeight,
+                            return RepaintBoundary(
+                              key: _imageKey,
+                              child: _AnnotatedImage(
+                                imageBytes: bytes,
+                                detections: result.detections,
+                                imageDimensions: result.imageDimensions,
+                                highlightedIdx: _highlightIdx,
+                                maxSize: Size(
+                                  constraints.maxWidth,
+                                  constraints.maxHeight,
+                                ),
+                                showLabels: _showLabels,
+                                onTapDetection: (i) {
+                                  setState(() {
+                                    _highlightIdx = _highlightIdx == i ? -1 : i;
+                                  });
+                                },
                               ),
-                              showLabels: _showLabels,
-                              onTapDetection: (i) {
-                                setState(() {
-                                  _highlightIdx = _highlightIdx == i ? -1 : i;
-                                });
-                              },
                             );
                           },
                         ),
@@ -897,24 +920,39 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
                       showDialog(
                         context: context,
                         barrierDismissible: false,
-                        builder: (ctx) => const Center(child: CircularProgressIndicator()),
+                        builder: (ctx) =>
+                            const Center(child: CircularProgressIndicator()),
                       );
 
-                      final caseProvider = Provider.of<CaseProvider>(context, listen: false);
-                      
+                      final caseProvider =
+                          Provider.of<CaseProvider>(context, listen: false);
+
                       final currentResult = _result;
                       final initialAnalysis = {
                         'status': 'Analyzed',
-                        'hasCavity': currentResult?.detections.any((d) => d.label.toLowerCase().contains('caries') || d.label.toLowerCase().contains('cavity')) ?? false,
-                        'confidence': currentResult?.detections.fold<double>(0.0, (prev, det) => det.confidence > prev ? det.confidence : prev) ?? 0.0,
-                        'details': currentResult?.detections.map((d) => d.label).join(', ') ?? 'No findings',
+                        'hasCavity': currentResult?.detections.any((d) =>
+                                d.label.toLowerCase().contains('caries') ||
+                                d.label.toLowerCase().contains('cavity')) ??
+                            false,
+                        'confidence': currentResult?.detections.fold<double>(
+                                0.0,
+                                (prev, det) => det.confidence > prev
+                                    ? det.confidence
+                                    : prev) ??
+                            0.0,
+                        'details': currentResult?.detections
+                                .map((d) => d.label)
+                                .join(', ') ??
+                            'No findings',
                       };
 
+                      final imageToSave =
+                          await _captureAnnotatedImage() ?? _pickedBytes!;
                       final caseId = await caseProvider.createCase(
                         patientId: selected.id,
                         patientName: selected.name,
-                        toothNumber: '', 
-                        imageFiles: [_pickedBytes!],
+                        toothNumber: '',
+                        imageFiles: [imageToSave],
                         notes: 'Saved from Detection Screen',
                         initialAnalysisResults: initialAnalysis,
                       );
@@ -922,22 +960,39 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
                       if (context.mounted) Navigator.pop(context);
 
                       if (caseId != null && context.mounted) {
+                        final authProv =
+                            Provider.of<AuthProvider>(context, listen: false);
+                        final prescriptionProvider =
+                            Provider.of<PrescriptionProvider>(context,
+                                listen: false);
                         showDialog<bool>(
                           context: context,
-                          builder: (_) => WritePrescriptionDialog(patient: selected, caseId: caseId),
+                          builder: (_) => MultiProvider(
+                            providers: [
+                              ChangeNotifierProvider<
+                                      PrescriptionProvider>.value(
+                                  value: prescriptionProvider),
+                              ChangeNotifierProvider.value(value: authProv),
+                            ],
+                            child: WritePrescriptionDialog(
+                                patient: selected, caseId: caseId),
+                          ),
                         );
                       } else if (caseId == null && context.mounted) {
-                        final errMsg = caseProvider.error ?? 'Failed to save case. Please try again.';
+                        final errMsg = caseProvider.error ??
+                            'Failed to save case. Please try again.';
                         AppDialogs.showErrorDialog(context, message: errMsg);
                       }
                     } catch (e) {
                       if (context.mounted) Navigator.pop(context);
                       if (context.mounted) {
-                        AppDialogs.showErrorDialog(context, message: 'Failed to write prescription: $e');
+                        AppDialogs.showErrorDialog(context,
+                            message: 'Failed to write prescription: $e');
                       }
                     }
                   } else {
-                    AppDialogs.showErrorDialog(context, message: 'No scan image selected.');
+                    AppDialogs.showErrorDialog(context,
+                        message: 'No scan image selected.');
                   }
                 }
               },

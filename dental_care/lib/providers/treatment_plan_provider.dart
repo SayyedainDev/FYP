@@ -4,7 +4,10 @@ import '../models/treatment_plan.dart';
 import '../utils/provider_error_utils.dart';
 
 class TreatmentPlanProvider extends ChangeNotifier {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
+
+  TreatmentPlanProvider({FirebaseFirestore? firestore}) 
+      : _firestore = firestore ?? FirebaseFirestore.instance;
 
   List<TreatmentPlan> _treatmentPlans = [];
   bool _loading = false;

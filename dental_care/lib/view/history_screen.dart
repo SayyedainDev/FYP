@@ -6,6 +6,7 @@ import 'package:printing/printing.dart';
 import '../providers/case_provider.dart';
 import 'widgets/create_case_dialog.dart';
 import '../providers/patient_provider.dart';
+import '../provider/auth_provider.dart';
 import '../core/theme/app_semantic_colors.dart';
 import '../utils/app_dialogs.dart';
 import '../widgets/loaders/app_loader.dart';
@@ -56,9 +57,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 ),
                 ElevatedButton.icon(
                   onPressed: () async {
+                    final patientProv = Provider.of<PatientProvider>(context, listen: false);
+                    final caseProv = Provider.of<CaseProvider>(context, listen: false);
+                    final authProv = Provider.of<AuthProvider>(context, listen: false);
+                    
                     await showDialog(
                       context: context,
-                      builder: (context) => const CreateCaseDialog(),
+                      builder: (context) => MultiProvider(
+                        providers: [
+                          ChangeNotifierProvider.value(value: patientProv),
+                          ChangeNotifierProvider.value(value: caseProv),
+                          ChangeNotifierProvider.value(value: authProv),
+                        ],
+                        child: const CreateCaseDialog(),
+                      ),
                     );
                   },
                   icon: const Icon(Icons.add),

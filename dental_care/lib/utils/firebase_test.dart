@@ -7,7 +7,6 @@ import 'package:flutter/foundation.dart';
 class FirebaseTest {
   static final FirebaseAuth _auth = FirebaseAuth.instance;
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  // Firebase Storage removed in favor of Supabase storage
 
   /// Test Firebase Authentication Connection
   static Future<bool> testAuthConnection() async {
@@ -60,9 +59,6 @@ class FirebaseTest {
       return false;
     }
   }
-
-  /// Test Firebase Storage Connection
-  // Storage testing removed; Supabase will be used for storage operations.
 
   /// Run all Firebase tests
   static Future<Map<String, bool>> runAllTests() async {

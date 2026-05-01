@@ -16,6 +16,8 @@ class _StudentResultsScreenState extends State<StudentResultsScreen>
   late TabController _tabController;
   String _sortBy = 'date';
 
+  ColorScheme get _studentColors => Theme.of(context).colorScheme;
+
   @override
   void initState() {
     super.initState();
@@ -39,11 +41,11 @@ class _StudentResultsScreenState extends State<StudentResultsScreen>
     return Column(
       children: [
         Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF3D79F2), Color(0xFF5B97FF)],
+              colors: [_studentColors.primary, _studentColors.tertiary],
             ),
           ),
           child: SafeArea(
@@ -74,12 +76,30 @@ class _StudentResultsScreenState extends State<StudentResultsScreen>
     );
   }
 
+  String _selectedQuizTitle = 'All Quizzes';
+
   Widget _buildAttemptsTab() {
     return Consumer<QuizAttemptProvider>(
       builder: (context, attemptsProvider, _) {
-        final attempts = attemptsProvider.studentAttempts
+        var attempts = attemptsProvider.studentAttempts
             .where((a) => a.isSubmitted)
             .toList(growable: false);
+
+        // Get unique titles for filter
+        final uniqueTitles = ['All Quizzes'];
+        uniqueTitles.addAll(attempts
+            .map((e) => e.quizTitle.isEmpty ? 'Quiz Attempt' : e.quizTitle)
+            .toSet()
+            .toList()
+          ..sort());
+
+        if (_selectedQuizTitle != 'All Quizzes') {
+          attempts = attempts
+              .where((a) =>
+                  (a.quizTitle.isEmpty ? 'Quiz Attempt' : a.quizTitle) ==
+                  _selectedQuizTitle)
+              .toList();
+        }
 
         if (_sortBy == 'score') {
           attempts.sort((a, b) => b.score.compareTo(a.score));
@@ -97,59 +117,90 @@ class _StudentResultsScreenState extends State<StudentResultsScreen>
               children: [
                 // Filter/Sort controls
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'My Quiz Results',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    PopupMenuButton<String>(
-                      initialValue: _sortBy,
-                      onSelected: (value) {
-                        setState(() => _sortBy = value);
-                      },
-                      itemBuilder: (BuildContext context) => [
-                        const PopupMenuItem(
-                          value: 'date',
-                          child: Text('Sort by Date'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'score',
-                          child: Text('Sort by Score'),
-                        ),
-                        const PopupMenuItem(
-                          value: 'title',
-                          child: Text('Sort by Quiz'),
-                        ),
-                      ],
+                    Expanded(
+                      flex: 3,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
                         decoration: BoxDecoration(
                           color: AppColors.lightSurface,
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(
-                            color:
-                                AppColors.brandPrimary.withValues(alpha: 0.2),
+                              color: _studentColors.primary
+                                  .withValues(alpha: 0.2)),
+                        ),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            isExpanded: true,
+                            value: _selectedQuizTitle,
+                            icon: Icon(Icons.filter_list,
+                                color: _studentColors.primary, size: 20),
+                            items: uniqueTitles.map((title) {
+                              return DropdownMenuItem(
+                                  value: title,
+                                  child: Text(title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(fontSize: 13)));
+                            }).toList(),
+                            onChanged: (value) {
+                              if (value != null)
+                                setState(() => _selectedQuizTitle = value);
+                            },
                           ),
                         ),
-                        child: const Row(
-                          children: [
-                            Icon(Icons.sort, color: AppColors.brandPrimary),
-                            SizedBox(width: 4),
-                            Text(
-                              'Sort',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      flex: 2,
+                      child: PopupMenuButton<String>(
+                        initialValue: _sortBy,
+                        onSelected: (value) {
+                          setState(() => _sortBy = value);
+                        },
+                        itemBuilder: (BuildContext context) => [
+                          const PopupMenuItem(
+                            value: 'date',
+                            child: Text('Sort by Date'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'score',
+                            child: Text('Sort by Score'),
+                          ),
+                          const PopupMenuItem(
+                            value: 'title',
+                            child: Text('Sort by Quiz'),
+                          ),
+                        ],
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 12,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.lightSurface,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color:
+                                  _studentColors.primary.withValues(alpha: 0.2),
                             ),
-                          ],
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.sort,
+                                  color: _studentColors.primary, size: 18),
+                              SizedBox(width: 6),
+                              Text(
+                                'Sort',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
@@ -162,6 +213,7 @@ class _StudentResultsScreenState extends State<StudentResultsScreen>
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
+                        const SizedBox(height: 40),
                         Icon(
                           Icons.quiz,
                           size: 64,
@@ -169,7 +221,7 @@ class _StudentResultsScreenState extends State<StudentResultsScreen>
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'No quiz attempts yet',
+                          'No quiz attempts match',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -178,7 +230,7 @@ class _StudentResultsScreenState extends State<StudentResultsScreen>
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Take a quiz to see your results here',
+                          'Try changing your filters',
                           style: TextStyle(
                             fontSize: 12,
                             color: Colors.grey.shade600,
@@ -192,15 +244,21 @@ class _StudentResultsScreenState extends State<StudentResultsScreen>
                     final color = _getScoreColor(attempt.scorePercentage);
                     return Card(
                       margin: const EdgeInsets.only(bottom: 12),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12)),
+                      elevation: 1,
                       child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 8),
                         leading: CircleAvatar(
+                          radius: 24,
                           backgroundColor: color.withValues(alpha: 0.15),
                           child: Text(
                             '${attempt.scorePercentage.toStringAsFixed(0)}%',
                             style: TextStyle(
                               color: color,
                               fontWeight: FontWeight.bold,
-                              fontSize: 11,
+                              fontSize: 12,
                             ),
                           ),
                         ),
@@ -210,17 +268,31 @@ class _StudentResultsScreenState extends State<StudentResultsScreen>
                               : attempt.quizTitle,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(fontWeight: FontWeight.w600),
                         ),
-                        subtitle: Text(
-                          '${attempt.score}/${attempt.totalMarks} • ${attempt.startTime.toString().split(' ')[0]}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        subtitle: Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'Score: ${attempt.score}/${attempt.totalMarks} • Date: ${attempt.startTime.toString().split(' ')[0]}',
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                                color: Colors.grey.shade600, fontSize: 12),
+                          ),
                         ),
-                        trailing: Icon(
-                          attempt.isPassed
-                              ? Icons.check_circle
-                              : Icons.warning_amber_rounded,
-                          color: color,
+                        trailing: Container(
+                          padding: const EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: color.withValues(alpha: 0.1),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            attempt.isPassed
+                                ? Icons.check_circle
+                                : Icons.warning_amber_rounded,
+                            color: color,
+                            size: 20,
+                          ),
                         ),
                       ),
                     );
@@ -264,7 +336,7 @@ class _StudentResultsScreenState extends State<StudentResultsScreen>
                       title: 'Total Quizzes',
                       value: '$total',
                       icon: Icons.quiz,
-                      color: AppColors.brandPrimary,
+                      color: _studentColors.primary,
                     ),
                   ),
                   const SizedBox(width: 12),

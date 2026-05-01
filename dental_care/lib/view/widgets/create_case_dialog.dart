@@ -124,7 +124,6 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
             ).getPatientById(_selectedPatientId!)?.name ??
             '',
         toothNumber: _toothNumberController.text.trim(),
-        caseStatus: _selectedStatus ?? 'Uploaded',
         imageFiles: payload,
         notes: _notesController.text.trim(),
       );

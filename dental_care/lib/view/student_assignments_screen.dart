@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:dental_care/providers/assignment_provider.dart';
 import 'package:dental_care/provider/auth_provider.dart';
-import 'package:dental_care/core/theme/app_tokens.dart';
 import 'student_assignment_detail_screen.dart';
 
 class StudentAssignmentsScreen extends StatefulWidget {
@@ -17,14 +16,21 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
+  ColorScheme get _studentColors => Theme.of(context).colorScheme;
+
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    final uid = context.read<AuthProvider>().user?.uid;
-    if (uid != null) {
-      context.read<AssignmentProvider>().fetchStudentAssignments(uid);
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final uid = context.read<AuthProvider>().user?.uid;
+      if (uid != null) {
+        final provider = context.read<AssignmentProvider>();
+        await provider.fetchStudentAssignments(uid);
+        await provider.fetchStudentSubmissions(uid);
+      }
+    });
   }
 
   @override
@@ -44,7 +50,7 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
           'Assignments',
           overflow: TextOverflow.ellipsis,
         ),
-        backgroundColor: AppColors.brandPrimary,
+        backgroundColor: _studentColors.primary,
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: Colors.white,
@@ -68,35 +74,37 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
           }
 
           final allAssignments = assignmentProvider.assignments;
+          final studentSubmissions = assignmentProvider.submissions;
 
           return TabBarView(
             controller: _tabController,
             children: [
+              // Pending: no submission has been made yet.
               _buildAssignmentList(
                 context,
                 allAssignments
                     .where((a) =>
                         !a.isOverdue &&
-                        assignmentProvider.submissions
-                            .where((s) =>
-                                s.assignmentId == a.id &&
-                                s.status != 'Submitted')
+                        studentSubmissions
+                            .where((s) => s.assignmentId == a.id)
                             .isEmpty)
                     .toList(),
               ),
+              // Submitted: at least one submitted record exists.
               _buildAssignmentList(
                 context,
                 allAssignments
-                    .where((a) => assignmentProvider.submissions
+                    .where((a) => studentSubmissions
                         .where((s) =>
                             s.assignmentId == a.id && s.status == 'Submitted')
                         .isNotEmpty)
                     .toList(),
               ),
+              // Graded: at least one graded record exists.
               _buildAssignmentList(
                 context,
                 allAssignments
-                    .where((a) => assignmentProvider.submissions
+                    .where((a) => studentSubmissions
                         .where((s) =>
                             s.assignmentId == a.id && s.status == 'Graded')
                         .isNotEmpty)
@@ -191,17 +199,22 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () {
+                      final assignmentProvider =
+                          context.read<AssignmentProvider>();
                       Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => StudentAssignmentDetailScreen(
-                            assignment: assignment,
+                          builder: (_) => ChangeNotifierProvider.value(
+                            value: assignmentProvider,
+                            child: StudentAssignmentDetailScreen(
+                              assignment: assignment,
+                            ),
                           ),
                         ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.brandPrimary,
+                      backgroundColor: _studentColors.primary,
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     child: const Text('View Details'),

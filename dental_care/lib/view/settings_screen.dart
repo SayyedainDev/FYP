@@ -6,7 +6,7 @@ import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-// Supabase removed — using Firebase storage
+// Firebase storage used for user settings
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 // removed unused import
@@ -69,20 +69,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
     super.dispose();
   }
 
-  // Prominent card decoration matching your specification
   BoxDecoration get _prominentCardDecoration => BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Theme.of(context).colorScheme.outlineVariant,
-          width: 1,
+          color: Theme.of(context).colorScheme.outlineVariant.withOpacity(0.5),
         ),
         boxShadow: [
           BoxShadow(
-            color: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.08),
-            blurRadius: 20,
-            spreadRadius: 1,
-            offset: const Offset(0, 6),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
       );
@@ -99,12 +96,62 @@ class _SettingsScreenState extends State<SettingsScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Settings',
-                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).colorScheme.onSurface,
+                Container(
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Theme.of(context).colorScheme.primary.withOpacity(0.9),
+                        Theme.of(context).colorScheme.primary,
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                        blurRadius: 15,
+                        offset: const Offset(0, 8),
                       ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Settings',
+                              style: TextStyle(
+                                fontSize: 28,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                                letterSpacing: -0.5,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Manage your app preferences and settings.',
+                              style: TextStyle(
+                                fontSize: 15,
+                                color: Colors.white.withOpacity(0.9),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.settings, color: Colors.white, size: 40),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 32),
                 LayoutBuilder(

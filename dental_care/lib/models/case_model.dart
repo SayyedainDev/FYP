@@ -28,7 +28,14 @@ class CaseModel {
   /// Overall display status for the UI badge
   String get displayStatus {
     if (hasPrescription) return 'Prescribed';
-    if (isAnalyzed) return 'Analyzed';
+    if (analysisResults.status == 'Healthy' ||
+        analysisResults.status == 'Cavity' ||
+        analysisResults.status == 'Disease Detected') {
+      return analysisResults.status;
+    }
+    if (isAnalyzed) {
+      return analysisResults.hasCavity ? 'Cavity' : 'Healthy';
+    }
     return 'Uploaded';
   }
 
@@ -40,24 +47,27 @@ class CaseModel {
       patientName: d['patientName'] ?? '',
       imageUrls: List<String>.from(d['imageUrls'] ?? []),
       analysisResults: AnalysisResults.fromMap(d['analysisResults'] ?? {}),
-      caseDate: d['caseDate'] != null ? (d['caseDate'] as Timestamp).toDate() : DateTime.now(),
+      caseDate: d['caseDate'] != null
+          ? (d['caseDate'] as Timestamp).toDate()
+          : DateTime.now(),
     );
   }
 
   Map<String, dynamic> toFirestore() => {
-    'patientId': patientId,
-    'patientName': patientName,
-    'imageUrls': imageUrls,
-    'analysisResults': analysisResults.toMap(),
-    'caseDate': Timestamp.fromDate(caseDate),
-  };
+        'patientId': patientId,
+        'patientName': patientName,
+        'imageUrls': imageUrls,
+        'analysisResults': analysisResults.toMap(),
+        'caseDate': Timestamp.fromDate(caseDate),
+      };
 }
 
 class AnalysisResults {
   final String status;
   final bool hasCavity;
   final double confidence;
-  final String details; // raw string, e.g. "Impacted tooth, root canal, filling"
+  final String
+      details; // raw string, e.g. "Impacted tooth, root canal, filling"
 
   AnalysisResults({
     required this.status,
@@ -67,8 +77,11 @@ class AnalysisResults {
   });
 
   /// Parse details string into a structured list
-  List<String> get findingsList =>
-    details.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+  List<String> get findingsList => details
+      .split(',')
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty)
+      .toList();
 
   factory AnalysisResults.fromMap(Map<String, dynamic>? m) {
     m ??= {};
@@ -81,9 +94,9 @@ class AnalysisResults {
   }
 
   Map<String, dynamic> toMap() => {
-    'status': status,
-    'hasCavity': hasCavity,
-    'confidence': confidence,
-    'details': details,
-  };
+        'status': status,
+        'hasCavity': hasCavity,
+        'confidence': confidence,
+        'details': details,
+      };
 }

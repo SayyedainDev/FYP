@@ -1,23 +1,23 @@
 import 'package:flutter/material.dart';
 import 'dart:typed_data';
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-// FirebaseService not directly used here
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:dental_care/core/config/supabase_config.dart';
 
 import '../models/case.dart';
 import '../utils/provider_error_utils.dart';
 
 class CaseProvider extends ChangeNotifier {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  // Note: Supabase references removed; image uploads/deletes use Firebase Storage.
+  final FirebaseFirestore _firestore;
+  // Case records are stored in Firestore, images in Supabase Storage.
 
   List<Case> _cases = [];
   bool _loading = false;
   String? _error;
 
   // Auth
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseAuth _auth;
 
   // Filters
   String? _filterPatientId;
@@ -48,10 +48,12 @@ class CaseProvider extends ChangeNotifier {
   DateTime? get filterEndDate => _filterEndDate;
   String get searchQuery => _searchQuery;
 
-  CaseProvider() {
+  CaseProvider({FirebaseFirestore? firestore, FirebaseAuth? auth})
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance {
     // Fetch cases if user already logged in and listen for auth changes
     fetchCases();
-    FirebaseAuth.instance.authStateChanges().listen((user) {
+    _auth.authStateChanges().listen((user) {
       if (user != null) {
         fetchCases();
         listenToCases();
@@ -80,12 +82,12 @@ class CaseProvider extends ChangeNotifier {
       final querySnapshot = await _firestore
           .collection('cases')
           .where('dentistUid', isEqualTo: uid)
-          .orderBy('caseDate', descending: true).limit(20)
           .get()
           .timeout(ProviderErrorUtils.requestTimeout);
 
-      _cases =
-          querySnapshot.docs.map((doc) => Case.fromFirestore(doc)).toList();
+      final items = querySnapshot.docs.map((doc) => Case.fromFirestore(doc)).toList();
+      items.sort((a, b) => b.caseDate.compareTo(a.caseDate));
+      _cases = items;
 
       _loading = false;
       notifyListeners();
@@ -109,11 +111,12 @@ class CaseProvider extends ChangeNotifier {
       _firestore
           .collection('cases')
           .where('dentistUid', isEqualTo: uid)
-          .orderBy('caseDate', descending: true).limit(20)
           .snapshots()
           .listen(
         (snapshot) {
-          _cases = snapshot.docs.map((doc) => Case.fromFirestore(doc)).toList();
+          final items = snapshot.docs.map((doc) => Case.fromFirestore(doc)).toList();
+          items.sort((a, b) => b.caseDate.compareTo(a.caseDate));
+          _cases = items;
           notifyListeners();
         },
         onError: (e) {
@@ -172,18 +175,22 @@ class CaseProvider extends ChangeNotifier {
           try {
             final storagePath =
                 'cases/$caseId/image_${DateTime.now().millisecondsSinceEpoch}.jpg';
-            await Supabase.instance.client.storage.from('Image').uploadBinary(
+            
+            await SupabaseConfig.client.storage
+                .from('Image')
+                .uploadBinary(
                   storagePath,
                   file,
-                  fileOptions:
-                      const FileOptions(cacheControl: '3600', upsert: true),
-                );
-            final url = Supabase.instance.client.storage
+                  fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true),
+                )
+                .timeout(const Duration(seconds: 60));
+                
+            final url = SupabaseConfig.client.storage
                 .from('Image')
                 .getPublicUrl(storagePath);
             imageUrls.add(url);
           } catch (e, stack) {
-            debugPrint('Error uploading image to Supabase: $e\\n$stack');
+            debugPrint('Error uploading image to Firebase Storage: $e\n$stack');
             throw Exception(
                 'Failed to upload image. Please check your connection and try again.');
           }
@@ -279,11 +286,12 @@ class CaseProvider extends ChangeNotifier {
           .collection('cases')
           .where('dentistUid', isEqualTo: uid)
           .where('patientId', isEqualTo: patientId)
-          .orderBy('caseDate', descending: true).limit(20)
           .get()
           .timeout(ProviderErrorUtils.requestTimeout);
 
-      return querySnapshot.docs.map((doc) => Case.fromFirestore(doc)).toList();
+      final items = querySnapshot.docs.map((doc) => Case.fromFirestore(doc)).toList();
+      items.sort((a, b) => b.caseDate.compareTo(a.caseDate));
+      return items;
     } catch (e) {
       debugPrint('Error fetching cases for patient: $e');
       _error = ProviderErrorUtils.mapErrorMessage(
@@ -400,17 +408,18 @@ class CaseProvider extends ChangeNotifier {
       // Find the case to get image URLs
       final caseToDelete = _cases.firstWhere((c) => c.id == caseId);
 
-      // Delete images from Supabase Storage using reference from URL
+      // Delete images from Supabase Storage
       for (String imageUrl in caseToDelete.imageUrls) {
         try {
-          final pathIndex = imageUrl.indexOf('/IMAGE/');
-          if (pathIndex != -1) {
-            final path = imageUrl.substring(pathIndex + 7); // +7 for '/IMAGE/'
-            await Supabase.instance.client.storage.from('Image').remove([path]);
+          final uri = Uri.parse(imageUrl);
+          final pathSegments = uri.pathSegments;
+          if (pathSegments.contains('public')) {
+            final bucketIdx = pathSegments.indexOf('public') + 1;
+            final path = pathSegments.sublist(bucketIdx + 1).join('/');
+            await SupabaseConfig.client.storage.from('Image').remove([path]);
           }
         } catch (e, stack) {
-          debugPrint('Error deleting image from Supabase Storage: $e\\n$stack');
-          throw Exception('Failed to delete image from storage.');
+          debugPrint('Error deleting image from Supabase Storage: $e\n$stack');
         }
       }
 

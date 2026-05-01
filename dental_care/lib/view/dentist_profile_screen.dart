@@ -200,49 +200,71 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Header
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Profile',
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: colorScheme.onSurface,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Manage your account and preferences',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: colorScheme.onSurfaceVariant,
-                              ),
-                            ),
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            colorScheme.primary.withOpacity(0.9),
+                            colorScheme.primary,
                           ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
-                        if (!_isEditingProfile)
-                          ElevatedButton.icon(
-                            onPressed: () =>
-                                setState(() => _isEditingProfile = true),
-                            icon: const Icon(Icons.edit, size: 18),
-                            label: const Text('Edit Profile'),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: colorScheme.primary,
-                              foregroundColor: colorScheme.onPrimary,
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 20,
-                                vertical: 12,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: colorScheme.primary.withOpacity(0.3),
+                            blurRadius: 15,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Doctor Profile',
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                  letterSpacing: -0.5,
+                                ),
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Manage your account and preferences',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  color: Colors.white.withOpacity(0.9),
+                                ),
+                              ),
+                            ],
+                          ),
+                          if (!_isEditingProfile)
+                            ElevatedButton.icon(
+                              onPressed: () =>
+                                  setState(() => _isEditingProfile = true),
+                              icon: const Icon(Icons.edit, size: 18),
+                              label: const Text('Edit Profile'),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                foregroundColor: colorScheme.primary,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20,
+                                  vertical: 12,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
                               ),
                             ),
-                          ),
-                      ],
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 32),
 
@@ -250,13 +272,16 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
                     Container(
                       padding: const EdgeInsets.all(32),
                       decoration: BoxDecoration(
-                        color: colorScheme.surface,
+                        color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: colorScheme.outlineVariant.withOpacity(0.5),
+                        ),
                         boxShadow: [
                           BoxShadow(
-                            color: colorScheme.shadow.withValues(alpha: 0.08),
-                            blurRadius: 10,
-                            offset: const Offset(0, 4),
+                            color: Colors.black.withOpacity(0.03),
+                            blurRadius: 15,
+                            offset: const Offset(0, 5),
                           ),
                         ],
                       ),
@@ -607,11 +632,14 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withOpacity(0.5),
+        ),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.08),
+            color: Colors.black.withOpacity(0.02),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -641,13 +669,16 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withOpacity(0.5),
+        ),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
@@ -690,13 +721,16 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: colorScheme.surface,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: colorScheme.outlineVariant.withOpacity(0.5),
+        ),
         boxShadow: [
           BoxShadow(
-            color: colorScheme.shadow.withValues(alpha: 0.08),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
       ),

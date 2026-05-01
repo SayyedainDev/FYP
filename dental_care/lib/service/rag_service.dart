@@ -221,104 +221,113 @@ class RagService {
         'difficulty': config.difficulty.name,
         'cognitiveLevel': config.cognitiveLevel.name,
         'uid': uid,
-        // Added as per requirements:
         'questionTypes': config.questionTypes.map((t) => t.name).toList(),
-        'quizMode': 'practice', // Passed down from UI later if properly bound
+        'quizMode': 'practice',
         'explanationStyle': 'detailed'
       };
       debugPrintSynchronously(
           '📤 Generation request body: ${jsonEncode(requestBody)}');
 
-      final response = await http
-          .post(
-            Uri.parse('$baseUrl/api/generate-rag-quiz'),
-            headers: {'Content-Type': 'application/json'},
-            body: jsonEncode(requestBody),
-          )
-          .timeout(_generationTimeout);
+      // Retry logic for transient server errors (e.g., 500)
+      const int maxAttempts = 3;
+      for (int attempt = 0; attempt < maxAttempts; attempt++) {
+        final response = await http
+            .post(
+              Uri.parse('$baseUrl/api/generate-rag-quiz'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode(requestBody),
+            )
+            .timeout(_generationTimeout);
 
-      // Log response details for debugging
-      debugPrintSynchronously(
-          '📡 Backend response status: ${response.statusCode}');
-      if (response.statusCode != 200) {
+        debugPrintSynchronously(
+            '📡 Backend response status: ${response.statusCode} (attempt ${attempt + 1}/$maxAttempts)');
+
+        if (response.statusCode == 200) {
+          // proceed to parse below
+          final data = jsonDecode(response.body) as Map<String, dynamic>;
+          final questionsList = (data['questions'] as List<dynamic>? ?? []);
+
+          if (questionsList.isEmpty) {
+            throw GroqException(
+              'No questions were generated. The PDF may not contain sufficient content.',
+            );
+          }
+
+          final questions = <Question>[];
+          for (int index = 0; index < questionsList.length; index++) {
+            final questionData = questionsList[index] as Map<String, dynamic>;
+
+            final options = (questionData['options'] as List<dynamic>?)
+                    ?.map((option) => option.toString())
+                    .toList() ??
+                ['Option A', 'Option B', 'Option C', 'Option D'];
+
+            while (options.length < 4) {
+              options.add('Option ${options.length + 1}');
+            }
+            if (options.length > 4) {
+              options.removeRange(4, options.length);
+            }
+
+            final correctIndex =
+                (questionData['correctIndex'] as int? ?? 0).clamp(0, 3);
+            final difficultyEnum = DifficultyLevel.values.firstWhere(
+              (difficulty) =>
+                  difficulty.name ==
+                  (questionData['difficulty'] ?? config.difficulty.name),
+              orElse: () => config.difficulty,
+            );
+
+            questions.add(
+              Question(
+                id: 'q_${DateTime.now().millisecondsSinceEpoch}_$index',
+                questionText: questionData['questionText'] as String? ??
+                    'Question ${index + 1}',
+                type: QuestionType.mcq,
+                options: options,
+                correctIndex: correctIndex,
+                explanation: questionData['explanation'] as String?,
+                hint: questionData['hint'] as String?,
+                marks:
+                    config.marksDistribution == 'equal' ? 1 : (index % 3) + 1,
+                difficulty: difficultyEnum,
+                section: config.numberOfSections > 1
+                    ? 'Section ${(index % config.numberOfSections) + 1}'
+                    : null,
+              ),
+            );
+          }
+
+          debugPrintSynchronously(
+              '✅ Successfully generated ${questions.length} questions');
+          return questions;
+        }
+
+        // Non-200 response: log and decide whether to retry
         debugPrintSynchronously('📄 Response body: ${response.body}');
-      }
-
-      if (response.statusCode != 200) {
-        // Try to extract error message from backend
         String errorMessage = 'Failed to generate quiz. Please try again.';
         try {
           final errorData = jsonDecode(response.body) as Map<String, dynamic>;
-          errorMessage = errorData['error'] ??
-              errorData['message'] ??
-              'Backend error occurred';
-        } catch (_) {
-          // If parsing fails, use generic message with status code
           errorMessage =
-              'Backend error (${response.statusCode}): ${response.body.isNotEmpty ? response.body.substring(0, 100) : "No details"}';
-        }
-        throw GroqException(
-          errorMessage,
-          statusCode: response.statusCode,
-        );
-      }
-
-      final data = jsonDecode(response.body) as Map<String, dynamic>;
-      final questionsList = (data['questions'] as List<dynamic>? ?? []);
-
-      if (questionsList.isEmpty) {
-        throw GroqException(
-          'No questions were generated. The PDF may not contain sufficient content.',
-        );
-      }
-
-      final questions = <Question>[];
-      for (int index = 0; index < questionsList.length; index++) {
-        final questionData = questionsList[index] as Map<String, dynamic>;
-
-        final options = (questionData['options'] as List<dynamic>?)
-                ?.map((option) => option.toString())
-                .toList() ??
-            ['Option A', 'Option B', 'Option C', 'Option D'];
-
-        while (options.length < 4) {
-          options.add('Option ${options.length + 1}');
-        }
-        if (options.length > 4) {
-          options.removeRange(4, options.length);
+              errorData['error'] ?? errorData['message'] ?? errorMessage;
+        } catch (_) {
+          errorMessage = 'Backend error (${response.statusCode})';
         }
 
-        final correctIndex =
-            (questionData['correctIndex'] as int? ?? 0).clamp(0, 3);
-        final difficultyEnum = DifficultyLevel.values.firstWhere(
-          (difficulty) =>
-              difficulty.name ==
-              (questionData['difficulty'] ?? config.difficulty.name),
-          orElse: () => config.difficulty,
-        );
+        // If this was the last attempt, throw a GroqException with details
+        if (attempt == maxAttempts - 1) {
+          throw GroqException(errorMessage, statusCode: response.statusCode);
+        }
 
-        questions.add(
-          Question(
-            id: 'q_${DateTime.now().millisecondsSinceEpoch}_$index',
-            questionText: questionData['questionText'] as String? ??
-                'Question ${index + 1}',
-            type: QuestionType.mcq,
-            options: options,
-            correctIndex: correctIndex,
-            explanation: questionData['explanation'] as String?,
-            hint: questionData['hint'] as String?,
-            marks: config.marksDistribution == 'equal' ? 1 : (index % 3) + 1,
-            difficulty: difficultyEnum,
-            section: config.numberOfSections > 1
-                ? 'Section ${(index % config.numberOfSections) + 1}'
-                : null,
-          ),
-        );
+        // Otherwise, wait with exponential backoff and retry
+        final waitSeconds = pow(2, attempt).toInt() * 2 + 1;
+        debugPrintSynchronously(
+            '⏱️ Generation failed, retrying in $waitSeconds s...');
+        await Future.delayed(Duration(seconds: waitSeconds));
       }
 
-      debugPrintSynchronously(
-          '✅ Successfully generated ${questions.length} questions');
-      return questions;
+      // Shouldn't reach here
+      throw GroqException('Quiz generation failed after retries.');
     } on TimeoutException {
       throw GroqException(
           'Upload is taking too long. Check your internet or try a smaller PDF.');

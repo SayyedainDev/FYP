@@ -5,13 +5,13 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart' as fb;
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
-// Supabase removed
+import 'package:dental_care/core/config/supabase_config.dart';
+
 
 class FirebaseService {
   final fb.FirebaseAuth _auth = fb.FirebaseAuth.instance;
   final FirebaseFirestore _fire = FirebaseFirestore.instance;
-  // Supabase removed — use Firebase Storage implementations instead when needed
+
   static const Duration _requestTimeout = Duration(seconds: 30);
 
   Future<fb.UserCredential> signUpWithEmail(String email, String password) =>
@@ -62,28 +62,27 @@ class FirebaseService {
     List<int> bytes,
   ) async {
     try {
-      final storage = FirebaseStorage.instance;
       final path = 'users/$uid/$fileName';
-      final ref = storage.ref().child(path);
-      final metadata = SettableMetadata(contentType: 'image/png');
-      final uploadTask = ref.putData(Uint8List.fromList(bytes), metadata);
-      final snapshot = await uploadTask.whenComplete(() {});
-      final downloadUrl = await snapshot.ref.getDownloadURL();
+      await SupabaseConfig.client.storage.from('Image').uploadBinary(
+            path,
+            Uint8List.fromList(bytes),
+            fileOptions: const FileOptions(contentType: 'image/png', upsert: true),
+          );
+      final downloadUrl =
+          SupabaseConfig.client.storage.from('Image').getPublicUrl(path);
       return downloadUrl;
     } catch (e) {
-      debugPrint('Firebase uploadImage error: $e');
+      debugPrint('Supabase uploadImage error: $e');
       rethrow;
     }
   }
 
   Future<void> deleteFile(String uid, String fileName) async {
     try {
-      final storage = FirebaseStorage.instance;
       final path = 'users/$uid/$fileName';
-      final ref = storage.ref().child(path);
-      await ref.delete();
+      await SupabaseConfig.client.storage.from('Image').remove([path]);
     } catch (e) {
-      debugPrint('Firebase deleteFile error: $e');
+      debugPrint('Supabase deleteFile error: $e');
       rethrow;
     }
   }

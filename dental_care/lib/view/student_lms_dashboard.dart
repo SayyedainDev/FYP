@@ -24,6 +24,8 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
   late String currentPage = 'Dashboard';
   final List<String> _pageHistory = [];
 
+  ColorScheme get _studentColors => Theme.of(context).colorScheme;
+
   @override
   void initState() {
     super.initState();
@@ -106,7 +108,7 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
               ),
             ],
           ),
-          backgroundColor: AppColors.brandPrimary,
+          backgroundColor: _studentColors.primary,
           elevation: 0,
         ),
         drawer: _buildMobileDrawer(),
@@ -164,7 +166,7 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
             ),
           ],
         ),
-        backgroundColor: AppColors.brandPrimary,
+        backgroundColor: _studentColors.primary,
       ),
       drawer: _buildMobileDrawer(),
       body: _getContent(),
@@ -186,7 +188,7 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
                 children: [
                   CircleAvatar(
                     radius: 24,
-                    backgroundColor: AppColors.brandPrimary,
+                    backgroundColor: _studentColors.primary,
                     child: Text(
                       studentName[0].toUpperCase(),
                       style: const TextStyle(
@@ -294,7 +296,7 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
                 children: [
                   CircleAvatar(
                     radius: 28,
-                    backgroundColor: AppColors.brandPrimary,
+                    backgroundColor: _studentColors.primary,
                     child: Text(
                       studentName.isNotEmpty
                           ? studentName[0].toUpperCase()
@@ -389,18 +391,18 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
             decoration: BoxDecoration(
               color: isActive
-                  ? AppColors.brandPrimary.withOpacity(0.1)
+                  ? _studentColors.primary.withOpacity(0.1)
                   : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
               border: isActive
-                  ? Border.all(color: AppColors.brandPrimary, width: 1)
+                  ? Border.all(color: _studentColors.primary, width: 1)
                   : null,
             ),
             child: Row(
               children: [
                 Icon(
                   icon,
-                  color: isActive ? AppColors.brandPrimary : Colors.grey,
+                  color: isActive ? _studentColors.primary : Colors.grey,
                   size: 20,
                 ),
                 const SizedBox(width: 12),
@@ -409,7 +411,7 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
-                    color: isActive ? AppColors.brandPrimary : Colors.grey[700],
+                    color: isActive ? _studentColors.primary : Colors.grey[700],
                   ),
                 ),
               ],
@@ -442,272 +444,135 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Welcome Header
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Welcome back, $studentName! 👋',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF1A1A1A),
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Track your progress and ace your courses',
-                style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                      color: Colors.grey[600],
-                    ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-
-          // Key Stats Cards - Only 3 most important
-          GridView.count(
-            crossAxisCount: MediaQuery.of(context).size.width > 1000 ? 3 : 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 12,
-            childAspectRatio: 1.5,
-            children: [
-              _buildStatCard(
-                title: 'Completed',
-                value: attempts.length.toString(),
-                icon: Icons.check_circle_outline,
-                color: Colors.blue,
-                softColor: const Color(0xFFCBE0FF),
-              ),
-              _buildStatCard(
-                title: 'Avg Score',
-                value: '${avgScore.toStringAsFixed(0)}%',
-                icon: Icons.trending_up,
-                color: Colors.green,
-                softColor: const Color(0xFFD7F1DE),
-              ),
-              _buildStatCard(
-                title: 'Available',
-                value: quizzes.length.toString(),
-                icon: Icons.play_circle,
-                color: Colors.purple,
-                softColor: const Color(0xFFEADCF7),
-              ),
-            ],
-          ),
-          const SizedBox(height: 28),
-
-          // Quick Action Section
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
-              color: AppColors.brandPrimary.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                  color: AppColors.brandPrimary.withOpacity(0.2), width: 1),
+              gradient: LinearGradient(
+                colors: [
+                  _studentColors.primary.withOpacity(0.9),
+                  _studentColors.primary,
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: _studentColors.primary.withOpacity(0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
+              ],
             ),
             child: Row(
               children: [
-                const Icon(Icons.lightbulb_outline,
-                    color: AppColors.brandPrimary, size: 24),
-                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    quizzes.isEmpty
-                        ? 'Check back later for new quizzes!'
-                        : 'Ready to challenge yourself? Start a quiz now!',
-                    style: const TextStyle(
-                      color: AppColors.brandPrimary,
-                      fontWeight: FontWeight.w500,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Welcome back, $studentName!',
+                        style: const TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Track your progress and ace your courses today.',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: Colors.white.withOpacity(0.9),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                if (quizzes.isNotEmpty)
-                  ElevatedButton(
-                    onPressed: () =>
-                        setState(() => currentPage = 'Available Quizzes'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.brandPrimary,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
-                    ),
-                    child: const Text('Start →',
-                        style: TextStyle(color: Colors.white, fontSize: 12)),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
                   ),
+                  child:
+                      const Icon(Icons.school, color: Colors.white, size: 40),
+                ),
               ],
             ),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 32),
 
-          // Expandable Recent Attempts Section
-          _buildExpandableSection(
-            title: 'Recent Attempts',
-            itemCount: attempts.length,
-            isEmpty: attempts.isEmpty,
-            emptyMessage: 'No attempts yet. Take a quiz to get started!',
-            emptyIcon: Icons.quiz_outlined,
-            viewAllText: 'View All Attempts',
-            onViewAll: () => setState(() => currentPage = 'My Results'),
-            builder: (context) {
-              return Column(
-                children: attempts.take(3).map((attempt) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.grey[200]!),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 50,
-                            height: 50,
-                            decoration: BoxDecoration(
-                              color: _getScoreColor(attempt.scorePercentage)
-                                  .withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Center(
-                              child: Text(
-                                '${attempt.scorePercentage.toInt()}%',
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color:
-                                      _getScoreColor(attempt.scorePercentage),
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '${attempt.responses.length} of ${attempt.totalMarks} Qs',
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  attempt.startTime.toString().split(' ')[0],
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            _getScoreIcon(attempt.scorePercentage),
-                            color: _getScoreColor(attempt.scorePercentage),
-                            size: 22,
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                }).toList(),
-              );
-            },
+          // Key Stats Cards
+          GridView.count(
+            crossAxisCount: MediaQuery.of(context).size.width > 1000
+                ? 3
+                : (MediaQuery.of(context).size.width > 600 ? 2 : 1),
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 16,
+            crossAxisSpacing: 16,
+            childAspectRatio: 2.2,
+            children: [
+              _buildStatCard(
+                title: 'Completed Quizzes',
+                value: attempts.length.toString(),
+                icon: Icons.check_circle_outline,
+                color: Colors.blue.shade700,
+                softColor: Colors.blue.shade50,
+              ),
+              _buildStatCard(
+                title: 'Average Score',
+                value: '${avgScore.toStringAsFixed(0)}%',
+                icon: Icons.trending_up,
+                color: Colors.green.shade700,
+                softColor: Colors.green.shade50,
+              ),
+              _buildStatCard(
+                title: 'Available Quizzes',
+                value: quizzes.length.toString(),
+                icon: Icons.play_circle_outline,
+                color: Colors.purple.shade700,
+                softColor: Colors.purple.shade50,
+              ),
+            ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 32),
 
-          // Expandable Available Quizzes Section
-          _buildExpandableSection(
-            title: 'Available Quizzes',
-            itemCount: quizzes.length,
-            isEmpty: quizzes.isEmpty,
-            emptyMessage: 'No quizzes available at the moment',
-            emptyIcon: Icons.library_books_outlined,
-            viewAllText: 'View All Quizzes',
-            onViewAll: () => setState(() => currentPage = 'Available Quizzes'),
-            builder: (context) {
-              return Column(
-                children: quizzes.take(2).map((quiz) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[50],
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: Colors.grey[200]!),
-                      ),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 45,
-                            height: 45,
-                            decoration: BoxDecoration(
-                              color: AppColors.brandPrimary.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: const Icon(Icons.quiz,
-                                color: AppColors.brandPrimary, size: 22),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  quiz.title,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '${quiz.config.totalQuestions} questions',
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey[600],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          ElevatedButton(
-                            onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      const StudentQuizAvailableScreenV2(),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.brandPrimary,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 12, vertical: 8),
-                            ),
-                            child: const Text('Start',
-                                style: TextStyle(
-                                    color: Colors.white, fontSize: 11)),
-                          ),
-                        ],
-                      ),
+          // Split Content: Recent Attempts & Available Quizzes
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isDesktop = constraints.maxWidth > 800;
+              if (isDesktop) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 1,
+                      child: _buildRecentAttemptsSection(attempts),
                     ),
-                  );
-                }).toList(),
-              );
+                    const SizedBox(width: 24),
+                    Expanded(
+                      flex: 1,
+                      child: _buildAvailableQuizzesSection(quizzes),
+                    ),
+                  ],
+                );
+              } else {
+                return Column(
+                  children: [
+                    _buildRecentAttemptsSection(attempts),
+                    const SizedBox(height: 24),
+                    _buildAvailableQuizzesSection(quizzes),
+                  ],
+                );
+              }
             },
           ),
         ],
@@ -715,78 +580,253 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
     );
   }
 
-  Widget _buildExpandableSection({
-    required String title,
-    required int itemCount,
-    required bool isEmpty,
-    required String emptyMessage,
-    required IconData emptyIcon,
-    required String viewAllText,
-    required VoidCallback onViewAll,
-    required Widget Function(BuildContext) builder,
-  }) {
-    return Theme(
-      data: Theme.of(context).copyWith(
-        dividerColor: Colors.transparent,
+  Widget _buildRecentAttemptsSection(List attempts) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade200),
       ),
-      child: ExpansionTile(
-        initiallyExpanded: true,
-        tilePadding: EdgeInsets.zero,
-        childrenPadding: const EdgeInsets.only(top: 12),
-        title: Row(
-          children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: AppColors.brandPrimary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                itemCount.toString(),
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.brandPrimary,
-                ),
-              ),
-            ),
-          ],
-        ),
-        trailing: Icon(Icons.expand_more, color: Colors.grey[600]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 24),
-              child: Column(
-                children: [
-                  Icon(emptyIcon, size: 40, color: Colors.grey[400]),
-                  const SizedBox(height: 12),
-                  Text(
-                    emptyMessage,
-                    style: TextStyle(color: Colors.grey[600], fontSize: 13),
-                    textAlign: TextAlign.center,
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Recent Attempts',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A1A1A),
                   ),
-                ],
+                ),
+                TextButton(
+                  onPressed: () => setState(() => currentPage = 'My Results'),
+                  child: const Text('View All'),
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: Colors.grey.shade200),
+          if (attempts.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.quiz_outlined,
+                        size: 48, color: Colors.grey[300]),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No attempts yet. Take a quiz to get started!',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                    ),
+                  ],
+                ),
               ),
             )
           else
-            Column(
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: attempts.length > 3 ? 3 : attempts.length,
+              separatorBuilder: (context, index) =>
+                  Divider(height: 1, color: Colors.grey.shade100),
+              itemBuilder: (context, index) {
+                final attempt = attempts[index];
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: _getScoreColor(attempt.scorePercentage)
+                              .withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Center(
+                          child: Text(
+                            '${attempt.scorePercentage.toInt()}%',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: _getScoreColor(attempt.scorePercentage),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '${attempt.responses.length} of ${attempt.totalMarks} Qs',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              attempt.startTime.toString().split(' ')[0],
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        _getScoreIcon(attempt.scorePercentage),
+                        color: _getScoreColor(attempt.scorePercentage),
+                        size: 24,
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAvailableQuizzesSection(List quizzes) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                builder(context),
-                const SizedBox(height: 8),
+                const Text(
+                  'Available Quizzes',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                ),
                 TextButton(
-                  onPressed: onViewAll,
-                  child:
-                      Text(viewAllText, style: const TextStyle(fontSize: 12)),
+                  onPressed: () =>
+                      setState(() => currentPage = 'Available Quizzes'),
+                  child: const Text('View All'),
                 ),
               ],
+            ),
+          ),
+          Divider(height: 1, color: Colors.grey.shade200),
+          if (quizzes.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.library_books_outlined,
+                        size: 48, color: Colors.grey[300]),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No quizzes available at the moment',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: quizzes.length > 3 ? 3 : quizzes.length,
+              separatorBuilder: (context, index) =>
+                  Divider(height: 1, color: Colors.grey.shade100),
+              itemBuilder: (context, index) {
+                final quiz = quizzes[index];
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: _studentColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(Icons.quiz,
+                            color: _studentColors.primary, size: 24),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              quiz.title,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              '${quiz.config.totalQuestions} questions',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      ElevatedButton(
+                        onPressed: () =>
+                            setState(() => currentPage = 'Available Quizzes'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _studentColors.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 10),
+                        ),
+                        child: const Text('Start',
+                            style: TextStyle(fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                );
+              },
             ),
         ],
       ),

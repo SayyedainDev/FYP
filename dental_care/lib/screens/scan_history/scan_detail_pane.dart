@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:intl/intl.dart';
 
+import '../../models/case_model.dart';
 import '../../providers/scan_history_provider.dart';
 
 import '../../utils/finding_colors.dart';
@@ -13,6 +14,36 @@ class ScanDetailPane extends ConsumerWidget {
 
   const ScanDetailPane(
       {super.key, required this.caseId, this.showBackButton = false});
+
+  static const List<String> _manualStatuses = [
+    'Healthy',
+    'Cavity',
+    'Disease Detected',
+  ];
+
+  Future<void> _setManualStatus(
+    BuildContext context,
+    WidgetRef ref,
+    CaseModel caseModel,
+    String status,
+  ) async {
+    final repo = ref.read(caseRepositoryProvider);
+    await repo.updateCaseAnalysis(
+      caseModel.id,
+      AnalysisResults(
+        status: status,
+        hasCavity: status != 'Healthy',
+        confidence: caseModel.analysisResults.confidence,
+        details: caseModel.analysisResults.details,
+      ),
+    );
+
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Marked as $status')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -112,16 +143,30 @@ class ScanDetailPane extends ConsumerWidget {
                                       child: const Text('Cancel'),
                                     ),
                                     TextButton(
-                                      onPressed: () {
+                                      onPressed: () async {
                                         Navigator.pop(ctx);
-                                        // NOTE: Add actual delete logic here
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(const SnackBar(
-                                                content: Text('Case deleted')));
-                                        ref
-                                            .read(
-                                                selectedCaseIdProvider.notifier)
-                                            .clear();
+                                        try {
+                                          await ref
+                                              .read(caseRepositoryProvider)
+                                              .deleteCase(c.id);
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(const SnackBar(
+                                                    content:
+                                                        Text('Case deleted')));
+                                            ref
+                                                .read(selectedCaseIdProvider
+                                                    .notifier)
+                                                .clear();
+                                          }
+                                        } catch (e) {
+                                          if (context.mounted) {
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(SnackBar(
+                                                    content:
+                                                        Text('Error: $e')));
+                                          }
+                                        }
                                       },
                                       child: const Text('Delete',
                                           style: TextStyle(color: Colors.red)),
@@ -194,6 +239,81 @@ class ScanDetailPane extends ConsumerWidget {
                                 ),
                               ),
                             ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+
+                      Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 900),
+                          child: Container(
+                            padding: const EdgeInsets.all(20),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border:
+                                  Border.all(color: const Color(0xFFE5E7EB)),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    const Icon(Icons.flag_outlined,
+                                        size: 18, color: Color(0xFF60A5FA)),
+                                    const SizedBox(width: 8),
+                                    const Text('Manual Case Status',
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 14)),
+                                    const Spacer(),
+                                    Text(
+                                      'Current: ${c.displayStatus}',
+                                      style: const TextStyle(
+                                        fontSize: 12,
+                                        color: Color(0xFF6B7280),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 12),
+                                Wrap(
+                                  spacing: 10,
+                                  runSpacing: 10,
+                                  children: _manualStatuses.map((status) {
+                                    final isSelected =
+                                        c.displayStatus == status;
+                                    return OutlinedButton(
+                                      onPressed: isSelected
+                                          ? null
+                                          : () async {
+                                              await _setManualStatus(
+                                                context,
+                                                ref,
+                                                c,
+                                                status,
+                                              );
+                                            },
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: isSelected
+                                            ? const Color(0xFF111827)
+                                            : const Color(0xFF2563EB),
+                                        side: BorderSide(
+                                          color: isSelected
+                                              ? const Color(0xFF2563EB)
+                                              : const Color(0xFFBFDBFE),
+                                        ),
+                                        backgroundColor: isSelected
+                                            ? const Color(0xFFEFF6FF)
+                                            : Colors.white,
+                                      ),
+                                      child: Text(status),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),

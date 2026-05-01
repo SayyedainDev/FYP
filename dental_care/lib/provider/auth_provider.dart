@@ -89,7 +89,6 @@ class AuthProvider extends ChangeNotifier {
     if (currentUser != null && (sessionRole == null || sessionRole.isEmpty)) {
       try {
         final prefs = SharedPrefsHelper();
-        final rawCachedInfo = prefs.getString('user_role_cache');
         final savedRole =
             await _secureStorage.read(key: _kSavedRoleKey) ?? 'Dentist';
         if (savedRole.isNotEmpty) {

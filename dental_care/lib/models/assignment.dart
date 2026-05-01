@@ -12,6 +12,7 @@ class Assignment {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String fileUrl;
+  final String storagePath;
   final String status; // Active, Closed, Archived
 
   Assignment({
@@ -26,6 +27,7 @@ class Assignment {
     required this.createdAt,
     required this.updatedAt,
     required this.fileUrl,
+    required this.storagePath,
     required this.status,
   });
 
@@ -43,6 +45,7 @@ class Assignment {
       'createdAt': Timestamp.fromDate(createdAt),
       'updatedAt': Timestamp.fromDate(updatedAt),
       'fileUrl': fileUrl,
+      'storagePath': storagePath,
       'status': status,
     };
   }
@@ -55,12 +58,13 @@ class Assignment {
       title: data['title'] ?? '',
       description: data['description'] ?? '',
       subject: data['subject'] ?? '',
-      dueDate: (data['dueDate'] as Timestamp).toDate(),
+      dueDate: (data['dueDate'] as Timestamp?)?.toDate() ?? DateTime.now(),
       totalMarks: (data['totalMarks'] ?? 0).toDouble(),
       assignedTo: List<String>.from(data['assignedTo'] ?? []),
-      createdAt: (data['createdAt'] as Timestamp).toDate(),
-      updatedAt: (data['updatedAt'] as Timestamp).toDate(),
+      createdAt: (data['createdAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      updatedAt: (data['updatedAt'] as Timestamp?)?.toDate() ?? DateTime.now(),
       fileUrl: data['fileUrl'] ?? '',
+      storagePath: data['storagePath'] ?? '',
       status: data['status'] ?? 'Active',
     );
   }

@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class DetectionRecord {
   final String id;
@@ -28,21 +27,9 @@ class DetectionRecord {
     this.notes,
   });
 
-  /// Build the full public URL for storage paths
-  String? get originalImageUrl => originalImagePath != null
-      ? _storageUrl(originalImagePath!)
-      : null;
-
-  String? get annotatedImageUrl => annotatedImagePath != null
-      ? _storageUrl(annotatedImagePath!)
-      : null;
-
-  String _storageUrl(String path) {
-    final base = Supabase.instance.client.storage
-        .from('dental-detections')
-        .getPublicUrl(path);
-    return base;
-  }
+  /// Full URLs for images
+  String? get originalImageUrl => originalImagePath;
+  String? get annotatedImageUrl => annotatedImagePath;
 
   factory DetectionRecord.fromJson(Map<String, dynamic> json) {
     return DetectionRecord(

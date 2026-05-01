@@ -1,14 +1,18 @@
 import 'package:flutter/material.dart';
 import 'dart:io';
 import 'dart:typed_data';
+import 'dart:async';
+import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
-// Supabase removed
+import 'package:dental_care/core/config/supabase_config.dart';
 import '../models/scan.dart';
 import '../utils/provider_error_utils.dart';
+import '../service/dental_disease_detection_service.dart';
+import '../utils/image_annotation_utils.dart';
 
 class ScanProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  // Supabase removed — implement Firebase Storage uploads when needed
+  // Scan records are stored in Firestore, images in Supabase Storage
 
   List<Scan> _scans = [];
   bool _loading = false;
@@ -120,47 +124,84 @@ class ScanProvider extends ChangeNotifier {
       notifyListeners();
 
       String imageUrl = '';
+      String finalStatus = cavityStatus ?? 'Pending';
+      double finalConfidence = confidence ?? 0.0;
 
-      // Upload image to storage if provided.
-      // NOTE: Supabase support was removed; implement Firebase Storage upload here.
       if (imageFile != null) {
-        final fileName = 'scan_${DateTime.now().millisecondsSinceEpoch}.jpg';
+        final timestamp = DateTime.now().millisecondsSinceEpoch;
+        final fileName = 'scan_$timestamp.png'; // PNG for annotations
 
-        // Normalize image bytes for potential upload (actual upload to be
-        // implemented with Firebase Storage). We only read bytes here so
-        // downstream code can use them when upload is implemented.
-        final Uint8List bytes;
+        Uint8List bytes;
         if (imageFile is Uint8List) {
           bytes = imageFile;
         } else if (imageFile is File) {
-          bytes = await imageFile
-              .readAsBytes()
-              .timeout(ProviderErrorUtils.requestTimeout);
-        } else if (imageFile is String) {
-          final file = File(imageFile);
-          if (await file.exists().timeout(ProviderErrorUtils.requestTimeout)) {
-            bytes = await file
-                .readAsBytes()
-                .timeout(ProviderErrorUtils.requestTimeout);
-          } else {
-            throw Exception('File path does not exist');
-          }
+          bytes = await imageFile.readAsBytes();
         } else {
-          try {
-            bytes = imageFile as Uint8List;
-          } catch (_) {
-            throw Exception('Unsupported image type for upload');
-          }
+          throw Exception('Unsupported image type');
         }
 
-        debugPrint(
-            'ScanProvider: upload requested but Supabase removed. Implement Firebase Storage upload. file=$fileName bytes=${bytes.length}');
-        imageUrl = '';
-      }
+        // 1. Perform AI Detection
+        try {
+          final detection = await DentalDetectionApiService.runDetection(
+            imageBytes: bytes,
+            filename: fileName,
+          );
 
-      // Use real detection results when provided; otherwise mark as pending
-      final effectiveStatus = cavityStatus ?? 'Pending Analysis';
-      final effectiveConfidence = confidence ?? 0.0;
+          // Use backend-provided annotated image if available
+          if (detection.annotatedImageBase64.isNotEmpty) {
+            try {
+              bytes = base64Decode(detection.annotatedImageBase64);
+            } catch (e) {
+              debugPrint('Failed to decode backend annotated image: $e');
+            }
+          } else if (detection.detections.isNotEmpty) {
+            // Fallback to local rendering if backend image is missing
+            final annotations = detection.detections.map((d) {
+              return {
+                'bbox': [
+                  d.boundingBox.x1,
+                  d.boundingBox.y1,
+                  d.boundingBox.width,
+                  d.boundingBox.height
+                ],
+                'label': d.label,
+              };
+            }).toList();
+
+            bytes = await ImageAnnotationUtils.renderAnnotatedImage(
+                bytes, annotations);
+          }
+
+          // Update status and confidence from AI
+          if (detection.detections.isNotEmpty) {
+            finalStatus = detection.detections.length > 1
+                ? '${detection.detections.length} Findings'
+                : detection.detections.first.label;
+            finalConfidence = detection.detections.first.confidence * 100;
+          } else {
+            finalStatus = 'Healthy';
+            finalConfidence = 100.0;
+          }
+        } catch (e) {
+          debugPrint('AI Detection failed in ScanProvider: $e');
+          // Continue with original image if AI fails
+        }
+
+        // 3. Upload to Supabase Storage
+        final path = 'scans/$patientId/$fileName';
+        await SupabaseConfig.client.storage
+            .from('Image')
+            .uploadBinary(
+              path,
+              bytes,
+              fileOptions:
+                  const FileOptions(contentType: 'image/png', upsert: true),
+            )
+            .timeout(const Duration(seconds: 120));
+
+        imageUrl =
+            SupabaseConfig.client.storage.from('Image').getPublicUrl(path);
+      }
 
       final newScan = Scan(
         id: '', // Will be set by Firestore
@@ -169,8 +210,8 @@ class ScanProvider extends ChangeNotifier {
         toothNumber: toothNumber,
         imageUrl: imageUrl,
         scanDate: DateTime.now(),
-        cavityStatus: effectiveStatus,
-        confidence: effectiveConfidence,
+        cavityStatus: finalStatus,
+        confidence: finalConfidence,
         notes: notes,
       );
 
@@ -204,31 +245,63 @@ class ScanProvider extends ChangeNotifier {
       final querySnapshot = await _firestore
           .collection('scans')
           .where('patientId', isEqualTo: patientId)
-          .orderBy('scanDate', descending: true)
           .get()
           .timeout(ProviderErrorUtils.requestTimeout);
 
-      return querySnapshot.docs.map((doc) => Scan.fromFirestore(doc)).toList();
+      final items =
+          querySnapshot.docs.map((doc) => Scan.fromFirestore(doc)).toList();
+      items.sort((a, b) => b.scanDate.compareTo(a.scanDate));
+      return items;
     } catch (e) {
-      debugPrint('Error fetching scans for patient with orderBy: $e');
+      debugPrint('Error fetching scans for patient: $e');
+      return [];
+    }
+  }
 
-      // Fallback for environments missing composite indexes.
-      try {
-        final fallback = await _firestore
-            .collection('scans')
-            .where('patientId', isEqualTo: patientId)
-            .get()
-            .timeout(ProviderErrorUtils.requestTimeout);
+  // Delete a scan from Firestore and Storage
+  Future<bool> deleteScan(String scanId) async {
+    try {
+      _loading = true;
+      _error = null;
+      notifyListeners();
 
-        final items =
-            fallback.docs.map((doc) => Scan.fromFirestore(doc)).toList();
-        items.sort((a, b) => b.scanDate.compareTo(a.scanDate));
-        return items;
-      } catch (fallbackError) {
-        debugPrint(
-            'Error fetching scans for patient (fallback): $fallbackError');
-        return [];
+      final scanDoc = await _firestore.collection('scans').doc(scanId).get();
+      if (!scanDoc.exists) throw Exception('Scan not found');
+
+      final data = scanDoc.data()!;
+      final imageUrl = data['imageUrl'] as String?;
+
+      // Delete from Firestore
+      await _firestore.collection('scans').doc(scanId).delete();
+
+      // Attempt to delete from Storage if imageUrl exists
+      if (imageUrl != null && imageUrl.isNotEmpty) {
+        try {
+          // Extract path from public URL if possible, or just use the one we know
+          // For now, let's assume images are in the 'images' bucket
+          final uri = Uri.parse(imageUrl);
+          final pathSegments = uri.pathSegments;
+          // Supabase public URL structure: /storage/v1/object/public/bucket/path
+          if (pathSegments.contains('public')) {
+            final bucketIdx = pathSegments.indexOf('public') + 1;
+            final path = pathSegments.sublist(bucketIdx + 1).join('/');
+            await SupabaseConfig.client.storage.from('Image').remove([path]);
+          }
+        } catch (e) {
+          debugPrint(
+              'Warning: Failed to delete scan image from Supabase storage: $e');
+        }
       }
+
+      await fetchScans();
+      _loading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _error = ProviderErrorUtils.mapErrorMessage(e);
+      _loading = false;
+      notifyListeners();
+      return false;
     }
   }
 

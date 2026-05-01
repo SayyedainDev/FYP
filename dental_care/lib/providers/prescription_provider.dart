@@ -20,110 +20,56 @@ class PrescriptionProvider extends ChangeNotifier {
       _errorMessage = null;
       notifyListeners();
 
-      // Force fresh fetch from server, not from cache
       final query = await _firestore
           .collection('prescriptions')
           .where('dentistUid', isEqualTo: dentistUid)
-          .orderBy('createdAt', descending: true)
-          .get(const GetOptions(source: Source.server));
+          .get();
 
-      _prescriptions =
-          query.docs.map((doc) => Prescription.fromFirestore(doc)).toList();
+      final items = query.docs.map((doc) => Prescription.fromFirestore(doc)).toList();
+      items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      _prescriptions = items;
 
       _isLoading = false;
       notifyListeners();
     } catch (e) {
-      debugPrint('Error fetching prescriptions with orderBy: $e');
-
-      // Fallback for environments missing composite indexes.
-      try {
-        final fallbackQuery = await _firestore
-            .collection('prescriptions')
-            .where('dentistUid', isEqualTo: dentistUid)
-            .get(const GetOptions(source: Source.server));
-
-        _prescriptions = fallbackQuery.docs
-            .map((doc) => Prescription.fromFirestore(doc))
-            .toList();
-        _prescriptions.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-
-        _isLoading = false;
-        notifyListeners();
-      } catch (fallbackError) {
-        _errorMessage = 'Error fetching prescriptions: $fallbackError';
-        _isLoading = false;
-        notifyListeners();
-        debugPrint('Error fetching prescriptions (fallback): $fallbackError');
-      }
+      _errorMessage = 'Error fetching prescriptions: $e';
+      _isLoading = false;
+      notifyListeners();
+      debugPrint('Error fetching prescriptions: $e');
     }
   }
 
   // Fetch prescriptions for a specific patient
   Future<List<Prescription>> fetchPatientPrescriptions(String patientId) async {
     try {
-      // Force fresh fetch from server, not from cache
       final query = await _firestore
           .collection('prescriptions')
           .where('patientId', isEqualTo: patientId)
-          .orderBy('createdAt', descending: true)
-          .get(const GetOptions(source: Source.server));
+          .get();
 
-      return query.docs.map((doc) => Prescription.fromFirestore(doc)).toList();
+      final items = query.docs.map((doc) => Prescription.fromFirestore(doc)).toList();
+      items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return items;
     } catch (e) {
-      debugPrint('Error fetching patient prescriptions with orderBy: $e');
-
-      // Fallback for environments missing composite indexes.
-      try {
-        final fallbackQuery = await _firestore
-            .collection('prescriptions')
-            .where('patientId', isEqualTo: patientId)
-            .get(const GetOptions(source: Source.server));
-
-        final items = fallbackQuery.docs
-            .map((doc) => Prescription.fromFirestore(doc))
-            .toList();
-        items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        return items;
-      } catch (fallbackError) {
-        debugPrint(
-          'Error fetching patient prescriptions (fallback): $fallbackError',
-        );
-        return [];
-      }
+      debugPrint('Error fetching patient prescriptions: $e');
+      return [];
     }
   }
 
   // Fetch prescriptions for a specific case
   Future<List<Prescription>> fetchCasePrescriptions(String caseId) async {
     try {
-      // Force fresh fetch from server, not from cache
       final query = await _firestore
           .collection('prescriptions')
           .where('caseId', isEqualTo: caseId)
-          .orderBy('createdAt', descending: true)
-          .get(const GetOptions(source: Source.server));
+          .get();
 
-      return query.docs.map((doc) => Prescription.fromFirestore(doc)).toList();
+      final items = query.docs.map((doc) => Prescription.fromFirestore(doc)).toList();
+      items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return items;
     } catch (e) {
-      debugPrint('Error fetching case prescriptions with orderBy: $e');
-
-      // Fallback for environments missing composite indexes.
-      try {
-        final fallbackQuery = await _firestore
-            .collection('prescriptions')
-            .where('caseId', isEqualTo: caseId)
-            .get(const GetOptions(source: Source.server));
-
-        final items = fallbackQuery.docs
-            .map((doc) => Prescription.fromFirestore(doc))
-            .toList();
-        items.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-        return items;
-      } catch (fallbackError) {
-        debugPrint(
-            'Error fetching case prescriptions (fallback): $fallbackError');
-        return [];
-      }
+      debugPrint('Error fetching case prescriptions: $e');
+      return [];
     }
   }
 

@@ -52,6 +52,10 @@ class CaseRepository {
     });
   }
 
+  Future<void> deleteCase(String caseId) async {
+    await _db.collection('cases').doc(caseId).delete();
+  }
+
   // ── PRESCRIPTIONS ────────────────────────────────────────
 
   /// Fetch prescription for a specific caseId (at most 1)

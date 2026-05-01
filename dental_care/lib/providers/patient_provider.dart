@@ -5,8 +5,8 @@ import '../models/patient.dart';
 import '../utils/provider_error_utils.dart';
 
 class PatientProvider extends ChangeNotifier {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore;
+  final FirebaseAuth _auth;
   List<Patient> _patients = [];
   bool _loading = false;
   String? _error;
@@ -16,7 +16,9 @@ class PatientProvider extends ChangeNotifier {
   String? get error => _error;
   int get totalPatients => _patients.length;
 
-  PatientProvider() {
+  PatientProvider({FirebaseFirestore? firestore, FirebaseAuth? auth})
+      : _firestore = firestore ?? FirebaseFirestore.instance,
+        _auth = auth ?? FirebaseAuth.instance {
     // Listen for auth state and fetch/listen when user logs in
     _auth.authStateChanges().listen((user) {
       if (user != null) {

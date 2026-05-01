@@ -7,7 +7,6 @@ import 'package:dental_care/providers/quiz_attempt_provider.dart';
 import 'package:dental_care/provider/auth_provider.dart';
 import 'package:dental_care/models/quiz.dart';
 import 'package:dental_care/models/quiz_attempt.dart';
-import 'package:dental_care/core/theme/app_tokens.dart';
 import 'package:dental_care/utils/app_dialogs.dart';
 import 'student_quiz_taking_screen.dart';
 
@@ -21,6 +20,8 @@ class StudentQuizAvailableScreenV2 extends StatefulWidget {
 
 class _StudentQuizAvailableScreenV2State
     extends State<StudentQuizAvailableScreenV2> {
+  ColorScheme get _studentColors => Theme.of(context).colorScheme;
+
   @override
   void initState() {
     super.initState();
@@ -58,7 +59,7 @@ class _StudentQuizAvailableScreenV2State
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Available Quizzes'),
-          backgroundColor: AppColors.brandPrimary,
+          backgroundColor: _studentColors.primary,
           elevation: 0,
         ),
         body: Consumer2<QuizProvider, QuizAttemptProvider>(
@@ -212,12 +213,13 @@ class _StudentQuizAvailableScreenV2State
     required bool isCompleted,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 12),
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -311,12 +313,13 @@ class _StudentQuizAvailableScreenV2State
   }) {
     final scoreColor = attempt.isPassed ? Colors.green : Colors.red;
 
-    return GestureDetector(
-      onTap: onReview,
-      child: Card(
-        margin: const EdgeInsets.only(bottom: 12),
-        elevation: 2,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    return Card(
+      margin: const EdgeInsets.only(bottom: 12),
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: InkWell(
+        onTap: onReview,
+        borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -409,17 +412,22 @@ class _StudentQuizAvailableScreenV2State
                     return LoadingButton(
                       isLoading: loadingState.isLoading,
                       child: OutlinedButton.icon(
-                  onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final op = onReview; await Future.sync(() => (op as dynamic)()); }),
-                  icon: const Icon(Icons.preview, size: 18),
-                  label: const Text('Review Answers'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: Colors.blue,
-                    side: const BorderSide(color: Colors.blue),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                ),
+                        onPressed: loadingState.isLoading
+                            ? null
+                            : () => loadingState.runAsyncAction(() async {
+                                  final op = onReview;
+                                  await Future.sync(() => (op as dynamic)());
+                                }),
+                        icon: const Icon(Icons.preview, size: 18),
+                        label: const Text('Review Answers'),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.blue,
+                          side: const BorderSide(color: Colors.blue),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
                     );
                   },
                 ),
@@ -486,11 +494,23 @@ class _StudentQuizAvailableScreenV2State
 
       if (attempt != null) {
         debugPrint('📖 Started attempt: ${attempt.id}');
+        final quizAttemptProvider = attemptProvider;
+        final quizProvider = Provider.of<QuizProvider>(context, listen: false);
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
         navigator.push(
           MaterialPageRoute(
-            builder: (context) => StudentQuizTakingScreen(
-              quiz: quiz,
-              isReview: false,
+            builder: (routeContext) => MultiProvider(
+              providers: [
+                ChangeNotifierProvider.value(
+                  value: quizAttemptProvider,
+                ),
+                ChangeNotifierProvider.value(value: quizProvider),
+                ChangeNotifierProvider.value(value: authProvider),
+              ],
+              child: StudentQuizTakingScreen(
+                quiz: quiz,
+                isReview: false,
+              ),
             ),
           ),
         );
@@ -537,11 +557,23 @@ class _StudentQuizAvailableScreenV2State
       if (!mounted) return;
 
       if (completeAttempt != null) {
+        final quizAttemptProvider = attemptProvider;
+        final quizProvider = Provider.of<QuizProvider>(context, listen: false);
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
         navigator.push(
           MaterialPageRoute(
-            builder: (context) => StudentQuizTakingScreen(
-              quiz: quiz,
-              isReview: true,
+            builder: (routeContext) => MultiProvider(
+              providers: [
+                ChangeNotifierProvider.value(
+                  value: quizAttemptProvider,
+                ),
+                ChangeNotifierProvider.value(value: quizProvider),
+                ChangeNotifierProvider.value(value: authProvider),
+              ],
+              child: StudentQuizTakingScreen(
+                quiz: quiz,
+                isReview: true,
+              ),
             ),
           ),
         );

@@ -10,7 +10,7 @@
 ### Project Type
 - **Educational Platform**: Full-stack application for dental education
 - **Cross-Platform**: Web (deployed), Android, iOS, Windows, Linux, macOS support
-- **Backend**: Firebase (Firestore, Authentication, Cloud Storage, Cloud Functions)
+- **Backend**: Firebase (Firestore, Authentication, Cloud Functions) + Supabase (Cloud Storage for specific assets)
 - **Frontend**: Flutter with Provider state management
 - **AI Integration**: Groq LLM for quiz generation, detection analysis
 
@@ -760,7 +760,12 @@ service cloud.firestore {
 - **Android App ID**: 1:874657566001:android:03bdd215d0ca9816bf7410
 - **Database**: Cloud Firestore (Realtime NoSQL)
 - **Authentication**: Email/Password
-- **Storage**: Firebase Cloud Storage
+- **Storage (Hybrid Architecture)**:
+    - **Supabase Storage**: Used for large assets including:
+        - Lecture Note PDFs
+        - Assignment Submission files
+        - Dental Scan and Case images
+    - **Firebase Storage**: Used for general application assets (if any).
 - **Functions**: Cloud Functions (Node.js)
 
 ### Deployment

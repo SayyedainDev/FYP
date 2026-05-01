@@ -30,57 +30,143 @@ class NoteCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+    final theme = Theme.of(context);
+    final colorScheme = theme.colorScheme;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: colorScheme.primary.withValues(alpha: 0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
           children: [
+            Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    colorScheme.primary.withValues(alpha: 0.16),
+                    colorScheme.tertiary.withValues(alpha: 0.16),
+                  ],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(Icons.menu_book_rounded, color: colorScheme.primary),
+            ),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    note.title,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w500, fontSize: 16),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          note.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: colorScheme.primary.withValues(alpha: 0.08),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          DateFormat.yMMMd().format(note.createdAt),
+                          style: TextStyle(
+                            fontSize: 10,
+                            color: colorScheme.primary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                   if (note.description != null &&
                       note.description!.isNotEmpty) ...[
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 6),
                     Text(
                       note.description!,
-                      style: TextStyle(color: Colors.grey.shade700),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        height: 1.35,
+                      ),
                     ),
                   ],
-                  const SizedBox(height: 4),
-                  Text(
-                    note.fileName,
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    DateFormat.yMMMd().format(note.createdAt),
-                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Icon(Icons.attach_file_rounded,
+                          size: 14, color: Colors.grey.shade500),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          note.fileName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.open_in_new),
-              onPressed: () => _openFile(context, note.fileUrl),
-              tooltip: 'Download / View',
+            const SizedBox(width: 10),
+            Column(
+              children: [
+                ElevatedButton.icon(
+                  onPressed: () => _openFile(context, note.fileUrl),
+                  icon: const Icon(Icons.download_rounded, size: 16),
+                  label: const Text('Open'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: colorScheme.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+                if (canDelete) ...[
+                  const SizedBox(height: 8),
+                  IconButton(
+                    icon: const Icon(Icons.delete_outline, color: Colors.red),
+                    onPressed: onDelete,
+                    tooltip: 'Delete',
+                  ),
+                ],
+              ],
             ),
-            if (canDelete)
-              IconButton(
-                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                onPressed: onDelete,
-                tooltip: 'Delete',
-              ),
           ],
         ),
       ),

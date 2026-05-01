@@ -85,8 +85,24 @@ class _StudentQuizDetailScreenState extends State<StudentQuizDetailScreen> {
   Future<void> _startOrResume(Quiz quiz) async {
     if (_actionLoading) return;
     setState(() => _actionLoading = true);
-    await Navigator.push(context,
-        MaterialPageRoute(builder: (_) => StudentQuizTakingScreen(quiz: quiz)));
+    await Navigator.push(
+        context,
+        MaterialPageRoute(
+            builder: (_) => MultiProvider(
+                  providers: [
+                    ChangeNotifierProvider.value(
+                      value: Provider.of<QuizAttemptProvider>(context,
+                          listen: false),
+                    ),
+                    ChangeNotifierProvider.value(
+                      value: Provider.of<QuizProvider>(context, listen: false),
+                    ),
+                    ChangeNotifierProvider.value(
+                      value: Provider.of<AuthProvider>(context, listen: false),
+                    ),
+                  ],
+                  child: StudentQuizTakingScreen(quiz: quiz),
+                )));
     if (mounted) {
       await _load();
       setState(() => _actionLoading = false);
@@ -132,10 +148,15 @@ class _StudentQuizDetailScreenState extends State<StudentQuizDetailScreen> {
                   return LoadingButton(
                     isLoading: loadingState.isLoading,
                     child: ElevatedButton(
-                onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() =>
-                    Navigator.pushReplacementNamed(context, '/dashboard'); await Future.sync(() => (op as dynamic)()); }),
-                child: const Text('Go to dashboard'),
-              ),
+                      onPressed: loadingState.isLoading
+                          ? null
+                          : () => loadingState.runAsyncAction(() async {
+                                op() => Navigator.pushReplacementNamed(
+                                    context, '/dashboard');
+                                await Future.sync(() => (op as dynamic)());
+                              }),
+                      child: const Text('Go to dashboard'),
+                    ),
                   );
                 },
               ),
@@ -178,13 +199,18 @@ class _StudentQuizDetailScreenState extends State<StudentQuizDetailScreen> {
               return LoadingButton(
                 isLoading: loadingState.isLoading,
                 child: IconButton(
-            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final op = _toggleBookmark; await Future.sync(() => (op as dynamic)()); }),
-            icon: Icon(
-              _bookmarks.contains(quiz.id)
-                  ? Icons.bookmark
-                  : Icons.bookmark_border,
-            ),
-          ),
+                  onPressed: loadingState.isLoading
+                      ? null
+                      : () => loadingState.runAsyncAction(() async {
+                            final op = _toggleBookmark;
+                            await Future.sync(() => (op as dynamic)());
+                          }),
+                  icon: Icon(
+                    _bookmarks.contains(quiz.id)
+                        ? Icons.bookmark
+                        : Icons.bookmark_border,
+                  ),
+                ),
               );
             },
           ),
@@ -285,16 +311,23 @@ class _StudentQuizDetailScreenState extends State<StudentQuizDetailScreen> {
                   ),
                   trailing: a.isSubmitted
                       ? Consumer<LoadingProvider>(
-                        builder: (context, loadingState, _) {
-                          return LoadingButton(
-                            isLoading: loadingState.isLoading,
-                            child: TextButton(
-                          onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() => _openResult(quiz, a); await Future.sync(() => (op as dynamic)()); }),
-                          child: const Text('View'),
-                        ),
-                          );
-                        },
-                      )
+                          builder: (context, loadingState, _) {
+                            return LoadingButton(
+                              isLoading: loadingState.isLoading,
+                              child: TextButton(
+                                onPressed: loadingState.isLoading
+                                    ? null
+                                    : () =>
+                                        loadingState.runAsyncAction(() async {
+                                          op() => _openResult(quiz, a);
+                                          await Future.sync(
+                                              () => (op as dynamic)());
+                                        }),
+                                child: const Text('View'),
+                              ),
+                            );
+                          },
+                        )
                       : const SizedBox.shrink(),
                   title: Text('${a.score}/${a.totalMarks} • ${a.durationText}'),
                   subtitle: Text(
@@ -310,25 +343,33 @@ class _StudentQuizDetailScreenState extends State<StudentQuizDetailScreen> {
                   return LoadingButton(
                     isLoading: loadingState.isLoading,
                     child: ElevatedButton(
-                onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final op = _actionLoading
-                    ? null
-                    : inProgressAttempt != null
-                        ? () => _startOrResume(quiz)
-                        : reachedLimit && latestSubmitted != null
-                            ? () => _openResult(quiz, latestSubmitted)
-                            : canStartNew
-                                ? () => _startOrResume(quiz)
-                                : null; if (op != null) await Future.sync(() => (op as dynamic)()); }),
-                child: Text(
-                  _actionLoading
-                      ? 'Opening...'
-                      : inProgressAttempt != null
-                          ? 'Continue Quiz'
-                          : reachedLimit
-                              ? 'View Results'
-                              : 'Start Quiz',
-                ),
-              ),
+                      onPressed: loadingState.isLoading
+                          ? null
+                          : () => loadingState.runAsyncAction(() async {
+                                final op = _actionLoading
+                                    ? null
+                                    : inProgressAttempt != null
+                                        ? () => _startOrResume(quiz)
+                                        : reachedLimit &&
+                                                latestSubmitted != null
+                                            ? () => _openResult(
+                                                quiz, latestSubmitted)
+                                            : canStartNew
+                                                ? () => _startOrResume(quiz)
+                                                : null;
+                                if (op != null)
+                                  await Future.sync(() => (op as dynamic)());
+                              }),
+                      child: Text(
+                        _actionLoading
+                            ? 'Opening...'
+                            : inProgressAttempt != null
+                                ? 'Continue Quiz'
+                                : reachedLimit
+                                    ? 'View Results'
+                                    : 'Start Quiz',
+                      ),
+                    ),
                   );
                 },
               ),

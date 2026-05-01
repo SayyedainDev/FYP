@@ -21,6 +21,7 @@ import '../core/theme/app_semantic_colors.dart';
 import '../utils/app_dialogs.dart';
 import '../utils/global_error_handler.dart';
 import '../widgets/loaders/app_loader.dart';
+import '../utils/image_annotation_utils.dart';
 
 class CreateCaseScreen extends StatefulWidget {
   const CreateCaseScreen({super.key});
@@ -264,7 +265,7 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
           )
           .timeout(const Duration(seconds: 30));
 
-      // TODO: Replace with Supabase storage integration
+      // Integration: Upload images to Firebase Storage
       final List<String> imageUrls = [];
       final timestamp = DateTime.now().millisecondsSinceEpoch;
 
@@ -290,7 +291,18 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
         final path = '${currentUser.uid}/$caseId/$fileName';
 
         try {
-          final bytes = file.bytes!;
+          Uint8List bytes = file.bytes!;
+          
+          final List<Map<String, dynamic>> annotations =
+              (analyzed['annotations'] as List<dynamic>?)
+                      ?.map((e) => e as Map<String, dynamic>)
+                      .toList() ??
+                  [];
+                  
+          if (annotations.isNotEmpty) {
+             bytes = await ImageAnnotationUtils.renderAnnotatedImage(bytes, annotations);
+          }
+
           final downloadUrl =
               await service.uploadImage(currentUser.uid, path, bytes);
           imageUrls.add(downloadUrl);

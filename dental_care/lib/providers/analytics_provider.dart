@@ -5,7 +5,10 @@ import '../models/case.dart';
 import '../utils/provider_error_utils.dart';
 
 class AnalyticsProvider extends ChangeNotifier {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
+
+  AnalyticsProvider({FirebaseFirestore? firestore}) 
+      : _firestore = firestore ?? FirebaseFirestore.instance;
 
   AnalyticsData? _analyticsData;
   bool _loading = false;

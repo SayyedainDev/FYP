@@ -3,18 +3,20 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-// Supabase removed
 import 'package:path_provider/path_provider.dart';
 import '../service/firebase_service.dart';
 import '../models/quiz.dart';
 import '../models/quiz_attempt.dart';
 import '../service/groq_service.dart';
 import '../service/rag_service.dart';
+import 'package:dental_care/core/config/supabase_config.dart';
 
 class QuizProvider with ChangeNotifier {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final _service = FirebaseService();
-  // Supabase removed — file uploads now use Firebase Storage
+  final FirebaseFirestore _firestore;
+
+  QuizProvider({FirebaseFirestore? firestore, FirebaseService? service})
+      : _firestore = firestore ?? FirebaseFirestore.instance;
+// Firebase Storage integration
   static const Duration _requestTimeout = Duration(seconds: 30);
   static const Duration _aiRequestTimeout = Duration(minutes: 3);
 
@@ -170,7 +172,8 @@ class QuizProvider with ChangeNotifier {
       return _firestore
           .collection('quizzes')
           .where('dentistUid', isEqualTo: dentistUid)
-          .orderBy('createdAt', descending: true).limit(20)
+          .orderBy('createdAt', descending: true)
+          .limit(20)
           .limit(50)
           .snapshots()
           .map(
@@ -258,10 +261,22 @@ class QuizProvider with ChangeNotifier {
       _uploadProgress = 0.0;
       notifyListeners();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final path = '$dentistUid/notes/${timestamp}_$fileName';
+      final path = '$dentistUid/quiz_notes/${timestamp}_$fileName';
       final bytes = await _withTimeout(file.readAsBytes());
-      final downloadUrl =
-          await _withTimeout(_service.uploadImage(dentistUid, path, bytes));
+
+      await SupabaseConfig.client.storage
+          .from('lecture-notes')
+          .uploadBinary(
+            path,
+            bytes,
+            fileOptions:
+                const FileOptions(contentType: 'application/pdf', upsert: true),
+          )
+          .timeout(const Duration(seconds: 60));
+
+      final downloadUrl = SupabaseConfig.client.storage
+          .from('lecture-notes')
+          .getPublicUrl(path);
 
       _isLoading = false;
       _uploadProgress = 1.0;
@@ -291,9 +306,21 @@ class QuizProvider with ChangeNotifier {
       _uploadProgress = 0.0;
       notifyListeners();
       final timestamp = DateTime.now().millisecondsSinceEpoch;
-      final path = '$dentistUid/notes/${timestamp}_$fileName';
-      final downloadUrl =
-          await _withTimeout(_service.uploadImage(dentistUid, path, bytes));
+      final path = '$dentistUid/quiz_notes/${timestamp}_$fileName';
+
+      await SupabaseConfig.client.storage
+          .from('lecture-notes')
+          .uploadBinary(
+            path,
+            bytes,
+            fileOptions:
+                const FileOptions(contentType: 'application/pdf', upsert: true),
+          )
+          .timeout(const Duration(seconds: 60));
+
+      final downloadUrl = SupabaseConfig.client.storage
+          .from('lecture-notes')
+          .getPublicUrl(path);
 
       _isLoading = false;
       _uploadProgress = 1.0;
@@ -472,7 +499,8 @@ class QuizProvider with ChangeNotifier {
       final snapshot = await _withTimeout(_firestore
           .collection('quizzes')
           .where('dentistUid', isEqualTo: dentistUid)
-          .orderBy('createdAt', descending: true).limit(20)
+          .orderBy('createdAt', descending: true)
+          .limit(20)
           .get());
 
       _quizzes = snapshot.docs.map((doc) => Quiz.fromFirestore(doc)).toList();
@@ -513,7 +541,8 @@ class QuizProvider with ChangeNotifier {
       final snapshot = await _withTimeout(_firestore
           .collection('quizzes')
           .where('status', isEqualTo: QuizStatus.published.name)
-          .orderBy('createdAt', descending: true).limit(20)
+          .orderBy('createdAt', descending: true)
+          .limit(20)
           .get());
 
       var quizzes =

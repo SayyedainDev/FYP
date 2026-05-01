@@ -10,10 +10,10 @@ import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../providers/quiz_provider.dart';
 import '../providers/navigation_provider.dart';
-import '../providers/lecture_notes_provider.dart';
+import '../features/lecture_notes/providers/lecture_note_provider.dart';
+import '../features/lecture_notes/models/lecture_note_model.dart';
 import '../provider/auth_provider.dart';
 import '../models/quiz.dart';
-import '../models/lecture_note.dart';
 import '../service/quiz_pdf_service.dart';
 import '../service/file_parser_service.dart';
 import '../core/theme/app_semantic_colors.dart';
@@ -179,7 +179,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
     QuizProvider quizProvider,
     AuthProvider authProvider,
   ) {
-    final lectureNotesProvider = Provider.of<LectureNotesProvider>(context);
+    final lectureNotesProvider = Provider.of<LectureNoteProvider>(context);
 
     return Container(
       padding: const EdgeInsets.all(32),
@@ -216,8 +216,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
               ),
             ),
             const SizedBox(height: 12),
-            StreamBuilder<List<LectureNote>>(
-              stream: lectureNotesProvider.getLectureNotesStream(
+            StreamBuilder<List<LectureNoteModel>>(
+              stream: lectureNotesProvider.streamByUser(
                 authProvider.user?.uid ?? '',
               ),
               builder: (context, snapshot) {
@@ -390,7 +390,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'PDF, DOCX, PPTX, Images (Max 25MB)',
+                      'Only upload PDF for quiz generation (Max 25MB)',
                       style: TextStyle(
                         fontSize: 12,
                         color: _cs.onSurfaceVariant,
@@ -582,26 +582,13 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
           // Question Types
           _buildConfigSection(
             'Question Types',
-            Column(
-              children: QuestionType.values.map((type) {
-                return CheckboxListTile(
-                  title: Text(_getQuestionTypeLabel(type)),
-                  value: _selectedQuestionTypes.contains(type),
-                  onChanged: (bool? value) {
-                    setState(() {
-                      if (value == true) {
-                        _selectedQuestionTypes.add(type);
-                      } else {
-                        if (_selectedQuestionTypes.length > 1) {
-                          _selectedQuestionTypes.remove(type);
-                        }
-                      }
-                    });
-                  },
-                  activeColor: _cs.primary,
-                  dense: true,
-                );
-              }).toList(),
+            CheckboxListTile(
+              title: Text(_getQuestionTypeLabel(QuestionType.mcq)),
+              value: true,
+              onChanged: null,
+              activeColor: _cs.primary,
+              dense: true,
+              subtitle: const Text('Currently, AI only generates MCQs.'),
             ),
           ),
 
@@ -870,7 +857,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    quizProvider.groqError!,
+                    quizProvider.groqError!.contains('RAG') || quizProvider.groqError!.contains('500')
+                        ? 'We couldn\'t generate a quiz from this document. It may lack relevant educational content, or the AI could not process the text. Please try another document or topic.\n\nTechnical Details: ${quizProvider.groqError}'
+                        : quizProvider.groqError!,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 13,
@@ -2026,7 +2015,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
   ) async {
     try {
       FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.any,
+        type: FileType.custom,
+        allowedExtensions: ['pdf'],
         withData: true, // Important for web
         allowMultiple: false,
       );

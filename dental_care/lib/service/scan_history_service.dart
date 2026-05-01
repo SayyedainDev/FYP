@@ -1,12 +1,12 @@
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dental_care/core/config/supabase_config.dart';
 import 'package:flutter/foundation.dart';
 import '../models/detection_response.dart';
 import '../models/patient_scan.dart';
 
 class ScanHistoryService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final SupabaseClient _supabase = Supabase.instance.client;
+  final SupabaseClient _supabase = SupabaseConfig.client;
 
   /// Saves a detection result to Supabase Storage and Firestore.
   Future<void> saveDetectionToPatient({
@@ -23,21 +23,18 @@ class ScanHistoryService {
       final String storagePath =
           'patients/$patientId/scans/${scanId}_$fileName';
 
-      debugPrint('[ScanHistory] Uploading to Supabase: $storagePath');
+      debugPrint('[ScanHistory] Uploading to Supabase Storage: $storagePath');
 
-      // 2. Upload to Supabase Storage Bucket ('IMAGE')
-      await _supabase.storage.from('IMAGE').uploadBinary(
+      // 2. Upload to Supabase Storage
+      await _supabase.storage.from('Image').uploadBinary(
             storagePath,
             imageBytes,
-            fileOptions: const FileOptions(
-              contentType: 'image/jpeg',
-              upsert: true,
-            ),
+            fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true),
           );
 
       // 3. Get the Public URL
       final String imageUrl =
-          _supabase.storage.from('IMAGE').getPublicUrl(storagePath);
+          _supabase.storage.from('Image').getPublicUrl(storagePath);
       debugPrint('[ScanHistory] Supabase URL: $imageUrl');
 
       // 4. Map conditions/detections to a Firestore-friendly list

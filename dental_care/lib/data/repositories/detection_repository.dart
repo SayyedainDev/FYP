@@ -1,45 +1,41 @@
 import 'dart:typed_data';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:dental_care/core/config/supabase_config.dart';
 import 'package:uuid/uuid.dart';
 import '../models/detection_record.dart';
 import '../models/prescription_model.dart';
 
 class DetectionRepository {
-  final _client = Supabase.instance.client;
+  final _firestore = FirebaseFirestore.instance;
+  final _supabase = SupabaseConfig.client;
   final _uuid = const Uuid();
 
   // ─── IMAGES ──────────────────────────────────────────────────
 
-  /// Upload original image bytes. Returns the storage path.
   Future<String> uploadOriginalImage({
     required String detectionId,
     required Uint8List bytes,
   }) async {
     final path = 'detections/$detectionId/original.jpg';
-    await _client.storage
-        .from('dental-detections')
-        .uploadBinary(
+    await _supabase.storage.from('Image').uploadBinary(
           path,
           bytes,
           fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true),
         );
-    return path;
+    return _supabase.storage.from('Image').getPublicUrl(path);
   }
 
-  /// Upload annotated image bytes (with bounding boxes drawn). Returns path.
   Future<String> uploadAnnotatedImage({
     required String detectionId,
     required Uint8List bytes,
   }) async {
     final path = 'detections/$detectionId/annotated.jpg';
-    await _client.storage
-        .from('dental-detections')
-        .uploadBinary(
+    await _supabase.storage.from('Image').uploadBinary(
           path,
           bytes,
           fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true),
         );
-    return path;
+    return _supabase.storage.from('Image').getPublicUrl(path);
   }
 
   // ─── DETECTIONS ───────────────────────────────────────────────
@@ -68,7 +64,6 @@ class DetectionRepository {
     );
 
     final data = {
-      'id': id,
       'patient_id': patientId,
       'original_image_path': originalImagePath,
       'annotated_image_path': annotatedImagePath,
@@ -77,28 +72,26 @@ class DetectionRepository {
       'total_detections': detections.length,
       'highest_confidence': highestConf,
       'notes': notes,
+      'created_at': FieldValue.serverTimestamp(),
     };
 
-    final response = await _client
-        .from('dental_detections')
-        .insert(data)
-        .select()
-        .single();
+    final docRef = _firestore.collection('dental_detections').doc(id);
+    await docRef.set(data);
+    final snapshot = await docRef.get();
 
-    return DetectionRecord.fromJson(response);
+    return DetectionRecord.fromJson({...snapshot.data()!, 'id': snapshot.id});
   }
 
-  /// Fetch all detections for a patient, newest first.
   Future<List<DetectionRecord>> getDetectionsForPatient(
       String patientId) async {
-    final response = await _client
-        .from('dental_detections')
-        .select()
-        .eq('patient_id', patientId)
-        .order('created_at', ascending: false);
+    final snapshot = await _firestore
+        .collection('dental_detections')
+        .where('patient_id', isEqualTo: patientId)
+        .orderBy('created_at', descending: true)
+        .get();
 
-    return (response as List)
-        .map((json) => DetectionRecord.fromJson(json as Map<String, dynamic>))
+    return snapshot.docs
+        .map((doc) => DetectionRecord.fromJson({...doc.data(), 'id': doc.id}))
         .toList();
   }
 
@@ -112,38 +105,35 @@ class DetectionRepository {
     String? instructions,
     DateTime? followUpDate,
   }) async {
-    final id = _uuid.v4();
-
     final data = {
-      'id': id,
       'patient_id': patientId,
       'detection_id': detectionId,
       'diagnosis': diagnosis,
       'medications': medications.map((m) => m.toJson()).toList(),
       'instructions': instructions,
-      'follow_up_date': followUpDate?.toIso8601String().split('T').first,
+      'follow_up_date': followUpDate != null ? Timestamp.fromDate(followUpDate) : null,
       'is_finalized': true,
+      'created_at': FieldValue.serverTimestamp(),
     };
 
-    final response = await _client
-        .from('prescriptions')
-        .insert(data)
-        .select()
-        .single();
+    final id = _uuid.v4();
+    final docRef = _firestore.collection('prescriptions').doc(id);
+    await docRef.set(data);
+    final snapshot = await docRef.get();
 
-    return PrescriptionModel.fromJson(response);
+    return PrescriptionModel.fromJson({...snapshot.data()!, 'id': snapshot.id});
   }
 
   Future<List<PrescriptionModel>> getPrescriptionsForPatient(
       String patientId) async {
-    final response = await _client
-        .from('prescriptions')
-        .select()
-        .eq('patient_id', patientId)
-        .order('created_at', ascending: false);
+    final snapshot = await _firestore
+        .collection('prescriptions')
+        .where('patient_id', isEqualTo: patientId)
+        .orderBy('created_at', descending: true)
+        .get();
 
-    return (response as List)
-        .map((json) => PrescriptionModel.fromJson(json as Map<String, dynamic>))
+    return snapshot.docs
+        .map((doc) => PrescriptionModel.fromJson({...doc.data(), 'id': doc.id}))
         .toList();
   }
 }

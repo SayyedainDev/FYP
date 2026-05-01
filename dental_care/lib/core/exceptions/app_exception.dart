@@ -13,21 +13,21 @@ abstract class AppException implements Exception {
 }
 
 class StorageException extends AppException {
-  StorageException(String message, {dynamic originalError, StackTrace? stackTrace})
-      : super(message, prefix: 'Storage Error', originalError: originalError, stackTrace: stackTrace);
+  StorageException(super.message, {super.originalError, super.stackTrace})
+      : super(prefix: 'Storage Error');
 }
 
 class FirestoreException extends AppException {
-  FirestoreException(String message, {dynamic originalError, StackTrace? stackTrace})
-      : super(message, prefix: 'Database Error', originalError: originalError, stackTrace: stackTrace);
+  FirestoreException(super.message, {super.originalError, super.stackTrace})
+      : super(prefix: 'Database Error');
 }
 
 class ValidationException extends AppException {
-  ValidationException(String message, {dynamic originalError, StackTrace? stackTrace})
-      : super(message, prefix: 'Validation Error', originalError: originalError, stackTrace: stackTrace);
+  ValidationException(super.message, {super.originalError, super.stackTrace})
+      : super(prefix: 'Validation Error');
 }
 
 class AIException extends AppException {
-  AIException(String message, {dynamic originalError, StackTrace? stackTrace})
-      : super(message, prefix: 'AI Processing Error', originalError: originalError, stackTrace: stackTrace);
+  AIException(super.message, {super.originalError, super.stackTrace})
+      : super(prefix: 'AI Processing Error');
 }

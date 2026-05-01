@@ -34,7 +34,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
 
     if (!mounted) return;
 
-    if (user != null && role != null && role.isNotEmpty) {
+    if (user != null && role.isNotEmpty) {
       if (role.toLowerCase() == 'doctor' || role.toLowerCase() == 'dentist') {
         Navigator.pushReplacementNamed(context, '/dashboard');
       } else if (role.toLowerCase() == 'student') {

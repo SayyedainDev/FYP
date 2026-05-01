@@ -6,6 +6,7 @@ import 'package:dental_care/core/theme/app_tokens.dart';
 import 'doctor_student_list_screen.dart';
 import 'doctor_create_assignment_screen.dart';
 import 'doctor_assignments_management_screen.dart';
+import 'package:dental_care/providers/assignment_provider.dart';
 import 'doctor_analytics_screen.dart';
 
 class DoctorLMSDashboard extends StatefulWidget {
@@ -213,10 +214,18 @@ class _DoctorLMSDashboardState extends State<DoctorLMSDashboard> {
               icon: Icons.assignment_add,
               color: AppColors.brandSecondary,
               onTap: () {
+                final assignmentProvider = context.read<AssignmentProvider>();
+                final authProvider = context.read<AuthProvider>();
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) => const DoctorCreateAssignmentScreen(),
+                    builder: (_) => MultiProvider(
+                      providers: [
+                        ChangeNotifierProvider.value(value: assignmentProvider),
+                        ChangeNotifierProvider.value(value: authProvider),
+                      ],
+                      child: const DoctorCreateAssignmentScreen(),
+                    ),
                   ),
                 );
               },

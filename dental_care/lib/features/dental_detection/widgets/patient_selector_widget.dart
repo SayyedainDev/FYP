@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 class PatientSelectorWidget extends StatefulWidget {
   final Function(String id, String name) onPatientSelected;
@@ -17,6 +18,9 @@ class PatientSelectorWidget extends StatefulWidget {
 
 class _PatientSelectorWidgetState extends State<PatientSelectorWidget> {
   final TextEditingController _searchController = TextEditingController();
+  final _firestore = FirebaseFirestore.instance;
+  final _auth = FirebaseAuth.instance;
+  List<Map<String, dynamic>> _allPatients = [];
   List<Map<String, dynamic>> _results = [];
   bool _isLoading = false;
   String? _errorMsg;
@@ -25,42 +29,40 @@ class _PatientSelectorWidgetState extends State<PatientSelectorWidget> {
   @override
   void initState() {
     super.initState();
-    // Pre-load patients on start without user typing
-    _search('');
+    _loadPatients();
   }
 
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
+  Future<void> _loadPatients() async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) return;
 
-  Future<void> _search(String query) async {
     setState(() {
       _isLoading = true;
       _errorMsg = null;
     });
 
     try {
-      var queryBuilder = Supabase.instance.client
-          .from('patients')
-          .select('id, name, age, gender, phone, last_visit_date');
+      final snapshot = await _firestore
+          .collection('patients')
+          .where('dentistUid', isEqualTo: uid)
+          .get();
 
-      if (query.trim().isNotEmpty) {
-        queryBuilder = queryBuilder.or(
-          'name.ilike.%$query%,'
-          'phone.ilike.%$query%,'
-          'id.ilike.%$query%'
-        );
-      }
-
-      final response = await queryBuilder
-          .order('name', ascending: true)
-          .limit(30);
+      final patients = snapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'id': doc.id,
+          ...data,
+          // Handle potential missing fields from older records
+          'name': data['name'] ?? 'Unknown',
+          'phone': data['phone'] ?? '',
+          'last_visit_date': data['last_visit_date'] ?? (data['createdAt'] as Timestamp?)?.toDate().toIso8601String(),
+        };
+      }).toList();
 
       if (mounted) {
         setState(() {
-          _results = List<Map<String, dynamic>>.from(response);
+          _allPatients = patients;
+          _results = patients;
           _isLoading = false;
         });
       }
@@ -68,14 +70,27 @@ class _PatientSelectorWidgetState extends State<PatientSelectorWidget> {
       if (mounted) {
         setState(() {
           _isLoading = false;
-          if (e.toString().contains('PGRST205')) {
-            _errorMsg = 'Database Error: Supabase "patients" table is missing. Please run your SQL schema.';
-          } else {
-            _errorMsg = e.toString();
-          }
+          _errorMsg = 'Failed to load patients: $e';
         });
       }
     }
+  }
+
+  void _search(String query) {
+    if (query.trim().isEmpty) {
+      setState(() => _results = _allPatients);
+      return;
+    }
+
+    final lowerQuery = query.toLowerCase();
+    setState(() {
+      _results = _allPatients.where((p) {
+        final name = (p['name'] ?? '').toString().toLowerCase();
+        final phone = (p['phone'] ?? '').toString().toLowerCase();
+        final id = p['id'].toString().toLowerCase();
+        return name.contains(lowerQuery) || phone.contains(lowerQuery) || id.contains(lowerQuery);
+      }).toList();
+    });
   }
 
   Map<String, int> _buildNameCountMap(List<Map<String, dynamic>> patients) {

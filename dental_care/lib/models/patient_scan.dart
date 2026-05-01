@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 class PatientScan {
   final String scanId;
-  final String imageUrl; // Supabase public URL
+  final String imageUrl; // Firebase Storage public URL
   final DateTime timestamp;
   final String notes;
   final List<Map<String, dynamic>> detections;

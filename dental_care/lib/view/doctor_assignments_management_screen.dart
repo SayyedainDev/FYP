@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:dental_care/providers/assignment_provider.dart';
 import 'package:dental_care/provider/auth_provider.dart';
+import 'doctor_create_assignment_screen.dart';
 
 class DoctorAssignmentsManagementScreen extends StatefulWidget {
   const DoctorAssignmentsManagementScreen({super.key});
@@ -20,31 +21,58 @@ class _DoctorAssignmentsManagementScreenState
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    final uid = context.read<AuthProvider>().user?.uid;
-    if (uid != null) {
-      context.read<AssignmentProvider>().fetchInstructorAssignments(uid);
-    }
+    _tabController.addListener(_handleTabChange);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final uid = context.read<AuthProvider>().user?.uid;
+      if (uid != null) {
+        context.read<AssignmentProvider>().fetchInstructorAssignments(uid);
+        context.read<AssignmentProvider>().fetchInstructorSubmissions(uid);
+      }
+    });
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
     super.dispose();
   }
 
+  void _handleTabChange() {
+    if (_tabController.index != 1 || _tabController.indexIsChanging) return;
+
+    final uid = context.read<AuthProvider>().user?.uid;
+    if (uid != null) {
+      context.read<AssignmentProvider>().fetchInstructorSubmissions(uid);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Manage Assignments'),
-        backgroundColor: Colors.green.shade700,
+        backgroundColor: colorScheme.primary,
+        elevation: 0,
         bottom: TabBar(
           controller: _tabController,
+          labelColor: Colors.white,
+          unselectedLabelColor: Colors.white70,
+          indicatorColor: Colors.white,
+          indicatorSize: TabBarIndicatorSize.label,
+          splashBorderRadius: BorderRadius.circular(8),
           tabs: const [
-            Tab(text: 'Active'),
-            Tab(text: 'Submissions'),
+            Tab(icon: Icon(Icons.assignment_turned_in), text: 'Active'),
+            Tab(icon: Icon(Icons.check_circle_outline), text: 'Submissions'),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _showCreateAssignmentDialog,
+        backgroundColor: colorScheme.primary,
+        child: const Icon(Icons.add),
       ),
       body: Consumer<AssignmentProvider>(
         builder: (context, assignmentProvider, _) {
@@ -67,16 +95,41 @@ class _DoctorAssignmentsManagementScreenState
   }
 
   Widget _buildActiveAssignmentsList(List assignments) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     if (assignments.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.assignment, size: 64, color: Colors.grey.shade300),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.assignment,
+                size: 64,
+                color: colorScheme.primary,
+              ),
+            ),
             const SizedBox(height: 16),
             Text(
               'No assignments created',
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 16),
+              style: TextStyle(
+                color: colorScheme.onSurface,
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Create your first assignment to get started',
+              style: TextStyle(
+                color: colorScheme.onSurfaceVariant,
+                fontSize: 14,
+              ),
             ),
           ],
         ),
@@ -104,9 +157,10 @@ class _DoctorAssignmentsManagementScreenState
                     Expanded(
                       child: Text(
                         assignment.title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
+                          color: colorScheme.onSurface,
                         ),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -114,31 +168,38 @@ class _DoctorAssignmentsManagementScreenState
                     ),
                     Chip(
                       label: const Text('Active'),
-                      backgroundColor: Colors.green.shade100,
+                      backgroundColor: colorScheme.primary.withOpacity(0.2),
+                      labelStyle: TextStyle(
+                        color: colorScheme.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 Text(
                   'Subject: ${assignment.subject}',
-                  style: TextStyle(color: Colors.grey.shade700),
+                  style: TextStyle(
+                    color: colorScheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
                     Icon(Icons.calendar_today,
-                        size: 16, color: Colors.grey.shade700),
+                        size: 16, color: colorScheme.primary),
                     const SizedBox(width: 8),
                     Text(
                       'Due: ${assignment.dueDate.toString().split(' ')[0]}',
-                      style: TextStyle(color: Colors.grey.shade700),
+                      style: TextStyle(color: colorScheme.onSurfaceVariant),
                     ),
                     const SizedBox(width: 16),
-                    Icon(Icons.task, size: 16, color: Colors.grey.shade700),
+                    Icon(Icons.star, size: 16, color: colorScheme.tertiary),
                     const SizedBox(width: 8),
                     Text(
                       'Marks: ${assignment.totalMarks.toStringAsFixed(0)}',
-                      style: TextStyle(color: Colors.grey.shade700),
+                      style: TextStyle(color: colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -347,5 +408,32 @@ class _DoctorAssignmentsManagementScreenState
       default:
         return Colors.grey.shade100;
     }
+  }
+
+  void _showCreateAssignmentDialog() {
+    // Capture the providers from the current context BEFORE navigating,
+    // because Navigator.push creates a new route tree that loses access
+    // to the MultiProvider in MainLayout.
+    final assignmentProvider = context.read<AssignmentProvider>();
+    final authProvider = context.read<AuthProvider>();
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => MultiProvider(
+          providers: [
+            ChangeNotifierProvider.value(value: assignmentProvider),
+            ChangeNotifierProvider.value(value: authProvider),
+          ],
+          child: const DoctorCreateAssignmentScreen(),
+        ),
+      ),
+    ).then((_) {
+      // Refresh assignments after creating new one
+      final uid = authProvider.user?.uid;
+      if (uid != null) {
+        assignmentProvider.fetchInstructorAssignments(uid);
+      }
+    });
   }
 }

@@ -4,7 +4,10 @@ import '../models/appointment.dart';
 import '../utils/provider_error_utils.dart';
 
 class AppointmentProvider extends ChangeNotifier {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore _firestore;
+
+  AppointmentProvider({FirebaseFirestore? firestore}) 
+      : _firestore = firestore ?? FirebaseFirestore.instance;
 
   List<Appointment> _appointments = [];
   bool _loading = false;

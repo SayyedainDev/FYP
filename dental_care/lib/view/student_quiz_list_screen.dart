@@ -233,13 +233,18 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
                 return LoadingButton(
                   isLoading: loadingState.isLoading,
                   child: IconButton(
-              onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final op = _loadData; await Future.sync(() => (op as dynamic)()); }),
-              icon: Icon(Icons.refresh, color: _cs.onPrimary),
-              tooltip: 'Refresh',
-              style: IconButton.styleFrom(
-                backgroundColor: _cs.onPrimary.withValues(alpha: 0.15),
-              ),
-            ),
+                    onPressed: loadingState.isLoading
+                        ? null
+                        : () => loadingState.runAsyncAction(() async {
+                              final op = _loadData;
+                              await Future.sync(() => (op as dynamic)());
+                            }),
+                    icon: Icon(Icons.refresh, color: _cs.onPrimary),
+                    tooltip: 'Refresh',
+                    style: IconButton.styleFrom(
+                      backgroundColor: _cs.onPrimary.withValues(alpha: 0.15),
+                    ),
+                  ),
                 );
               },
             ),
@@ -267,19 +272,26 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
                   Icon(Icons.search, color: _cs.onSurfaceVariant, size: 22),
               suffixIcon: _searchQuery.isNotEmpty
                   ? Consumer<LoadingProvider>(
-                    builder: (context, loadingState, _) {
-                      return LoadingButton(
-                        isLoading: loadingState.isLoading,
-                        child: IconButton(
-                      icon: const Icon(Icons.clear, size: 20),
-                      onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() {
-                        _searchController.clear();
-                        setState(() => _searchQuery = '');
-                      } await Future.sync(() => (op as dynamic)()); }),
-                    ),
-                      );
-                    },
-                  )
+                      builder: (context, loadingState, _) {
+                        return LoadingButton(
+                          isLoading: loadingState.isLoading,
+                          child: IconButton(
+                            icon: const Icon(Icons.clear, size: 20),
+                            onPressed: loadingState.isLoading
+                                ? null
+                                : () => loadingState.runAsyncAction(() async {
+                                      op() {
+                                        _searchController.clear();
+                                        setState(() => _searchQuery = '');
+                                      }
+
+                                      await Future.sync(
+                                          () => (op as dynamic)());
+                                    }),
+                          ),
+                        );
+                      },
+                    )
                   : null,
               filled: true,
               fillColor: _cs.surface,
@@ -420,17 +432,22 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
                 return LoadingButton(
                   isLoading: loadingState.isLoading,
                   child: ElevatedButton.icon(
-              onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final op = _loadData; await Future.sync(() => (op as dynamic)()); }),
-              icon: const Icon(Icons.refresh),
-              label: const Text('Refresh'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _cs.primary,
-                foregroundColor: _cs.onPrimary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
+                    onPressed: loadingState.isLoading
+                        ? null
+                        : () => loadingState.runAsyncAction(() async {
+                              final op = _loadData;
+                              await Future.sync(() => (op as dynamic)());
+                            }),
+                    icon: const Icon(Icons.refresh),
+                    label: const Text('Refresh'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _cs.primary,
+                      foregroundColor: _cs.onPrimary,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                    ),
+                  ),
                 );
               },
             ),
@@ -571,38 +588,43 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
                       return LoadingButton(
                         isLoading: loadingState.isLoading,
                         child: ElevatedButton.icon(
-                    onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() => _handleQuizTap(
-                      quiz,
-                      existingAttempt,
-                      authProvider,
-                    ); await Future.sync(() => (op as dynamic)()); }),
-                    icon: Icon(
-                      isCompleted
-                          ? Icons.visibility
-                          : isInProgress
-                              ? Icons.play_arrow
-                              : Icons.start,
-                      size: 20,
-                    ),
-                    label: Text(
-                      isCompleted
-                          ? 'View Results (${existingAttempt!.score}/${existingAttempt.totalMarks})'
-                          : isInProgress
-                              ? 'Continue Quiz'
-                              : 'Start Quiz',
-                    ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isCompleted
-                          ? (_sem?.success ?? _cs.secondary)
-                          : _cs.primary,
-                      foregroundColor: _cs.onPrimary,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      elevation: 0,
-                    ),
-                  ),
+                          onPressed: loadingState.isLoading
+                              ? null
+                              : () => loadingState.runAsyncAction(() async {
+                                    op() => _handleQuizTap(
+                                          quiz,
+                                          existingAttempt,
+                                          authProvider,
+                                        );
+                                    await Future.sync(() => (op as dynamic)());
+                                  }),
+                          icon: Icon(
+                            isCompleted
+                                ? Icons.visibility
+                                : isInProgress
+                                    ? Icons.play_arrow
+                                    : Icons.start,
+                            size: 20,
+                          ),
+                          label: Text(
+                            isCompleted
+                                ? 'View Results (${existingAttempt!.score}/${existingAttempt.totalMarks})'
+                                : isInProgress
+                                    ? 'Continue Quiz'
+                                    : 'Start Quiz',
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isCompleted
+                                ? (_sem?.success ?? _cs.secondary)
+                                : _cs.primary,
+                            foregroundColor: _cs.onPrimary,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            elevation: 0,
+                          ),
+                        ),
                       );
                     },
                   ),
@@ -754,10 +776,25 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
     } else if (existingAttempt != null && !existingAttempt.isSubmitted) {
       // Resume directly
       Navigator.push(
-              context,
-              MaterialPageRoute(
-                  builder: (_) => StudentQuizTakingScreen(quiz: quiz)))
-          .then((_) => _loadData());
+          context,
+          MaterialPageRoute(
+              builder: (_) => MultiProvider(
+                    providers: [
+                      ChangeNotifierProvider.value(
+                        value: Provider.of<QuizAttemptProvider>(context,
+                            listen: false),
+                      ),
+                      ChangeNotifierProvider.value(
+                        value:
+                            Provider.of<QuizProvider>(context, listen: false),
+                      ),
+                      ChangeNotifierProvider.value(
+                        value:
+                            Provider.of<AuthProvider>(context, listen: false),
+                      ),
+                    ],
+                    child: StudentQuizTakingScreen(quiz: quiz),
+                  ))).then((_) => _loadData());
     } else {
       // Show start confirmation
       _showStartConfirmation(quiz);
@@ -824,9 +861,14 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
               return LoadingButton(
                 isLoading: loadingState.isLoading,
                 child: TextButton(
-            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() => Navigator.pop(context); await Future.sync(() => (op as dynamic)()); }),
-            child: const Text('Cancel'),
-          ),
+                  onPressed: loadingState.isLoading
+                      ? null
+                      : () => loadingState.runAsyncAction(() async {
+                            op() => Navigator.pop(context);
+                            await Future.sync(() => (op as dynamic)());
+                          }),
+                  child: const Text('Cancel'),
+                ),
               );
             },
           ),
@@ -835,19 +877,25 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
               return LoadingButton(
                 isLoading: loadingState.isLoading,
                 child: ElevatedButton.icon(
-            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() {
-              Navigator.pop(context);
-              context
-                  .push('/student/quiz/take', extra: quiz)
-                  .then((_) => _loadData());
-            } await Future.sync(() => (op as dynamic)()); }),
-            icon: const Icon(Icons.play_arrow, size: 18),
-            label: const Text('Start Quiz'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _cs.primary,
-              foregroundColor: _cs.onPrimary,
-            ),
-          ),
+                  onPressed: loadingState.isLoading
+                      ? null
+                      : () => loadingState.runAsyncAction(() async {
+                            op() {
+                              Navigator.pop(context);
+                              context
+                                  .push('/student/quiz/take', extra: quiz)
+                                  .then((_) => _loadData());
+                            }
+
+                            await Future.sync(() => (op as dynamic)());
+                          }),
+                  icon: const Icon(Icons.play_arrow, size: 18),
+                  label: const Text('Start Quiz'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _cs.primary,
+                    foregroundColor: _cs.onPrimary,
+                  ),
+                ),
               );
             },
           ),
