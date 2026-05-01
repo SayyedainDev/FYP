@@ -5,7 +5,7 @@ import 'package:dental_care/provider/auth_provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class DoctorAnalyticsScreen extends StatefulWidget {
-  const DoctorAnalyticsScreen({Key? key}) : super(key: key);
+  const DoctorAnalyticsScreen({super.key});
 
   @override
   State<DoctorAnalyticsScreen> createState() => _DoctorAnalyticsScreenState();
@@ -237,7 +237,7 @@ class _DoctorAnalyticsScreenState extends State<DoctorAnalyticsScreen> {
             leading: const Icon(Icons.quiz),
             title: const Text('Avg Quizzes per Student'),
             trailing: Text(
-              '${(students.isEmpty ? 0 : (students.fold<double>(0.0, (sum, s) => sum + s.totalQuizzesTaken) / students.length)).toStringAsFixed(1)}',
+              (students.isEmpty ? 0 : (students.fold<double>(0.0, (sum, s) => sum + s.totalQuizzesTaken) / students.length)).toStringAsFixed(1),
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ),
@@ -249,7 +249,7 @@ class _DoctorAnalyticsScreenState extends State<DoctorAnalyticsScreen> {
             leading: const Icon(Icons.assignment),
             title: const Text('Avg Assignments per Student'),
             trailing: Text(
-              '${(students.isEmpty ? 0 : (students.fold<double>(0.0, (sum, s) => sum + s.assignmentsSubmitted) / students.length)).toStringAsFixed(1)}',
+              (students.isEmpty ? 0 : (students.fold<double>(0.0, (sum, s) => sum + s.assignmentsSubmitted) / students.length)).toStringAsFixed(1),
               style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ),

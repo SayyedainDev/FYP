@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'quiz_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:provider/provider.dart';
 import '../models/quiz.dart';
 import '../provider/auth_provider.dart';
 import '../providers/navigation_provider.dart';
@@ -142,9 +141,9 @@ class _QuizListScreenState extends State<QuizListScreen> {
                 return LoadingButton(
                   isLoading: loadingState.isLoading,
                   child: ElevatedButton.icon(
-              onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () {
+              onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() {
                 context.read<NavigationProvider>().setPage('Create Quiz');
-              }; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+              } await Future.sync(() => (op as dynamic)()); }),
               icon: const Icon(Icons.add, size: 18),
               label: const Text('New Quiz'),
               style: ElevatedButton.styleFrom(
@@ -204,7 +203,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                 return LoadingButton(
                   isLoading: loadingState.isLoading,
                   child: ElevatedButton.icon(
-              onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = _loadQuizzes; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+              onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final op = _loadQuizzes; await Future.sync(() => (op as dynamic)()); }),
               icon: const Icon(Icons.refresh),
               label: const Text('Retry'),
               style: ElevatedButton.styleFrom(
@@ -251,9 +250,9 @@ class _QuizListScreenState extends State<QuizListScreen> {
                 return LoadingButton(
                   isLoading: loadingState.isLoading,
                   child: ElevatedButton.icon(
-              onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () {
+              onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() {
                 context.read<NavigationProvider>().setPage('Create Quiz');
-              }; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+              } await Future.sync(() => (op as dynamic)()); }),
               icon: const Icon(Icons.add),
               label: const Text('Create Your First Quiz'),
               style: ElevatedButton.styleFrom(
@@ -470,7 +469,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                           isLoading: loadingState.isLoading,
                           child: IconButton(
                       tooltip: 'Share',
-                      onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = isBusy
+                      onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final op = isBusy
                           ? null
                           : () async {
                               try {
@@ -486,7 +485,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
                                   );
                                 }
                               }
-                            }; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+                            }; if (op != null) await Future.sync(() => (op as dynamic)()); }),
                       icon: Icon(
                         Icons.share,
                         color: colorScheme.secondary,
@@ -505,14 +504,14 @@ class _QuizListScreenState extends State<QuizListScreen> {
                         color: semantic?.danger ?? colorScheme.error,
                       ),
                       tooltip: 'Delete',
-                      onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = isBusy
+                      onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final op = isBusy
                           ? null
                           : () => _confirmDelete(
                                 context,
                                 quiz,
                                 quizProvider,
                                 authProvider,
-                              ); if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+                              ); if (op != null) await Future.sync(() => (op as dynamic)()); }),
                     ),
                         );
                       },
@@ -631,7 +630,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
               return LoadingButton(
                 isLoading: loadingState.isLoading,
                 child: TextButton(
-            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () => Navigator.pop(context, false); if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() => Navigator.pop(context, false); await Future.sync(() => (op as dynamic)()); }),
             child: const Text('Cancel'),
           ),
               );
@@ -642,7 +641,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
               return LoadingButton(
                 isLoading: loadingState.isLoading,
                 child: ElevatedButton(
-            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () => Navigator.pop(context, true); if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() => Navigator.pop(context, true); await Future.sync(() => (op as dynamic)()); }),
             style: ElevatedButton.styleFrom(
               backgroundColor: semantic?.danger ?? colorScheme.error,
               foregroundColor: colorScheme.onError,
@@ -793,7 +792,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
               return LoadingButton(
                 isLoading: loadingState.isLoading,
                 child: TextButton(
-            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () => Navigator.pop(context, false); if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() => Navigator.pop(context, false); await Future.sync(() => (op as dynamic)()); }),
             child: const Text('Cancel'),
           ),
               );
@@ -804,7 +803,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
               return LoadingButton(
                 isLoading: loadingState.isLoading,
                 child: ElevatedButton(
-            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () => Navigator.pop(context, true); if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() => Navigator.pop(context, true); await Future.sync(() => (op as dynamic)()); }),
             style: ElevatedButton.styleFrom(
               backgroundColor: semantic?.success ?? colorScheme.primary,
               foregroundColor: colorScheme.onPrimary,
@@ -824,9 +823,9 @@ class _QuizListScreenState extends State<QuizListScreen> {
         showDialog<void>(
           context: context,
           barrierDismissible: false,
-          builder: (_) => PopScope(
+          builder: (_) => const PopScope(
             canPop: false,
-            child: const AlertDialog(
+            child: AlertDialog(
               content: Row(
                 children: [
                   SizedBox(
@@ -882,7 +881,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
               return LoadingButton(
                 isLoading: loadingState.isLoading,
                 child: TextButton(
-            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () => Navigator.pop(context, false); if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() => Navigator.pop(context, false); await Future.sync(() => (op as dynamic)()); }),
             child: const Text('Cancel'),
           ),
               );
@@ -893,7 +892,7 @@ class _QuizListScreenState extends State<QuizListScreen> {
               return LoadingButton(
                 isLoading: loadingState.isLoading,
                 child: ElevatedButton(
-            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () => Navigator.pop(context, true); if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() => Navigator.pop(context, true); await Future.sync(() => (op as dynamic)()); }),
             style: ElevatedButton.styleFrom(
               backgroundColor: semantic?.warning ?? colorScheme.secondary,
               foregroundColor: colorScheme.onSecondary,
@@ -913,9 +912,9 @@ class _QuizListScreenState extends State<QuizListScreen> {
         showDialog<void>(
           context: context,
           barrierDismissible: false,
-          builder: (_) => PopScope(
+          builder: (_) => const PopScope(
             canPop: false,
-            child: const AlertDialog(
+            child: AlertDialog(
               content: Row(
                 children: [
                   SizedBox(

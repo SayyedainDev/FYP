@@ -563,3 +563,121 @@ class ClinicalFinding {
     );
   }
 }
+
+extension DetectionResponseJson on DetectionResponse {
+  Map<String, dynamic> toJson() {
+    return {
+      'success': success,
+      'image_dimensions': {
+        'width': imageDimensions.width,
+        'height': imageDimensions.height,
+      },
+      'detection_count': detectionCount,
+      'class_summary': classSummary,
+      'class_details': classDetails.map((k, v) => MapEntry(k, {
+            'count': v.count,
+            'max_confidence': v.maxConfidence,
+            'color': {'r': v.color.r, 'g': v.color.g, 'b': v.color.b},
+          })),
+      'detections': detections
+          .map((d) => {
+                'id': d.id,
+                'label': d.label,
+                'class_id': d.classId,
+                'confidence': d.confidence,
+                'color': {'r': d.color.r, 'g': d.color.g, 'b': d.color.b},
+                'bounding_box': {
+                  'x1': d.boundingBox.x1,
+                  'y1': d.boundingBox.y1,
+                  'x2': d.boundingBox.x2,
+                  'y2': d.boundingBox.y2,
+                },
+                if (d.normalizedBox != null)
+                  'normalized': {
+                    'x1': d.normalizedBox!.x1,
+                    'y1': d.normalizedBox!.y1,
+                    'x2': d.normalizedBox!.x2,
+                    'y2': d.normalizedBox!.y2,
+                  },
+                'segmentation':
+                    d.segmentation.map((s) => {'x': s.x, 'y': s.y}).toList(),
+                'severity': d.severity,
+                'involvement_percent': d.involvementPercent,
+                'parent_tooth_id': d.parentToothId,
+                'audit_status': d.auditStatus,
+                'proximity_alerts': d.proximityAlerts
+                    .map((a) => {
+                          'landmark': a.landmark,
+                          'landmark_id': a.landmarkId,
+                          'distance_px': a.distancePx,
+                          'urgency': a.urgency,
+                        })
+                    .toList(),
+              })
+          .toList(),
+      'tooth_map': toothMap
+          .map((t) => {
+                'tooth_id': t.toothId,
+                'label': t.label,
+                'confidence': t.confidence,
+                'status': t.status,
+                'bounding_box': {
+                  'x1': t.boundingBox.x1,
+                  'y1': t.boundingBox.y1,
+                  'x2': t.boundingBox.x2,
+                  'y2': t.boundingBox.y2,
+                },
+                if (t.normalizedBox != null)
+                  'normalized': {
+                    'x1': t.normalizedBox!.x1,
+                    'y1': t.normalizedBox!.y1,
+                    'x2': t.normalizedBox!.x2,
+                    'y2': t.normalizedBox!.y2,
+                  },
+                'conditions': t.conditions
+                    .map((c) => {
+                          'detection_id': c.detectionId,
+                          'label': c.label,
+                          'confidence': c.confidence,
+                          'severity': c.severity,
+                          'involvement_percent': c.involvementPercent,
+                        })
+                    .toList(),
+              })
+          .toList(),
+      if (clinicalSummary != null)
+        'clinical_summary': {
+          'urgent_count': clinicalSummary!.urgentCount,
+          'preventative_count': clinicalSummary!.preventativeCount,
+          'healthy_teeth_count': clinicalSummary!.healthyTeethCount,
+          'affected_teeth_count': clinicalSummary!.affectedTeethCount,
+          'total_teeth_detected': clinicalSummary!.totalTeethDetected,
+          'total_findings': clinicalSummary!.totalFindings,
+          'urgent_findings': clinicalSummary!.urgentFindings
+              .map((f) => {
+                    'detection_id': f.detectionId,
+                    'label': f.label,
+                    'confidence': f.confidence,
+                    'severity': f.severity,
+                    'involvement_percent': f.involvementPercent,
+                    'parent_tooth_id': f.parentToothId,
+                    'reasons': f.reasons,
+                  })
+              .toList(),
+          'preventative_observations': clinicalSummary!.preventativeObservations
+              .map((f) => {
+                    'detection_id': f.detectionId,
+                    'label': f.label,
+                    'confidence': f.confidence,
+                    'severity': f.severity,
+                    'involvement_percent': f.involvementPercent,
+                    'parent_tooth_id': f.parentToothId,
+                    'reasons': f.reasons,
+                  })
+              .toList(),
+        },
+      'annotated_image': annotatedImageBase64,
+    };
+  }
+}
+

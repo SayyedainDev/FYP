@@ -7,14 +7,14 @@ import 'package:dental_care/providers/quiz_provider.dart';
 import 'package:dental_care/core/theme/app_tokens.dart';
 import 'package:dental_care/core/responsive/app_breakpoints.dart';
 import 'package:dental_care/view/student_quiz_available_screen.dart';
-import 'student_lecture_notes_screen.dart';
+import 'package:dental_care/features/lecture_notes/screens/student/student_lecture_notes_screen.dart';
 import 'student_assignments_screen.dart';
 import 'student_results_screen.dart';
 import 'student_profile_screen.dart';
 import 'settings_screen.dart';
 
 class StudentLMSDashboard extends StatefulWidget {
-  const StudentLMSDashboard({Key? key}) : super(key: key);
+  const StudentLMSDashboard({super.key});
 
   @override
   State<StudentLMSDashboard> createState() => _StudentLMSDashboardState();
@@ -51,7 +51,7 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
       case 'My Results':
         return const StudentResultsScreen();
       case 'Lecture Notes':
-        return const StudentLectureNotesScreen();
+        return const StudentLectureNotesScreen(moduleId: 'general');
       case 'Assignments':
         return const StudentAssignmentsScreen();
       case 'Settings':
@@ -362,7 +362,7 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
                   label: const Text('Logout'),
                   style: OutlinedButton.styleFrom(
                     foregroundColor: AppColors.danger,
-                    side: BorderSide(color: AppColors.danger),
+                    side: const BorderSide(color: AppColors.danger),
                   ),
                 ),
               ),
@@ -513,7 +513,7 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
             ),
             child: Row(
               children: [
-                Icon(Icons.lightbulb_outline,
+                const Icon(Icons.lightbulb_outline,
                     color: AppColors.brandPrimary, size: 24),
                 const SizedBox(width: 12),
                 Expanded(
@@ -521,7 +521,7 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
                     quizzes.isEmpty
                         ? 'Check back later for new quizzes!'
                         : 'Ready to challenge yourself? Start a quiz now!',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppColors.brandPrimary,
                       fontWeight: FontWeight.w500,
                     ),
@@ -593,10 +593,7 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  attempt.responses.length.toString() +
-                                      ' of ' +
-                                      attempt.totalMarks.toString() +
-                                      ' Qs',
+                                  '${attempt.responses.length} of ${attempt.totalMarks} Qs',
                                   style: const TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
@@ -658,7 +655,7 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
                               color: AppColors.brandPrimary.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: Icon(Icons.quiz,
+                            child: const Icon(Icons.quiz,
                                 color: AppColors.brandPrimary, size: 22),
                           ),
                           const SizedBox(width: 12),
@@ -753,7 +750,7 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
               ),
               child: Text(
                 itemCount.toString(),
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                   color: AppColors.brandPrimary,

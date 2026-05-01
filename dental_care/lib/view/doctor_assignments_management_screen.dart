@@ -4,7 +4,7 @@ import 'package:dental_care/providers/assignment_provider.dart';
 import 'package:dental_care/provider/auth_provider.dart';
 
 class DoctorAssignmentsManagementScreen extends StatefulWidget {
-  const DoctorAssignmentsManagementScreen({Key? key}) : super(key: key);
+  const DoctorAssignmentsManagementScreen({super.key});
 
   @override
   State<DoctorAssignmentsManagementScreen> createState() =>

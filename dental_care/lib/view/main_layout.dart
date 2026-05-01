@@ -3,11 +3,30 @@ import 'package:provider/provider.dart';
 import '../core/animation_constants.dart';
 import '../providers/navigation_provider.dart';
 import '../provider/auth_provider.dart';
+
+// Phase 2.1 Injection Imports: Instead of globals, we inject here into the shell
+import '../providers/patient_provider.dart';
+import '../providers/scan_provider.dart';
+import '../providers/case_provider.dart';
+import '../providers/quiz_provider.dart';
+import '../providers/quiz_attempt_provider.dart';
+import '../providers/lecture_notes_provider.dart';
+import '../providers/appointment_provider.dart';
+import '../providers/treatment_plan_provider.dart';
+import '../providers/medical_history_provider.dart';
+import '../providers/analytics_provider.dart';
+import '../providers/audit_log_provider.dart';
+import '../providers/performance_provider.dart';
+import '../providers/assignment_provider.dart';
+import '../providers/prescription_provider.dart';
+import '../features/lecture_notes/providers/lecture_note_provider.dart'
+    as new_ln_provider;
+
 import '../features/analytics/view/analytics_dashboard_screen.dart';
 import 'login.dart';
 import 'dashboard_screen.dart';
 import 'student_lms_dashboard.dart';
-import 'history_screen.dart';
+import '../screens/scan_history/scan_history_screen.dart';
 import 'dental_detection_screen.dart';
 import 'dentist_profile_screen.dart';
 import 'patients_screen.dart';
@@ -15,6 +34,7 @@ import 'settings_screen.dart';
 import 'ai_quiz_screen.dart';
 import 'quiz_list_screen.dart';
 import 'lecture_notes_screen.dart';
+import '../features/lecture_notes/screens/doctor/doctor_lecture_notes_screen.dart';
 import 'student_quiz_list_screen.dart';
 import 'student_my_results_screen.dart';
 import 'student_analytics_screen.dart';
@@ -92,7 +112,7 @@ class _MainLayoutState extends State<MainLayout>
         if (isStudent) {
           return const StudentLMSDashboard(key: ValueKey('Student Dashboard'));
         }
-        return const HistoryScreen(key: ValueKey('Scan History'));
+        return const ScanHistoryScreen(key: ValueKey('Scan History'));
       case 'Create Quiz':
         if (isStudent) {
           return const StudentLMSDashboard(key: ValueKey('Student Dashboard'));
@@ -107,7 +127,7 @@ class _MainLayoutState extends State<MainLayout>
         if (isStudent) {
           return const StudentLMSDashboard(key: ValueKey('Student Dashboard'));
         }
-        return const LectureNotesScreen(key: ValueKey('Lecture Notes'));
+        return const DoctorLectureNotesScreen(key: ValueKey('Lecture Notes'));
       case 'Quiz Results':
         if (isStudent) {
           return const StudentLMSDashboard(key: ValueKey('Student Dashboard'));
@@ -248,7 +268,29 @@ class _MainLayoutState extends State<MainLayout>
             const SizedBox(width: 12),
           ],
           child: RepaintBoundary(
-            child: _getCurrentScreen(navProvider.currentPage, isStudent),
+            child: MultiProvider(
+              // Scoped directly beneath the authenticated layout
+              // Therefore destroying heavy overhead at the login/app boot level.
+              providers: [
+                ChangeNotifierProvider(create: (_) => PatientProvider()),
+                ChangeNotifierProvider(create: (_) => ScanProvider()),
+                ChangeNotifierProvider(create: (_) => CaseProvider()),
+                ChangeNotifierProvider(create: (_) => QuizProvider()),
+                ChangeNotifierProvider(create: (_) => QuizAttemptProvider()),
+                ChangeNotifierProvider(create: (_) => LectureNotesProvider()),
+                ChangeNotifierProvider(create: (_) => AppointmentProvider()),
+                ChangeNotifierProvider(create: (_) => TreatmentPlanProvider()),
+                ChangeNotifierProvider(create: (_) => MedicalHistoryProvider()),
+                ChangeNotifierProvider(create: (_) => AnalyticsProvider()),
+                ChangeNotifierProvider(create: (_) => AuditLogProvider()),
+                ChangeNotifierProvider(create: (_) => PerformanceProvider()),
+                ChangeNotifierProvider(create: (_) => AssignmentProvider()),
+                ChangeNotifierProvider(create: (_) => PrescriptionProvider()),
+                ChangeNotifierProvider(
+                    create: (_) => new_ln_provider.LectureNoteProvider()),
+              ],
+              child: _getCurrentScreen(navProvider.currentPage, isStudent),
+            ),
           ),
         );
       },

@@ -2,7 +2,6 @@ import '../widgets/loading_button.dart';
 import '../../providers/loading_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:dental_care/providers/quiz_provider.dart';
 import 'package:dental_care/providers/quiz_attempt_provider.dart';
 import 'package:dental_care/provider/auth_provider.dart';
@@ -410,7 +409,7 @@ class _StudentQuizAvailableScreenV2State
                     return LoadingButton(
                       isLoading: loadingState.isLoading,
                       child: OutlinedButton.icon(
-                  onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = onReview; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+                  onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final op = onReview; await Future.sync(() => (op as dynamic)()); }),
                   icon: const Icon(Icons.preview, size: 18),
                   label: const Text('Review Answers'),
                   style: OutlinedButton.styleFrom(

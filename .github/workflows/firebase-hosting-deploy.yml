@@ -26,7 +26,7 @@ jobs:
         working-directory: dental_care
     steps:
       - uses: actions/checkout@v4
-      
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
@@ -38,7 +38,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-      
+
       - name: Get dependencies
         run: flutter pub get
 
@@ -50,10 +50,10 @@ jobs:
           npm --version
           pwd
           ls -la
-      
+
       - name: Build web
         run: flutter build web --release --no-wasm-dry-run
-      
+
       - name: Install Firebase CLI (local)
         run: npm install firebase-tools
 
@@ -63,6 +63,6 @@ jobs:
             echo "FIREBASE_TOKEN is missing in repository secrets"
             exit 1
           fi
-      
+
       - name: Deploy to Firebase Hosting
         run: npx firebase deploy --only hosting --project fyp26-a22b9 --token "${{ secrets.FIREBASE_TOKEN }}"

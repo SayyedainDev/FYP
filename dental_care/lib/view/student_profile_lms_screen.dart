@@ -3,7 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:dental_care/provider/auth_provider.dart';
 
 class StudentProfileLMSScreen extends StatefulWidget {
-  const StudentProfileLMSScreen({Key? key}) : super(key: key);
+  const StudentProfileLMSScreen({super.key});
 
   @override
   State<StudentProfileLMSScreen> createState() =>
@@ -45,10 +45,10 @@ class _StudentProfileLMSScreenState extends State<StudentProfileLMSScreen> {
                         backgroundImage: user.photoURL != null
                             ? NetworkImage(user.photoURL!)
                             : null,
-                        child: user.photoURL == null
-                            ? Icon(Icons.person, size: 50, color: Colors.white)
-                            : null,
                         backgroundColor: Colors.white.withValues(alpha: 0.3),
+                        child: user.photoURL == null
+                            ? const Icon(Icons.person, size: 50, color: Colors.white)
+                            : null,
                       ),
                       const SizedBox(height: 16),
                       Text(

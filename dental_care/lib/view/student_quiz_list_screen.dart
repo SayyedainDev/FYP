@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'student_quiz_taking_screen.dart';
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'dart:async';
 import 'dart:io';
@@ -234,7 +233,7 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
                 return LoadingButton(
                   isLoading: loadingState.isLoading,
                   child: IconButton(
-              onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = _loadData; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+              onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final op = _loadData; await Future.sync(() => (op as dynamic)()); }),
               icon: Icon(Icons.refresh, color: _cs.onPrimary),
               tooltip: 'Refresh',
               style: IconButton.styleFrom(
@@ -273,10 +272,10 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
                         isLoading: loadingState.isLoading,
                         child: IconButton(
                       icon: const Icon(Icons.clear, size: 20),
-                      onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () {
+                      onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() {
                         _searchController.clear();
                         setState(() => _searchQuery = '');
-                      }; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+                      } await Future.sync(() => (op as dynamic)()); }),
                     ),
                       );
                     },
@@ -421,7 +420,7 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
                 return LoadingButton(
                   isLoading: loadingState.isLoading,
                   child: ElevatedButton.icon(
-              onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = _loadData; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+              onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final op = _loadData; await Future.sync(() => (op as dynamic)()); }),
               icon: const Icon(Icons.refresh),
               label: const Text('Refresh'),
               style: ElevatedButton.styleFrom(
@@ -572,11 +571,11 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
                       return LoadingButton(
                         isLoading: loadingState.isLoading,
                         child: ElevatedButton.icon(
-                    onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () => _handleQuizTap(
+                    onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() => _handleQuizTap(
                       quiz,
                       existingAttempt,
                       authProvider,
-                    ); if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+                    ); await Future.sync(() => (op as dynamic)()); }),
                     icon: Icon(
                       isCompleted
                           ? Icons.visibility
@@ -825,7 +824,7 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
               return LoadingButton(
                 isLoading: loadingState.isLoading,
                 child: TextButton(
-            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () => Navigator.pop(context); if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() => Navigator.pop(context); await Future.sync(() => (op as dynamic)()); }),
             child: const Text('Cancel'),
           ),
               );
@@ -836,12 +835,12 @@ class _StudentQuizListScreenState extends State<StudentQuizListScreen> {
               return LoadingButton(
                 isLoading: loadingState.isLoading,
                 child: ElevatedButton.icon(
-            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () {
+            onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() {
               Navigator.pop(context);
               context
                   .push('/student/quiz/take', extra: quiz)
                   .then((_) => _loadData());
-            }; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+            } await Future.sync(() => (op as dynamic)()); }),
             icon: const Icon(Icons.play_arrow, size: 18),
             label: const Text('Start Quiz'),
             style: ElevatedButton.styleFrom(

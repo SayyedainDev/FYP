@@ -126,33 +126,41 @@ class StudentProfileScreen extends StatelessWidget {
                     child: ElevatedButton(
                       onPressed: () async {
                         final Map<String, dynamic> updateData = {};
-                        if (firstNameController.text.trim().isNotEmpty)
+                        if (firstNameController.text.trim().isNotEmpty) {
                           updateData['firstName'] =
                               firstNameController.text.trim();
-                        if (lastNameController.text.trim().isNotEmpty)
+                        }
+                        if (lastNameController.text.trim().isNotEmpty) {
                           updateData['lastName'] =
                               lastNameController.text.trim();
-                        if (phoneController.text.trim().isNotEmpty)
+                        }
+                        if (phoneController.text.trim().isNotEmpty) {
                           updateData['phone'] = phoneController.text.trim();
-                        if (studentIdController.text.trim().isNotEmpty)
+                        }
+                        if (studentIdController.text.trim().isNotEmpty) {
                           updateData['userId'] =
                               studentIdController.text.trim();
-                        if (programController.text.trim().isNotEmpty)
+                        }
+                        if (programController.text.trim().isNotEmpty) {
                           updateData['program'] = programController.text.trim();
-                        if (yearController.text.trim().isNotEmpty)
+                        }
+                        if (yearController.text.trim().isNotEmpty) {
                           updateData['yearOfStudy'] =
                               yearController.text.trim();
+                        }
 
                         try {
                           await authProvider.updateProfile(updateData);
-                          if (context.mounted)
+                          if (context.mounted) {
                             ScaffoldMessenger.of(context).showSnackBar(
                                 const SnackBar(
                                     content: Text('Profile updated')));
+                          }
                         } catch (e) {
-                          if (context.mounted)
+                          if (context.mounted) {
                             AppDialogs.showErrorDialog(context,
                                 message: e.toString());
+                          }
                         }
                       },
                       child: const Text('Save Profile'),

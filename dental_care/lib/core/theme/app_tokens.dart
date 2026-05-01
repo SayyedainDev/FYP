@@ -23,35 +23,31 @@ class AppDurations {
 }
 
 class AppColors {
-  // Modern balanced colors - professional and popular on modern websites
-  // Slightly darker shades, not pastel, not harsh - like Figma, Stripe, Linear
+  // More prominent colors - better contrast
   static const Color brandPrimary =
-      Color(0xFF3B82F6); // Modern blue (deeper than pastel, professional)
+      Color(0xFF3482F6); // Prominent blue
   static const Color brandSecondary =
-      Color(0xFF06B6D4); // Cyan accent (balanced saturation)
+      Color(0xFF2B5BE3); // Deeper secondary blue
 
-  static const Color lightBackground = Color(0xFFF8FAFC); // Clean light gray
+  static const Color lightBackground = Color(0xFFF1F4F9); // Slightly deeper light gray
   static const Color lightSurface =
-      Color(0xFFFFFFFF); // Pure white (better contrast)
+      Color(0xFFFFFFFF); // Pure white for better contrast
   static const Color lightOnSurface =
-      Color(0xFF1E293B); // Slate-900 (modern dark text)
+      Color(0xFF1E293B); // Darker slate for readability
 
-  static const Color sidebarDark = Color(0xFF1E293B); // Slate-900 (modern dark)
+  static const Color sidebarDark = Color(0xFF1E293B); // Deeper navy-slate
   static const Color sidebarDarkSoft =
-      Color(0xFF334155); // Slate-700 (complementary dark)
-  static const Color sidebarOnDark =
-      Color(0xFFF1F5F9); // Slate-100 (soft white)
-  static const Color sidebarAccent = Color(0xFF3B82F6); // Matching modern blue
+      Color(0xFF334155); // Prominent slate
+  static const Color sidebarOnDark = Color(0xFFF8FAFC); // Brighter white
+  static const Color sidebarAccent = Color(0xFF3482F6); // Matching prominent primary
 
-  static const Color darkBackground =
-      Color(0xFF0F172A); // Slate-950 (very dark)
-  static const Color darkSurface = Color(0xFF1E293B); // Slate-900 (dark)
+  static const Color darkBackground = Color(0xFF0F172A); // Deeper dark background
+  static const Color darkSurface = Color(0xFF1E293B); // Deeper dark surface
   static const Color darkOnSurface =
-      Color(0xFFF1F5F9); // Slate-100 (light text on dark)
+      Color(0xFFF1F5F9); // Crisp light gray for text
 
-  // Modern semantic colors - used in professional UI
-  static const Color success = Color(0xFF10B981); // Emerald-500 (vibrant green)
-  static const Color warning = Color(0xFFF59E0B); // Amber-500 (warm orange)
-  static const Color info = Color(0xFF0EA5E9); // Sky-500 (bright blue)
-  static const Color danger = Color(0xFFEF4444); // Red-500 (clear red)
+  static const Color success = Color(0xFF10B981); // Prominent emerald green
+  static const Color warning = Color(0xFFF59E0B); // Prominent amber
+  static const Color info = Color(0xFF0EA5E9); // Prominent sky blue
+  static const Color danger = Color(0xFFEF4444); // Prominent red
 }

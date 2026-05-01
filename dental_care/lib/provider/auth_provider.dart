@@ -7,6 +7,7 @@ import '../service/firebase_service.dart';
 import '../service/cache_service.dart';
 import '../service/shared_prefs_helper.dart';
 import '../controller/auth_controller.dart';
+import '../utils/session_manager.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthController _controller;
@@ -27,7 +28,20 @@ class AuthProvider extends ChangeNotifier {
   String? get providerId => uid; // Alias for consistency
   String? get userName => _userName;
   String? get userEmail => _userEmail;
-  String get userRole => _role;
+  String get userRole {
+    // ALWAYS fetch from session storage to guarantee tab isolation
+    final sessionRole = getUserRole();
+    if (sessionRole != null && sessionRole.isNotEmpty) {
+      _role = sessionRole;
+    } else {
+      // Force role validation: if no role in session, we shouldn't be logged in
+      if (uid != null) {
+        Future.microtask(() => logout());
+      }
+    }
+    return _role;
+  }
+
   bool get rememberMe => _rememberMe;
 
   // Get current Firebase user ID
@@ -69,35 +83,66 @@ class AuthProvider extends ChangeNotifier {
     _rememberMe = (await _secureStorage.read(key: _kRememberMeKey)) == 'true';
 
     final currentUser = FirebaseAuth.instance.currentUser;
-    if (currentUser != null) {
+    final sessionRole = getUserRole();
+
+    // Recover session from SharedPreferences if missing (fixes student refresh bug)
+    if (currentUser != null && (sessionRole == null || sessionRole.isEmpty)) {
+      try {
+        final prefs = SharedPrefsHelper();
+        final rawCachedInfo = prefs.getString('user_role_cache');
+        final savedRole =
+            await _secureStorage.read(key: _kSavedRoleKey) ?? 'Dentist';
+        if (savedRole.isNotEmpty) {
+          saveUserRole(savedRole); // put it back into session storage
+        }
+        uid = currentUser.uid;
+        _userEmail = currentUser.email;
+        _role = savedRole;
+        final cachedName = prefs.getString(SharedPrefsHelper.keyUserName);
+        if (cachedName != null) {
+          _userName = cachedName;
+        }
+        notifyListeners();
+        // background fetch to sync data
+        _fetchUserData(currentUser.uid).then((_) => notifyListeners());
+        return;
+      } catch (e) {
+        debugPrint('Error recovering from preferences: $e');
+      }
+    }
+
+    if (currentUser != null && sessionRole != null) {
       uid = currentUser.uid;
       _userEmail = currentUser.email;
+      _role = sessionRole;
       await _fetchUserData(currentUser.uid);
       if (_rememberMe) {
         await _persistSession();
       }
       notifyListeners();
       return;
-    }
-
-    if (_rememberMe) {
-      uid = await _secureStorage.read(key: _kSavedUidKey);
-      _userEmail = await _secureStorage.read(key: _kSavedEmailKey);
-      _role = await _secureStorage.read(key: _kSavedRoleKey) ?? 'Dentist';
-
-      // Try to load cached user data from SharedPreferences
-      try {
-        final prefs = SharedPrefsHelper();
-        final cachedName = prefs.getString(SharedPrefsHelper.keyUserName);
-        if (cachedName != null) {
-          _userName = cachedName;
-        }
-      } catch (e) {
-        debugPrint('Error loading cached user data: $e');
+    } else if (currentUser != null && _rememberMe) {
+      // Fallback: If sessionRole is missing but user checked "Remember Me",
+      // load role from secureStorage to restore session (e.g. after full browser close)
+      final savedRole = await _secureStorage.read(key: _kSavedRoleKey);
+      if (savedRole != null && savedRole.isNotEmpty) {
+        saveUserRole(savedRole); // Restore to sessionStorage
+        uid = currentUser.uid;
+        _userEmail = currentUser.email;
+        _role = savedRole;
+        await _fetchUserData(currentUser.uid);
+        notifyListeners();
+        return;
+      } else {
+        await logout();
       }
-
-      notifyListeners();
+      _role = 'Dentist';
     }
+
+    // DO NOT fallback to secureStorage / localStorage because it breaks multi-tab isolation.
+    // We only use that if explicitly allowed for single-session environments, but web needs strict tab isolation.
+
+    notifyListeners();
   }
 
   Future<void> _persistSession() async {
@@ -241,10 +286,16 @@ class AuthProvider extends ChangeNotifier {
     _loading = true;
     notifyListeners();
     try {
+      // 🔥 CRITICAL: Set persistence to SESSION (tab-specific)
+      await FirebaseAuth.instance.setPersistence(Persistence.SESSION);
+
       final id = await _controller.login(email: e, password: p);
       uid = id;
       _userEmail = e;
       await _fetchUserData(id);
+
+      // Save role in session storage
+      saveUserRole(_role);
 
       if (studentOnly && _role.toLowerCase() != 'student') {
         await logout();
@@ -278,6 +329,9 @@ class AuthProvider extends ChangeNotifier {
       _role = 'Dentist';
       _rememberMe = false;
       await _clearSession();
+
+      // 🔥 Clear only this tab’s session
+      clearSession();
 
       // Clear cached user data from SharedPreferences
       try {

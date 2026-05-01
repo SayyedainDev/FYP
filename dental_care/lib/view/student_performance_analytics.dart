@@ -4,7 +4,7 @@ import 'package:dental_care/providers/performance_provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 
 class StudentPerformanceAnalytics extends StatefulWidget {
-  const StudentPerformanceAnalytics({Key? key}) : super(key: key);
+  const StudentPerformanceAnalytics({super.key});
 
   @override
   State<StudentPerformanceAnalytics> createState() =>
@@ -84,7 +84,7 @@ class _StudentPerformanceAnalyticsState
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
+            const Text(
               'Overall Performance',
               style: TextStyle(
                 fontSize: 18,

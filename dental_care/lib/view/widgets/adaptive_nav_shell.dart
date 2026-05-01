@@ -51,7 +51,7 @@ class _AdaptiveNavShellState extends State<AdaptiveNavShell> {
               padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.medication_outlined,
                     color: AppColors.sidebarAccent,
                     size: 32,
@@ -151,7 +151,7 @@ class _AdaptiveNavShellState extends State<AdaptiveNavShell> {
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: Row(
                         children: [
-                          Icon(
+                          const Icon(
                             Icons.medication_outlined,
                             color: AppColors.sidebarAccent,
                           ),

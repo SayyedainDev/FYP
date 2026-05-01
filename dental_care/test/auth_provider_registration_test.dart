@@ -75,8 +75,9 @@ void _validateRegistrationForm(Map<String, String> form, String password) {
   if (lastName.isEmpty) throw Exception('Last name is required');
   if (cnic.isEmpty) throw Exception('License / CNIC is required');
   if (address.isEmpty) throw Exception('Practice address is required');
-  if (highestEducation.isEmpty)
+  if (highestEducation.isEmpty) {
     throw Exception('Highest education is required');
+  }
   if (email.isEmpty) throw Exception('Email is required');
 
   final emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');

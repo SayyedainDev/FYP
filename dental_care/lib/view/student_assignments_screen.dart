@@ -6,7 +6,7 @@ import 'package:dental_care/core/theme/app_tokens.dart';
 import 'student_assignment_detail_screen.dart';
 
 class StudentAssignmentsScreen extends StatefulWidget {
-  const StudentAssignmentsScreen({Key? key}) : super(key: key);
+  const StudentAssignmentsScreen({super.key});
 
   @override
   State<StudentAssignmentsScreen> createState() =>

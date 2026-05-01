@@ -6,9 +6,9 @@ class StudentAssignmentDetailScreen extends StatefulWidget {
   final Assignment assignment;
 
   const StudentAssignmentDetailScreen({
-    Key? key,
+    super.key,
     required this.assignment,
-  }) : super(key: key);
+  });
 
   @override
   State<StudentAssignmentDetailScreen> createState() =>

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-// dart:io and dart:typed_data not required here
+import 'dart:typed_data';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 // FirebaseService not directly used here
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -80,7 +80,7 @@ class CaseProvider extends ChangeNotifier {
       final querySnapshot = await _firestore
           .collection('cases')
           .where('dentistUid', isEqualTo: uid)
-          .orderBy('caseDate', descending: true)
+          .orderBy('caseDate', descending: true).limit(20)
           .get()
           .timeout(ProviderErrorUtils.requestTimeout);
 
@@ -109,7 +109,7 @@ class CaseProvider extends ChangeNotifier {
       _firestore
           .collection('cases')
           .where('dentistUid', isEqualTo: uid)
-          .orderBy('caseDate', descending: true)
+          .orderBy('caseDate', descending: true).limit(20)
           .snapshots()
           .listen(
         (snapshot) {
@@ -146,10 +146,9 @@ class CaseProvider extends ChangeNotifier {
     required String patientId,
     required String patientName,
     required String toothNumber,
-    required List<dynamic>
-        imageFiles, // List of image bytes (Uint8List for web) or File
+    required List<dynamic> imageFiles,
     String notes = '',
-    String caseStatus = 'Uploaded',
+    Map<String, dynamic>? initialAnalysisResults,
   }) async {
     try {
       final uid = _uid;
@@ -168,21 +167,36 @@ class CaseProvider extends ChangeNotifier {
       // Reserve a case id so uploads can include patientId/caseId path
       final caseId = _firestore.collection('cases').doc().id;
 
-      // Image uploads handled via Firebase Storage (Supabase removed)
-      // Store local file references for now
-      debugPrint('CaseProvider: Image uploads requested but Supabase removed.');
-      debugPrint(
-          'Implement Firebase Storage upload for ${imageFiles.length} images.');
-      // In production, use firebase_storage package to upload images
+      for (var file in imageFiles) {
+        if (file is Uint8List) {
+          try {
+            final storagePath =
+                'cases/$caseId/image_${DateTime.now().millisecondsSinceEpoch}.jpg';
+            await Supabase.instance.client.storage.from('Image').uploadBinary(
+                  storagePath,
+                  file,
+                  fileOptions:
+                      const FileOptions(cacheControl: '3600', upsert: true),
+                );
+            final url = Supabase.instance.client.storage
+                .from('Image')
+                .getPublicUrl(storagePath);
+            imageUrls.add(url);
+          } catch (e, stack) {
+            debugPrint('Error uploading image to Supabase: $e\\n$stack');
+            throw Exception(
+                'Failed to upload image. Please check your connection and try again.');
+          }
+        }
+      }
 
-      // Create initial analysis results with "Pending" status
-      // TODO: Replace this with actual API call results once Flask integration is complete
-      final initialAnalysisResults = {
-        'status': 'Pending AI Analysis',
-        'hasCavity': false,
-        'confidence': 0.0,
-        'details': 'Analysis will be performed by AI model',
-      };
+      final analysisResults = initialAnalysisResults ??
+          {
+            'status': 'Pending AI Analysis',
+            'hasCavity': false,
+            'confidence': 0.0,
+            'details': 'Analysis will be performed by AI model',
+          };
 
       final newCase = Case(
         id: '', // Will be set by Firestore
@@ -190,9 +204,8 @@ class CaseProvider extends ChangeNotifier {
         patientName: patientName,
         toothNumber: toothNumber,
         caseDate: DateTime.now(),
-        caseStatus: caseStatus,
         imageUrls: imageUrls,
-        analysisResults: initialAnalysisResults,
+        analysisResults: analysisResults,
         notes: notes,
       );
 
@@ -213,14 +226,14 @@ class CaseProvider extends ChangeNotifier {
       await fetchCases();
 
       return caseId;
-    } catch (e) {
+    } catch (e, stack) {
       _error = ProviderErrorUtils.mapErrorMessage(
         e,
         fallback: 'Failed to create case. Please try again.',
       );
       _loading = false;
       notifyListeners();
-      debugPrint('Error creating case: $e');
+      debugPrint('Error creating case: $e\\n$stack');
       rethrow;
     }
   }
@@ -266,7 +279,7 @@ class CaseProvider extends ChangeNotifier {
           .collection('cases')
           .where('dentistUid', isEqualTo: uid)
           .where('patientId', isEqualTo: patientId)
-          .orderBy('caseDate', descending: true)
+          .orderBy('caseDate', descending: true).limit(20)
           .get()
           .timeout(ProviderErrorUtils.requestTimeout);
 
@@ -387,14 +400,17 @@ class CaseProvider extends ChangeNotifier {
       // Find the case to get image URLs
       final caseToDelete = _cases.firstWhere((c) => c.id == caseId);
 
-      // Delete images from Firebase Storage using reference from URL
+      // Delete images from Supabase Storage using reference from URL
       for (String imageUrl in caseToDelete.imageUrls) {
         try {
-          final storage = FirebaseStorage.instance;
-          final ref = storage.refFromURL(imageUrl);
-          await ref.delete().timeout(ProviderErrorUtils.requestTimeout);
-        } catch (e) {
-          debugPrint('Error deleting image from Firebase Storage: $e');
+          final pathIndex = imageUrl.indexOf('/IMAGE/');
+          if (pathIndex != -1) {
+            final path = imageUrl.substring(pathIndex + 7); // +7 for '/IMAGE/'
+            await Supabase.instance.client.storage.from('Image').remove([path]);
+          }
+        } catch (e, stack) {
+          debugPrint('Error deleting image from Supabase Storage: $e\\n$stack');
+          throw Exception('Failed to delete image from storage.');
         }
       }
 
@@ -410,12 +426,12 @@ class CaseProvider extends ChangeNotifier {
       notifyListeners();
 
       return true;
-    } catch (e) {
+    } catch (e, stack) {
       _error = ProviderErrorUtils.mapErrorMessage(
         e,
         fallback: 'Failed to delete case. Please try again.',
       );
-      debugPrint('Error deleting case: $e');
+      debugPrint('Error deleting case: $e\\n$stack');
       notifyListeners();
       return false;
     }

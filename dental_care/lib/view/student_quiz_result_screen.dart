@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import 'package:confetti/confetti.dart';
 import '../core/animation_constants.dart';
 import '../core/theme/app_semantic_colors.dart';
@@ -126,12 +125,12 @@ class _StudentQuizResultScreenState extends State<StudentQuizResultScreen> {
                         return LoadingButton(
                           isLoading: loadingState.isLoading,
                           child: ElevatedButton(
-                      onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () {
+                      onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() {
                         setState(() {
                           _isGradingError = false;
                         });
                         _startPolling();
-                      }; if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+                      } await Future.sync(() => (op as dynamic)()); }),
                       child: const Text('Try Again'),
                     ),
                         );
@@ -335,7 +334,7 @@ class _StudentQuizResultScreenState extends State<StudentQuizResultScreen> {
                 return LoadingButton(
                   isLoading: loadingState.isLoading,
                   child: IconButton(
-              onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { final _op = () => Navigator.pop(context); if (_op != null) await Future.sync(() => (_op as dynamic)()); }),
+              onPressed: loadingState.isLoading ? null : () => loadingState.runAsyncAction(() async { op() => Navigator.pop(context); await Future.sync(() => (op as dynamic)()); }),
               icon: Icon(Icons.arrow_back, color: colorScheme.onPrimary),
             ),
                 );

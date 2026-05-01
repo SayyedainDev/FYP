@@ -13,7 +13,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../service/firebase_service.dart';
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:dotted_border/dotted_border.dart';
-import 'package:provider/provider.dart';
 
 import '../models/patient.dart';
 import '../provider/auth_provider.dart' as app_auth;
@@ -529,9 +528,10 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                       onPressed: loadingState.isLoading
                           ? null
                           : () => loadingState.runAsyncAction(() async {
-                                final _op = _isAnalyzing ? null : _pickImages;
-                                if (_op != null)
-                                  await Future.sync(() => (_op as dynamic)());
+                                final op = _isAnalyzing ? null : _pickImages;
+                                if (op != null) {
+                                  await Future.sync(() => (op as dynamic)());
+                                }
                               }),
                       icon: const Icon(Icons.add_photo_alternate_outlined,
                           size: 18),
@@ -733,10 +733,9 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                       onPressed: loadingState.isLoading
                           ? null
                           : () => loadingState.runAsyncAction(() async {
-                                final _op = _showAddPatientDialog;
-                                if (_op != null)
-                                  await Future.sync(() => (_op as dynamic)());
-                              }),
+                                final op = _showAddPatientDialog;
+                                await Future.sync(() => (op as dynamic)());
+                                                            }),
                       icon: const Icon(Icons.add, size: 16),
                       label: const Text(
                         'Add New Patient',
@@ -863,11 +862,12 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                   onPressed: loadingState.isLoading
                       ? null
                       : () => loadingState.runAsyncAction(() async {
-                            final _op = (canDiagnose && !_isAnalyzing)
+                            final op = (canDiagnose && !_isAnalyzing)
                                 ? _diagnoseCase
                                 : null;
-                            if (_op != null)
-                              await Future.sync(() => (_op as dynamic)());
+                            if (op != null) {
+                              await Future.sync(() => (op as dynamic)());
+                            }
                           }),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: colorScheme.primary,
@@ -904,9 +904,10 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                 onPressed: loadingState.isLoading
                     ? null
                     : () => loadingState.runAsyncAction(() async {
-                          final _op = _isAnalyzing ? null : _clearCase;
-                          if (_op != null)
-                            await Future.sync(() => (_op as dynamic)());
+                          final op = _isAnalyzing ? null : _clearCase;
+                          if (op != null) {
+                            await Future.sync(() => (op as dynamic)());
+                          }
                         }),
                 child: const Text('Clear', style: TextStyle(fontSize: 16)),
               ),
@@ -1055,10 +1056,9 @@ class _CreateCaseScreenState extends State<CreateCaseScreen> {
                   onPressed: loadingState.isLoading
                       ? null
                       : () => loadingState.runAsyncAction(() async {
-                            final _op = _clearCase;
-                            if (_op != null)
-                              await Future.sync(() => (_op as dynamic)());
-                          }),
+                            final op = _clearCase;
+                            await Future.sync(() => (op as dynamic)());
+                                                    }),
                   icon: const Icon(Icons.add, size: 20),
                   label: const Text('Start New Case'),
                   style: TextButton.styleFrom(
@@ -1559,12 +1559,13 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
                           onPressed: loadingState.isLoading
                               ? null
                               : () => loadingState.runAsyncAction(() async {
-                                    final _op = _isLoading
+                                    final op = _isLoading
                                         ? null
                                         : () => Navigator.pop(context);
-                                    if (_op != null)
+                                    if (op != null) {
                                       await Future.sync(
-                                          () => (_op as dynamic)());
+                                          () => (op as dynamic)());
+                                    }
                                   }),
                           child: const Text('Cancel'),
                         ),
@@ -1580,11 +1581,12 @@ class _AddPatientDialogState extends State<_AddPatientDialog> {
                           onPressed: loadingState.isLoading
                               ? null
                               : () => loadingState.runAsyncAction(() async {
-                                    final _op =
+                                    final op =
                                         _isLoading ? null : _savePatient;
-                                    if (_op != null)
+                                    if (op != null) {
                                       await Future.sync(
-                                          () => (_op as dynamic)());
+                                          () => (op as dynamic)());
+                                    }
                                   }),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: colorScheme.primary,

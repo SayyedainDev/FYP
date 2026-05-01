@@ -43,7 +43,7 @@ class PatientProvider extends ChangeNotifier {
       QuerySnapshot querySnapshot;
       try {
         querySnapshot = await query
-            .orderBy('createdAt', descending: true)
+            .orderBy('createdAt', descending: true).limit(20)
             .get()
             .timeout(ProviderErrorUtils.requestTimeout);
       } catch (e) {
@@ -163,14 +163,14 @@ class PatientProvider extends ChangeNotifier {
           'patientIds': FieldValue.arrayRemove([patientId]),
         }).timeout(ProviderErrorUtils.requestTimeout);
       }
-    } catch (e) {
+    } catch (e, stack) {
       // If patientIds field doesn't exist, create it
+      debugPrint('Error updating user patients list: $e\\n$stack');
       if (isAdd) {
         await _firestore.collection('users').doc(dentistUid).set({
           'patientIds': [patientId],
         }, SetOptions(merge: true)).timeout(ProviderErrorUtils.requestTimeout);
       }
-      debugPrint('Updated user patients list: $e');
     }
   }
 

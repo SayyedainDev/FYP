@@ -5,7 +5,7 @@ import 'package:dental_care/provider/auth_provider.dart';
 import 'package:dental_care/core/theme/app_tokens.dart';
 
 class StudentResultsScreen extends StatefulWidget {
-  const StudentResultsScreen({Key? key}) : super(key: key);
+  const StudentResultsScreen({super.key});
 
   @override
   State<StudentResultsScreen> createState() => _StudentResultsScreenState();
