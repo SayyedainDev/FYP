@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import '../models/lecture_note_model.dart';
 
 class NoteCard extends StatelessWidget {
@@ -21,6 +22,19 @@ class NoteCard extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Could not open file')),
+        );
+      }
+      return;
+    }
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  Future<void> _downloadFile(BuildContext context, String fileUrl) async {
+    final uri = Uri.parse(fileUrl);
+    if (!await canLaunchUrl(uri)) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Could not download file')),
         );
       }
       return;
@@ -50,6 +64,7 @@ class NoteCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               width: 54,
@@ -88,7 +103,9 @@ class NoteCard extends StatelessWidget {
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 4),
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: colorScheme.primary.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(999),
@@ -120,8 +137,11 @@ class NoteCard extends StatelessWidget {
                   const SizedBox(height: 10),
                   Row(
                     children: [
-                      Icon(Icons.attach_file_rounded,
-                          size: 14, color: Colors.grey.shade500),
+                      Icon(
+                        Icons.attach_file_rounded,
+                        size: 14,
+                        color: Colors.grey.shade500,
+                      ),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -139,30 +159,50 @@ class NoteCard extends StatelessWidget {
                 ],
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Column(
               children: [
                 ElevatedButton.icon(
                   onPressed: () => _openFile(context, note.fileUrl),
-                  icon: const Icon(Icons.download_rounded, size: 16),
-                  label: const Text('Open'),
+                  icon: const Icon(Icons.visibility, size: 16),
+                  label: const Text('View'),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: colorScheme.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(
-                        horizontal: 14, vertical: 10),
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     elevation: 0,
                   ),
                 ),
+                const SizedBox(height: 6),
+                OutlinedButton.icon(
+                  onPressed: () => _downloadFile(context, note.fileUrl),
+                  icon: const Icon(Icons.download, size: 16),
+                  label: const Text('Download'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: colorScheme.primary,
+                    side: BorderSide(color: colorScheme.primary),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 8,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                ),
                 if (canDelete) ...[
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 6),
                   IconButton(
                     icon: const Icon(Icons.delete_outline, color: Colors.red),
                     onPressed: onDelete,
                     tooltip: 'Delete',
+                    iconSize: 18,
                   ),
                 ],
               ],

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:dental_care/providers/quiz_attempt_provider.dart';
 import 'package:dental_care/provider/auth_provider.dart';
 import 'package:dental_care/core/theme/app_tokens.dart';
+import 'package:dental_care/widgets/student_screen_header.dart';
 
 class StudentResultsScreen extends StatefulWidget {
   const StudentResultsScreen({super.key});
@@ -38,41 +39,64 @@ class _StudentResultsScreenState extends State<StudentResultsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [_studentColors.primary, _studentColors.tertiary],
-            ),
-          ),
-          child: SafeArea(
-            bottom: false,
-            child: TabBar(
-              controller: _tabController,
-              labelColor: Colors.white,
-              unselectedLabelColor: Colors.white70,
-              indicatorColor: Colors.white,
-              indicatorSize: TabBarIndicatorSize.label,
-              tabs: const [
-                Tab(icon: Icon(Icons.history), text: 'All Attempts'),
-                Tab(icon: Icon(Icons.bar_chart), text: 'Statistics'),
-              ],
-            ),
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              _studentColors.primary.withValues(alpha: 0.08),
+              _studentColors.surface,
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
           ),
         ),
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildAttemptsTab(),
-              _buildStatisticsTab(),
+        child: SafeArea(
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: StudentScreenHeader(
+                  title: 'My Results',
+                  subtitle: 'Track your quiz performance and statistics',
+                  iconData: Icons.assessment,
+                  colorScheme: _studentColors,
+                ),
+              ),
+              SliverToBoxAdapter(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [_studentColors.primary, _studentColors.tertiary],
+                    ),
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white70,
+                    indicatorColor: Colors.white,
+                    indicatorSize: TabBarIndicatorSize.label,
+                    tabs: const [
+                      Tab(icon: Icon(Icons.history), text: 'All Attempts'),
+                      Tab(icon: Icon(Icons.bar_chart), text: 'Statistics'),
+                    ],
+                  ),
+                ),
+              ),
+              SliverFillRemaining(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildAttemptsTab(),
+                    _buildStatisticsTab(),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
-      ],
+      ),
     );
   }
 

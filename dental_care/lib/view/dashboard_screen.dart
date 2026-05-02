@@ -481,7 +481,7 @@ class _ActivityFeedSection extends StatelessWidget {
                                     color: statusColor.withOpacity(0.2)),
                               ),
                               child: Text(
-                                isCavity ? 'Cavity Detected' : 'Healthy',
+                                isCavity ? 'Disease Detected' : 'Healthy',
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,

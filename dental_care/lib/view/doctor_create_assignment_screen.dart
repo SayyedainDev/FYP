@@ -4,9 +4,12 @@ import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:dental_care/providers/assignment_provider.dart';
 import 'package:dental_care/provider/auth_provider.dart';
+import 'package:dental_care/models/assignment.dart';
 
 class DoctorCreateAssignmentScreen extends StatefulWidget {
-  const DoctorCreateAssignmentScreen({super.key});
+  final Assignment? assignmentToEdit;
+
+  const DoctorCreateAssignmentScreen({super.key, this.assignmentToEdit});
 
   @override
   State<DoctorCreateAssignmentScreen> createState() =>

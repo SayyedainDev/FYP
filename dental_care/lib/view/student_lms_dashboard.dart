@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:dental_care/provider/auth_provider.dart';
 import 'package:dental_care/providers/quiz_attempt_provider.dart';
 import 'package:dental_care/providers/quiz_provider.dart';
+import 'package:dental_care/providers/assignment_provider.dart';
+import 'package:dental_care/features/lecture_notes/providers/lecture_note_provider.dart';
 // import removed: navigation provider not used
 import 'package:dental_care/core/theme/app_tokens.dart';
 import 'package:dental_care/core/responsive/app_breakpoints.dart';
@@ -39,9 +41,15 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
 
     final quizProv = context.read<QuizProvider>();
     final attemptProv = context.read<QuizAttemptProvider>();
+    final assignmentProv = context.read<AssignmentProvider>();
+    final lectureNoteProv = context.read<LectureNoteProvider>();
 
-    await quizProv.fetchPublishedQuizzes();
-    await attemptProv.fetchStudentAttempts(uid);
+    await Future.wait([
+      quizProv.fetchPublishedQuizzes(),
+      attemptProv.fetchStudentAttempts(uid),
+      assignmentProv.fetchStudentAssignments(uid),
+      lectureNoteProv.fetchAll(),
+    ]);
   }
 
   Widget _getContent() {
@@ -495,19 +503,62 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
                     ],
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child:
-                      const Icon(Icons.school, color: Colors.white, size: 40),
+                const SizedBox(width: 16),
+                Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(14),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.2),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.school,
+                          color: Colors.white, size: 32),
+                    ),
+                    const SizedBox(height: 10),
+                    // Notifications badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.shade400,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.notifications,
+                              color: Colors.white, size: 18),
+                          const SizedBox(width: 6),
+                          const Text(
+                            '0',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
           const SizedBox(height: 32),
+
+          // Performance Title
+          Text(
+            'Your Performance',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 16),
 
           // Key Stats Cards
           GridView.count(
@@ -545,6 +596,17 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
           ),
           const SizedBox(height: 32),
 
+          // Quiz Section Title
+          Text(
+            'Quiz Management',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 16),
+
           // Split Content: Recent Attempts & Available Quizzes
           LayoutBuilder(
             builder: (context, constraints) {
@@ -575,6 +637,307 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
               }
             },
           ),
+          const SizedBox(height: 32),
+
+          // Assignments and Lecture Notes Section
+          Text(
+            'Learning Resources',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Theme.of(context).colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Assignments and Lecture Notes
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isDesktop = constraints.maxWidth > 800;
+              final assignmentProvider = context.watch<AssignmentProvider>();
+              final lectureNoteProvider = context.watch<LectureNoteProvider>();
+
+              if (isDesktop) {
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      flex: 1,
+                      child: _buildAssignmentsSection(assignmentProvider),
+                    ),
+                    const SizedBox(width: 24),
+                    Expanded(
+                      flex: 1,
+                      child: _buildLectureNotesSection(lectureNoteProvider),
+                    ),
+                  ],
+                );
+              } else {
+                return Column(
+                  children: [
+                    _buildAssignmentsSection(assignmentProvider),
+                    const SizedBox(height: 24),
+                    _buildLectureNotesSection(lectureNoteProvider),
+                  ],
+                );
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAssignmentsSection(AssignmentProvider assignmentProvider) {
+    final upcomingAssignments = assignmentProvider.assignments
+        .where((a) => a.dueDate.isAfter(DateTime.now()))
+        .take(3)
+        .toList();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Pending Assignments',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                ),
+                if (assignmentProvider.assignments.isNotEmpty)
+                  TextButton(
+                    onPressed: () => _navigateTo('Assignments'),
+                    child: const Text('View All'),
+                  ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: Colors.grey.shade200),
+          if (upcomingAssignments.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.assignment_turned_in_outlined,
+                        size: 48, color: Colors.grey[300]),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No pending assignments',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: upcomingAssignments.length,
+              separatorBuilder: (context, index) =>
+                  Divider(height: 1, color: Colors.grey.shade100),
+              itemBuilder: (context, index) {
+                final assignment = upcomingAssignments[index];
+                final daysLeft =
+                    assignment.dueDate.difference(DateTime.now()).inDays;
+
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(Icons.assignment,
+                            color: Colors.orange.shade700, size: 24),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              assignment.title,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              daysLeft > 0
+                                  ? 'Due in $daysLeft days'
+                                  : 'Due today',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: daysLeft <= 3
+                                    ? Colors.red
+                                    : Colors.grey[600],
+                                fontWeight: daysLeft <= 3
+                                    ? FontWeight.w600
+                                    : FontWeight.normal,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(
+                        daysLeft <= 3
+                            ? Icons.warning_amber
+                            : Icons.arrow_forward,
+                        color: daysLeft <= 3 ? Colors.red : Colors.grey[400],
+                        size: 20,
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLectureNotesSection(LectureNoteProvider lectureNoteProvider) {
+    final recentNotes = lectureNoteProvider.notes.take(3).toList();
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
+          ),
+        ],
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Recent Lecture Notes',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF1A1A1A),
+                  ),
+                ),
+                if (lectureNoteProvider.notes.isNotEmpty)
+                  TextButton(
+                    onPressed: () => _navigateTo('Lecture Notes'),
+                    child: const Text('View All'),
+                  ),
+              ],
+            ),
+          ),
+          Divider(height: 1, color: Colors.grey.shade200),
+          if (recentNotes.isEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
+              child: Center(
+                child: Column(
+                  children: [
+                    Icon(Icons.library_books_outlined,
+                        size: 48, color: Colors.grey[300]),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No lecture notes available',
+                      style: TextStyle(color: Colors.grey[500], fontSize: 14),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: recentNotes.length,
+              separatorBuilder: (context, index) =>
+                  Divider(height: 1, color: Colors.grey.shade100),
+              itemBuilder: (context, index) {
+                final note = recentNotes[index];
+
+                return Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: Colors.blue.shade100,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(Icons.sticky_note_2,
+                            color: Colors.blue.shade700, size: 24),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              note.title,
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w600,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              note.moduleId,
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Icon(Icons.arrow_forward,
+                          color: Colors.grey[400], size: 20),
+                    ],
+                  ),
+                );
+              },
+            ),
         ],
       ),
     );

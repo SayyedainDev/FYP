@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:dental_care/providers/assignment_provider.dart';
 import 'package:dental_care/provider/auth_provider.dart';
 import 'doctor_create_assignment_screen.dart';
@@ -210,7 +211,15 @@ class _DoctorAssignmentsManagementScreenState
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () {
-                          // Edit assignment
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) =>
+                                  DoctorCreateAssignmentScreen(
+                                assignmentToEdit: assignment,
+                              ),
+                            ),
+                          );
                         },
                         child: const Text('Edit'),
                       ),
@@ -219,7 +228,7 @@ class _DoctorAssignmentsManagementScreenState
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () {
-                          // View submissions
+                          _tabController.animateTo(1);
                         },
                         child: const Text('Submissions'),
                       ),
@@ -236,6 +245,7 @@ class _DoctorAssignmentsManagementScreenState
 
   Widget _buildSubmissionsList(dynamic assignmentProvider) {
     final submissions = assignmentProvider.submissions;
+    final colorScheme = Theme.of(context).colorScheme;
 
     if (submissions.isEmpty) {
       return Center(
@@ -258,6 +268,14 @@ class _DoctorAssignmentsManagementScreenState
       itemCount: submissions.length,
       itemBuilder: (context, index) {
         final submission = submissions[index];
+        // Try to get studentName, fallback to studentId if not available
+        final studentName = (submission.studentName != null &&
+                submission.studentName!.isNotEmpty)
+            ? submission.studentName
+            : (submission.studentId?.isNotEmpty ?? false
+                ? submission.studentId
+                : 'Unknown Student');
+
         return Card(
           margin: const EdgeInsets.symmetric(vertical: 8),
           elevation: 2,
@@ -275,7 +293,7 @@ class _DoctorAssignmentsManagementScreenState
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Student: ${submission.studentId}',
+                          studentName,
                           style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -292,6 +310,102 @@ class _DoctorAssignmentsManagementScreenState
                       label: Text(submission.status),
                       backgroundColor:
                           _getSubmissionStatusColor(submission.status),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                // File Info
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: colorScheme.surface,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: colorScheme.outlineVariant),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.attachment,
+                          size: 18, color: colorScheme.primary),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              submission.fileName ?? 'Submission File',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: 13,
+                              ),
+                            ),
+                            if (submission.submissionNotes?.isNotEmpty ?? false)
+                              Text(
+                                'Notes: ${submission.submissionNotes}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                // View/Download Buttons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          if (submission.submissionFileUrl != null &&
+                              submission.submissionFileUrl!.isNotEmpty) {
+                            try {
+                              await _launchUrl(submission.submissionFileUrl!);
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content: Text('Error opening file: $e')),
+                                );
+                              }
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.visibility),
+                        label: const Text('View'),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () async {
+                          if (submission.submissionFileUrl != null &&
+                              submission.submissionFileUrl!.isNotEmpty) {
+                            try {
+                              await _downloadFile(
+                                submission.submissionFileUrl!,
+                                submission.fileName ?? 'submission',
+                              );
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                      content: Text('Error downloading: $e')),
+                                );
+                              }
+                            }
+                          }
+                        },
+                        icon: const Icon(Icons.download),
+                        label: const Text('Download'),
+                      ),
                     ),
                   ],
                 ),
@@ -341,6 +455,48 @@ class _DoctorAssignmentsManagementScreenState
         );
       },
     );
+  }
+
+  Future<void> _launchUrl(String url) async {
+    try {
+      final uri = Uri.parse(url);
+      if (!await canLaunchUrl(uri)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not open file')),
+          );
+        }
+        return;
+      }
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _downloadFile(String url, String fileName) async {
+    try {
+      final uri = Uri.parse(url);
+      if (!await canLaunchUrl(uri)) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Could not download file')),
+          );
+        }
+        return;
+      }
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
+    }
   }
 
   void _showGradingDialog(BuildContext context, dynamic submission) {

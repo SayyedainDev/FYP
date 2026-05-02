@@ -181,14 +181,162 @@ class _StudentMyResultsScreenState extends State<StudentMyResultsScreen> {
       );
     }
 
+    // Calculate statistics
+    final totalAttempts = submittedAttempts.length;
+    final passedAttempts =
+        submittedAttempts.where((a) => a.scorePercentage >= 50).length;
+    final avgScore = submittedAttempts.isEmpty
+        ? 0.0
+        : submittedAttempts
+                .map((a) => a.scorePercentage)
+                .reduce((a, b) => a + b) /
+            submittedAttempts.length;
+    final bestScore = submittedAttempts.isEmpty
+        ? 0.0
+        : submittedAttempts
+            .map((a) => a.scorePercentage)
+            .reduce((a, b) => a > b ? a : b);
+    final passingRate = submittedAttempts.isEmpty
+        ? 0.0
+        : (passedAttempts / totalAttempts) * 100;
+
     return RefreshIndicator(
       onRefresh: _loadResults,
-      child: ListView.builder(
+      child: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
-        itemCount: submittedAttempts.length,
-        itemBuilder: (context, index) {
-          return _buildResultCard(submittedAttempts[index]);
-        },
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Overall Statistics Cards
+            Text(
+              'Overall Statistics',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: _cs.onSurface,
+              ),
+            ),
+            const SizedBox(height: 12),
+            GridView.count(
+              crossAxisCount: MediaQuery.of(context).size.width > 1000
+                  ? 4
+                  : (MediaQuery.of(context).size.width > 600 ? 2 : 2),
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              mainAxisSpacing: 12,
+              crossAxisSpacing: 12,
+              childAspectRatio: 1.8,
+              children: [
+                _buildStatisticCard(
+                  title: 'Total Attempts',
+                  value: totalAttempts.toString(),
+                  icon: Icons.assignment_turned_in,
+                  color: _sem?.success ?? _cs.secondary,
+                ),
+                _buildStatisticCard(
+                  title: 'Average Score',
+                  value: '${avgScore.toStringAsFixed(1)}%',
+                  icon: Icons.trending_up,
+                  color: Colors.blue,
+                ),
+                _buildStatisticCard(
+                  title: 'Best Score',
+                  value: '${bestScore.toStringAsFixed(0)}%',
+                  icon: Icons.star,
+                  color: Colors.amber.shade600,
+                ),
+                _buildStatisticCard(
+                  title: 'Passing Rate',
+                  value: '${passingRate.toStringAsFixed(0)}%',
+                  icon: Icons.percent,
+                  color: Colors.purple,
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+
+            // Results List
+            Text(
+              'Quiz Results',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: _cs.onSurface,
+              ),
+            ),
+            const SizedBox(height: 12),
+            ListView.builder(
+              padding: EdgeInsets.zero,
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: submittedAttempts.length,
+              itemBuilder: (context, index) {
+                return _buildResultCard(submittedAttempts[index]);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatisticCard({
+    required String title,
+    required String value,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: _cs.surface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: color.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: _cs.shadow.withValues(alpha: 0.06),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              icon,
+              color: color,
+              size: 18,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: _cs.onSurface,
+            ),
+          ),
+          Text(
+            title,
+            style: TextStyle(
+              fontSize: 11,
+              color: _cs.onSurfaceVariant,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
       ),
     );
   }

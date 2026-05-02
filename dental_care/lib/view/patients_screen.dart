@@ -5,7 +5,6 @@ import 'dart:async';
 import 'dart:io';
 
 import '../models/patient.dart';
-import '../models/scan.dart';
 import '../models/case.dart';
 import '../providers/patient_provider.dart';
 import '../providers/scan_provider.dart';
@@ -22,9 +21,6 @@ import '../widgets/loaders/app_loader.dart';
 import 'widgets/create_case_dialog.dart';
 import 'widgets/write_prescription_dialog.dart';
 import 'widgets/prescription_list_view.dart';
-import '../features/dental_detection/screens/detection_detail_screen.dart';
-import '../data/repositories/detection_repository.dart';
-import '../data/models/detection_record.dart';
 
 class PatientsScreen extends StatefulWidget {
   const PatientsScreen({super.key});
@@ -472,8 +468,15 @@ class _PatientsScreenState extends State<PatientsScreen> {
     showDialog(
       context: context,
       barrierColor: colorScheme.shadow.withValues(alpha: 0.5),
-      builder: (dialogContext) => ChangeNotifierProvider<ScanProvider>.value(
-        value: Provider.of<ScanProvider>(context, listen: false),
+      builder: (dialogContext) => MultiProvider(
+        providers: [
+          ChangeNotifierProvider<ScanProvider>.value(
+            value: Provider.of<ScanProvider>(context, listen: false),
+          ),
+          ChangeNotifierProvider<PrescriptionProvider>.value(
+            value: Provider.of<PrescriptionProvider>(context, listen: false),
+          ),
+        ],
         child: Dialog(
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -677,370 +680,28 @@ class _PatientsScreenState extends State<PatientsScreen> {
                             ),
                           ],
 
-                          // Recent scans preview
-                          const SizedBox(height: 20),
-                          const _SectionHeader('Recent Scans'),
-                          const SizedBox(height: 12),
-                          FutureBuilder<List<Scan>>(
-                            future: Provider.of<ScanProvider>(
-                              context,
-                              listen: false,
-                            ).fetchScansForPatient(patient.id),
-                            builder: (context, snap) {
-                              if (snap.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const SizedBox(
-                                  height: 80,
-                                  child: Center(child: AppLoader(size: 36)),
-                                );
-                              }
-                              // Handle Firestore index error
-                              if (snap.hasError &&
-                                  snap.error is FirebaseException) {
-                                final error = snap.error as FirebaseException;
-                                if (error.code == 'failed-precondition') {
-                                  return Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      color: colorScheme.errorContainer,
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: colorScheme.error,
-                                      ),
-                                    ),
-                                    child: Column(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Index Required',
-                                          style: TextStyle(
-                                            color: colorScheme.error,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          'A Firestore composite index is required to display scans. Create it in Firebase Console.',
-                                          style: TextStyle(
-                                            color: colorScheme.onErrorContainer,
-                                            fontSize: 13,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 12),
-                                        GestureDetector(
-                                          onTap: () {
-                                            // Open Firebase console in browser
-                                            const indexUrl =
-                                                'https://console.firebase.google.com/v1/r/project/fyp26-a22b9/firestore/indexes';
-                                            debugPrint(
-                                                'Open Firestore indexes: $indexUrl');
-                                            // Note: url_launcher package needed to open browser. For now, copy link to clipboard.
-                                          },
-                                          child: Text(
-                                            'Tap to see index details',
-                                            style: TextStyle(
-                                              color: colorScheme.error,
-                                              fontWeight: FontWeight.bold,
-                                              decoration:
-                                                  TextDecoration.underline,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }
-                              }
-                              final scans = snap.data ?? [];
-                              if (scans.isEmpty) {
-                                return Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.surfaceContainerLowest,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: colorScheme.outlineVariant,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'No scans yet for this patient',
-                                    style: TextStyle(
-                                        color: colorScheme.onSurfaceVariant),
-                                  ),
-                                );
-                              }
-
-                              return SizedBox(
-                                height: 92,
-                                child: ListView.separated(
-                                  scrollDirection: Axis.horizontal,
-                                  itemBuilder: (c, i) {
-                                    final s = scans[i];
-                                    return Stack(
-                                      children: [
-                                        InkWell(
-                                          onTap: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) =>
-                                                    DetectionDetailScreen(
-                                                  record: DetectionRecord(
-                                                    id: s.id,
-                                                    createdAt: s.scanDate,
-                                                    patientId: s.patientId,
-                                                    originalImagePath:
-                                                        s.imageUrl,
-                                                    annotatedImagePath: s
-                                                        .imageUrl, // For now assume annotated
-                                                    rawResponse: {},
-                                                    conditionsFound: [
-                                                      s.cavityStatus
-                                                    ],
-                                                    totalDetections:
-                                                        s.cavityStatus ==
-                                                                'Healthy'
-                                                            ? 0
-                                                            : 1,
-                                                    highestConfidence:
-                                                        s.confidence / 100,
-                                                    notes: s.notes,
-                                                  ),
-                                                ),
-                                              ),
-                                            );
-                                          },
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              ClipRRect(
-                                                borderRadius:
-                                                    BorderRadius.circular(8),
-                                                child: s.imageUrl.isNotEmpty
-                                                    ? Image.network(
-                                                        s.imageUrl,
-                                                        width: 120,
-                                                        height: 64,
-                                                        fit: BoxFit.cover,
-                                                      )
-                                                    : Container(
-                                                        width: 120,
-                                                        height: 64,
-                                                        color: colorScheme
-                                                            .surfaceContainerLowest,
-                                                        child: const Icon(
-                                                          Icons.broken_image,
-                                                        ),
-                                                      ),
-                                              ),
-                                              const SizedBox(height: 6),
-                                              SizedBox(
-                                                width: 120,
-                                                child: Text(
-                                                  s.timeAgo,
-                                                  style: TextStyle(
-                                                    fontSize: 12,
-                                                    color: colorScheme
-                                                        .onSurfaceVariant,
-                                                  ),
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Positioned(
-                                          top: 4,
-                                          right: 4,
-                                          child: Container(
-                                            width: 24,
-                                            height: 24,
-                                            decoration: BoxDecoration(
-                                              color:
-                                                  Colors.black.withOpacity(0.5),
-                                              shape: BoxShape.circle,
-                                            ),
-                                            child: IconButton(
-                                              padding: EdgeInsets.zero,
-                                              icon: const Icon(Icons.close,
-                                                  size: 14,
-                                                  color: Colors.white),
-                                              onPressed: () async {
-                                                final confirm =
-                                                    await showDialog<bool>(
-                                                  context: context,
-                                                  builder: (ctx) => AlertDialog(
-                                                    title: const Text(
-                                                        'Delete Scan'),
-                                                    content: const Text(
-                                                        'Are you sure you want to delete this scan?'),
-                                                    actions: [
-                                                      TextButton(
-                                                        onPressed: () =>
-                                                            Navigator.pop(
-                                                                ctx, false),
-                                                        child: const Text(
-                                                            'Cancel'),
-                                                      ),
-                                                      TextButton(
-                                                        onPressed: () =>
-                                                            Navigator.pop(
-                                                                ctx, true),
-                                                        child: const Text(
-                                                            'Delete',
-                                                            style: TextStyle(
-                                                                color: Colors
-                                                                    .red)),
-                                                      ),
-                                                    ],
-                                                  ),
-                                                );
-
-                                                if (confirm == true) {
-                                                  await Provider.of<
-                                                              ScanProvider>(
-                                                          context,
-                                                          listen: false)
-                                                      .deleteScan(s.id);
-                                                  // Refresh local UI state if needed, although ScanProvider fetchScans() is called
-                                                }
-                                              },
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  },
-                                  separatorBuilder: (_, __) =>
-                                      const SizedBox(width: 12),
-                                  itemCount: scans.length,
-                                ),
-                              );
-                            },
-                          ),
-
-                          // AI Detections Section
-                          const SizedBox(height: 20),
-                          const _SectionHeader('AI Detections'),
-                          const SizedBox(height: 12),
-                          FutureBuilder<List<DetectionRecord>>(
-                            future: DetectionRepository()
-                                .getDetectionsForPatient(patient.id),
-                            builder: (context, snap) {
-                              if (snap.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const SizedBox(
-                                  height: 80,
-                                  child: Center(child: AppLoader(size: 36)),
-                                );
-                              }
-                              final records = snap.data ?? [];
-                              if (records.isEmpty) {
-                                return Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.surfaceContainerLowest,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                        color: colorScheme.outlineVariant),
-                                  ),
-                                  child: Text(
-                                    'No AI detections yet',
-                                    style: TextStyle(
-                                        color: colorScheme.onSurfaceVariant),
-                                  ),
-                                );
-                              }
-
-                              return SizedBox(
-                                height: 110,
-                                child: ListView.separated(
-                                  scrollDirection: Axis.horizontal,
-                                  itemBuilder: (c, i) {
-                                    final r = records[i];
-                                    return InkWell(
-                                      onTap: () {
-                                        Navigator.push(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) =>
-                                                DetectionDetailScreen(
-                                                    record: r),
-                                          ),
-                                        );
-                                      },
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          ClipRRect(
-                                            borderRadius:
-                                                BorderRadius.circular(8),
-                                            child: r.annotatedImageUrl != null
-                                                ? Image.network(
-                                                    r.annotatedImageUrl!,
-                                                    width: 120,
-                                                    height: 64,
-                                                    fit: BoxFit.cover,
-                                                    errorBuilder: (_, __,
-                                                            ___) =>
-                                                        const Icon(
-                                                            Icons.broken_image),
-                                                  )
-                                                : Container(
-                                                    width: 120,
-                                                    height: 64,
-                                                    color: colorScheme
-                                                        .surfaceContainerLowest,
-                                                    child: const Icon(
-                                                        Icons.biotech),
-                                                  ),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          SizedBox(
-                                            width: 120,
-                                            child: Text(
-                                              r.conditionsFound.isEmpty
-                                                  ? 'No issues'
-                                                  : "${r.conditionsFound.take(2).join(', ')}${r.conditionsFound.length > 2 ? '...' : ''}",
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                              style: const TextStyle(
-                                                  fontSize: 12,
-                                                  fontWeight: FontWeight.bold),
-                                            ),
-                                          ),
-                                          SizedBox(
-                                            width: 120,
-                                            child: Text(
-                                              "${(r.highestConfidence * 100).toStringAsFixed(0)}% trust",
-                                              style: TextStyle(
-                                                fontSize: 11,
-                                                color: colorScheme
-                                                    .onSurfaceVariant,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    );
-                                  },
-                                  separatorBuilder: (_, __) =>
-                                      const SizedBox(width: 12),
-                                  itemCount: records.length,
-                                ),
-                              );
-                            },
-                          ),
-
                           // Prescriptions Section
                           const SizedBox(height: 20),
-                          const _SectionHeader('Prescriptions'),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const _SectionHeader('Prescriptions'),
+                              TextButton.icon(
+                                onPressed: () {
+                                  // Prescriptions are already fully displayed below
+                                  // So just scroll to show them
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Scroll down to see all prescriptions'),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.visibility, size: 16),
+                                label: const Text('View All'),
+                              ),
+                            ],
+                          ),
                           const SizedBox(height: 12),
                           PrescriptionListView(
                             key: _prescriptionListKey,

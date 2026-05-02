@@ -25,6 +25,12 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
   String _sortBy = 'score'; // score, name, date, percentage
   final bool _sortAscending = false;
 
+  // Filter state
+  String _searchQuery = '';
+  String? _gradeFilter; // 'pass', 'fail', or null (no filter)
+  DateTime? _startDate;
+  DateTime? _endDate;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -152,6 +158,10 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
                       ),
                       const SizedBox(height: 24),
 
+                      // Filter Section
+                      _buildFilterSection(),
+                      const SizedBox(height: 16),
+
                       // Sort Controls
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -181,10 +191,12 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
                                     ),
                                   ),
                                   child: InkWell(
-                                    onTap: () => _downloadResultsAsCSV(submittedAttempts),
+                                    onTap: () => _downloadFilteredResultsAsCSV(
+                                        submittedAttempts),
                                     child: const Row(
                                       children: [
-                                        Icon(Icons.download, color: Colors.green),
+                                        Icon(Icons.download,
+                                            color: Colors.green),
                                         SizedBox(width: 4),
                                         Text(
                                           'CSV',
@@ -346,8 +358,46 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
   }
 
   Widget _buildResultsList(List<QuizAttempt> attempts) {
+    // Apply filters first
+    List<QuizAttempt> filteredAttempts = attempts.where((attempt) {
+      // Filter by name
+      if (_searchQuery.isNotEmpty &&
+          !attempt.studentName
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase())) {
+        return false;
+      }
+
+      // Filter by grade (pass/fail)
+      if (_gradeFilter != null) {
+        final isPassed = attempt.scorePercentage >= 50;
+        if (_gradeFilter == 'pass' && !isPassed) {
+          return false;
+        }
+        if (_gradeFilter == 'fail' && isPassed) {
+          return false;
+        }
+      }
+
+      // Filter by date range
+      if (_startDate != null && attempt.endTime != null) {
+        if (attempt.endTime!.isBefore(_startDate!)) {
+          return false;
+        }
+      }
+      if (_endDate != null && attempt.endTime != null) {
+        final endOfDay =
+            _endDate!.add(const Duration(hours: 23, minutes: 59, seconds: 59));
+        if (attempt.endTime!.isAfter(endOfDay)) {
+          return false;
+        }
+      }
+
+      return true;
+    }).toList();
+
     // Sort attempts
-    List<QuizAttempt> sortedAttempts = List.from(attempts);
+    List<QuizAttempt> sortedAttempts = List.from(filteredAttempts);
 
     switch (_sortBy) {
       case 'score':
@@ -743,6 +793,49 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
     );
   }
 
+  void _downloadFilteredResultsAsCSV(List<QuizAttempt> attempts) {
+    // Apply filters to the attempts
+    List<QuizAttempt> filteredAttempts = attempts.where((attempt) {
+      // Filter by name
+      if (_searchQuery.isNotEmpty &&
+          !attempt.studentName
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase())) {
+        return false;
+      }
+
+      // Filter by grade (pass/fail)
+      if (_gradeFilter != null) {
+        final isPassed = attempt.scorePercentage >= 50;
+        if (_gradeFilter == 'pass' && !isPassed) {
+          return false;
+        }
+        if (_gradeFilter == 'fail' && isPassed) {
+          return false;
+        }
+      }
+
+      // Filter by date range
+      if (_startDate != null && attempt.endTime != null) {
+        if (attempt.endTime!.isBefore(_startDate!)) {
+          return false;
+        }
+      }
+      if (_endDate != null && attempt.endTime != null) {
+        final endOfDay =
+            _endDate!.add(const Duration(hours: 23, minutes: 59, seconds: 59));
+        if (attempt.endTime!.isAfter(endOfDay)) {
+          return false;
+        }
+      }
+
+      return true;
+    }).toList();
+
+    // Download the filtered results
+    _downloadResultsAsCSV(filteredAttempts);
+  }
+
   void _downloadResultsAsCSV(List<QuizAttempt> attempts) {
     try {
       // Generate CSV content
@@ -794,5 +887,261 @@ class _QuizResultsScreenState extends State<QuizResultsScreen> {
     } else {
       return '$seconds s';
     }
+  }
+
+  Widget _buildFilterSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Filter title
+        const Text(
+          'Filters',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Search by name
+        TextField(
+          onChanged: (value) {
+            setState(() => _searchQuery = value);
+          },
+          decoration: InputDecoration(
+            hintText: 'Search by student name...',
+            prefixIcon: const Icon(Icons.search),
+            suffixIcon: _searchQuery.isNotEmpty
+                ? IconButton(
+                    icon: const Icon(Icons.clear),
+                    onPressed: () {
+                      setState(() => _searchQuery = '');
+                    },
+                  )
+                : null,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Grade and Date filters
+        Row(
+          children: [
+            // Grade Filter
+            Expanded(
+              child: Container(
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.grey.shade300),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: PopupMenuButton<String?>(
+                  position: PopupMenuPosition.under,
+                  onSelected: (value) {
+                    setState(() => _gradeFilter = value);
+                  },
+                  itemBuilder: (BuildContext context) => [
+                    const PopupMenuItem(
+                      value: null,
+                      child: Text('All Grades'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'pass',
+                      child: Row(
+                        children: [
+                          Icon(Icons.check_circle, color: Colors.green),
+                          SizedBox(width: 8),
+                          Text('Pass (≥ 50%)'),
+                        ],
+                      ),
+                    ),
+                    const PopupMenuItem(
+                      value: 'fail',
+                      child: Row(
+                        children: [
+                          Icon(Icons.cancel, color: Colors.red),
+                          SizedBox(width: 8),
+                          Text('Fail (< 50%)'),
+                        ],
+                      ),
+                    ),
+                  ],
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          _gradeFilter == null
+                              ? 'All Grades'
+                              : _gradeFilter == 'pass'
+                                  ? 'Pass'
+                                  : 'Fail',
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                        const Icon(Icons.arrow_drop_down, size: 20),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // Date Range - Start Date
+            Expanded(
+              child: GestureDetector(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _startDate ?? DateTime.now(),
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) {
+                    setState(() => _startDate = picked);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_today, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'From',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            Text(
+                              _startDate != null
+                                  ? DateFormat('MMM dd, yyyy')
+                                      .format(_startDate!)
+                                  : 'Start date',
+                              style: const TextStyle(fontSize: 12),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (_startDate != null)
+                        GestureDetector(
+                          onTap: () {
+                            setState(() => _startDate = null);
+                          },
+                          child: const Icon(Icons.clear, size: 16),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // Date Range - End Date
+            Expanded(
+              child: GestureDetector(
+                onTap: () async {
+                  final picked = await showDatePicker(
+                    context: context,
+                    initialDate: _endDate ?? DateTime.now(),
+                    firstDate: DateTime(2020),
+                    lastDate: DateTime.now(),
+                  );
+                  if (picked != null) {
+                    setState(() => _endDate = picked);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 12,
+                  ),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.grey.shade300),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.calendar_today, size: 16),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'To',
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            Text(
+                              _endDate != null
+                                  ? DateFormat('MMM dd, yyyy').format(_endDate!)
+                                  : 'End date',
+                              style: const TextStyle(fontSize: 12),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (_endDate != null)
+                        GestureDetector(
+                          onTap: () {
+                            setState(() => _endDate = null);
+                          },
+                          child: const Icon(Icons.clear, size: 16),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+
+        // Reset filters button
+        if (_searchQuery.isNotEmpty ||
+            _gradeFilter != null ||
+            _startDate != null ||
+            _endDate != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _searchQuery = '';
+                  _gradeFilter = null;
+                  _startDate = null;
+                  _endDate = null;
+                });
+              },
+              icon: const Icon(Icons.refresh, size: 16),
+              label: const Text('Clear Filters'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.blue,
+              ),
+            ),
+          ),
+      ],
+    );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:dental_care/providers/assignment_provider.dart';
 import 'package:dental_care/provider/auth_provider.dart';
+import 'package:dental_care/widgets/student_screen_header.dart';
 import 'student_assignment_detail_screen.dart';
 
 class StudentAssignmentsScreen extends StatefulWidget {
@@ -42,77 +43,113 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        // Ensure there's space for the leading (hamburger) icon and avoid title overflow
-        leadingWidth: 56,
-        titleSpacing: 16,
-        title: const Text(
-          'Assignments',
-          overflow: TextOverflow.ellipsis,
-        ),
-        backgroundColor: _studentColors.primary,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          labelStyle:
-              const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          unselectedLabelStyle:
-              const TextStyle(fontWeight: FontWeight.w500, fontSize: 14),
-          tabs: const [
-            Tab(text: 'Pending'),
-            Tab(text: 'Submitted'),
-            Tab(text: 'Graded'),
-          ],
-        ),
-      ),
-      body: Consumer<AssignmentProvider>(
-        builder: (context, assignmentProvider, _) {
-          if (assignmentProvider.isLoading) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final allAssignments = assignmentProvider.assignments;
-          final studentSubmissions = assignmentProvider.submissions;
-
-          return TabBarView(
-            controller: _tabController,
-            children: [
-              // Pending: no submission has been made yet.
-              _buildAssignmentList(
-                context,
-                allAssignments
-                    .where((a) =>
-                        !a.isOverdue &&
-                        studentSubmissions
-                            .where((s) => s.assignmentId == a.id)
-                            .isEmpty)
-                    .toList(),
-              ),
-              // Submitted: at least one submitted record exists.
-              _buildAssignmentList(
-                context,
-                allAssignments
-                    .where((a) => studentSubmissions
-                        .where((s) =>
-                            s.assignmentId == a.id && s.status == 'Submitted')
-                        .isNotEmpty)
-                    .toList(),
-              ),
-              // Graded: at least one graded record exists.
-              _buildAssignmentList(
-                context,
-                allAssignments
-                    .where((a) => studentSubmissions
-                        .where((s) =>
-                            s.assignmentId == a.id && s.status == 'Graded')
-                        .isNotEmpty)
-                    .toList(),
-              ),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              _studentColors.primary.withValues(alpha: 0.08),
+              _studentColors.surface,
             ],
-          );
-        },
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: Consumer<AssignmentProvider>(
+          builder: (context, assignmentProvider, _) {
+            if (assignmentProvider.isLoading) {
+              return const Center(child: CircularProgressIndicator());
+            }
+
+            final allAssignments = assignmentProvider.assignments;
+            final studentSubmissions = assignmentProvider.submissions;
+
+            return SafeArea(
+              child: CustomScrollView(
+                slivers: [
+                  SliverToBoxAdapter(
+                    child: StudentScreenHeader(
+                      title: 'Assignments',
+                      subtitle:
+                          'Complete assignments assigned by your instructor',
+                      iconData: Icons.assignment,
+                      colorScheme: _studentColors,
+                    ),
+                  ),
+                  SliverToBoxAdapter(
+                    child: Column(
+                      children: [
+                        Container(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 0, vertical: 0),
+                          child: TabBar(
+                            controller: _tabController,
+                            indicatorColor: _studentColors.primary,
+                            labelColor: _studentColors.primary,
+                            unselectedLabelColor: Colors.grey.shade600,
+                            labelStyle: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                            unselectedLabelStyle: const TextStyle(
+                              fontWeight: FontWeight.w500,
+                              fontSize: 14,
+                            ),
+                            tabs: const [
+                              Tab(text: 'Pending'),
+                              Tab(text: 'Submitted'),
+                              Tab(text: 'Graded'),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SliverFillRemaining(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: [
+                        // Pending: no submission has been made yet.
+                        _buildAssignmentList(
+                          context,
+                          allAssignments
+                              .where((a) =>
+                                  !a.isOverdue &&
+                                  studentSubmissions
+                                      .where((s) => s.assignmentId == a.id)
+                                      .isEmpty)
+                              .toList(),
+                        ),
+                        // Submitted: at least one submitted record exists.
+                        _buildAssignmentList(
+                          context,
+                          allAssignments
+                              .where((a) => studentSubmissions
+                                  .where((s) =>
+                                      s.assignmentId == a.id &&
+                                      s.status == 'Submitted')
+                                  .isNotEmpty)
+                              .toList(),
+                        ),
+                        // Graded: at least one graded record exists.
+                        _buildAssignmentList(
+                          context,
+                          allAssignments
+                              .where((a) => studentSubmissions
+                                  .where((s) =>
+                                      s.assignmentId == a.id &&
+                                      s.status == 'Graded')
+                                  .isNotEmpty)
+                              .toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        ),
       ),
     );
   }

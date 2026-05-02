@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../provider/auth_provider.dart';
 import '../utils/app_dialogs.dart';
 import '../core/theme/app_tokens.dart';
+import '../widgets/student_screen_header.dart';
 
 class StudentProfileScreen extends StatefulWidget {
   const StudentProfileScreen({super.key});
@@ -176,195 +177,229 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
 
     if (_isLoading) {
       return Scaffold(
-        body: Center(
-            child: CircularProgressIndicator(color: _studentColors.primary)),
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                _studentColors.primary.withValues(alpha: 0.08),
+                _studentColors.surface,
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: Center(
+            child: CircularProgressIndicator(color: _studentColors.primary),
+          ),
+        ),
       );
     }
 
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      appBar: AppBar(
-        title: const Text('My Profile',
-            style: TextStyle(fontWeight: FontWeight.bold)),
-        backgroundColor: _studentColors.primary,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        centerTitle: true,
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Profile Header
-            Container(
-              width: double.infinity,
-              decoration: BoxDecoration(
-                color: _studentColors.primary,
-                borderRadius: const BorderRadius.only(
-                  bottomLeft: Radius.circular(30),
-                  bottomRight: Radius.circular(30),
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              _studentColors.primary.withValues(alpha: 0.08),
+              _studentColors.surface,
+            ],
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+          ),
+        ),
+        child: SafeArea(
+          child: CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: StudentScreenHeader(
+                  title: 'My Profile',
+                  subtitle: 'Manage your profile information',
+                  iconData: Icons.person,
+                  colorScheme: _studentColors,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 10,
-                      offset: const Offset(0, 5)),
-                ],
               ),
-              padding: const EdgeInsets.only(bottom: 30, top: 10),
-              child: Column(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 4),
-                      boxShadow: [
-                        BoxShadow(
-                            color: Colors.black.withOpacity(0.2),
-                            blurRadius: 8,
-                            offset: const Offset(0, 4)),
+              SliverToBoxAdapter(
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      children: [
+                        // Profile Info Card
+                        Card(
+                          elevation: 2,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  _studentColors.primary.withValues(alpha: 0.1),
+                                  _studentColors.primary
+                                      .withValues(alpha: 0.05),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            padding: const EdgeInsets.all(20),
+                            child: Column(
+                              children: [
+                                // Avatar
+                                Container(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        _studentColors.primary,
+                                        _studentColors.tertiary,
+                                      ],
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: _studentColors.primary
+                                            .withValues(alpha: 0.3),
+                                        blurRadius: 15,
+                                        offset: const Offset(0, 5),
+                                      ),
+                                    ],
+                                  ),
+                                  padding: const EdgeInsets.all(3),
+                                  child: Container(
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.white,
+                                    ),
+                                    padding: const EdgeInsets.all(2),
+                                    child: CircleAvatar(
+                                      radius: 50,
+                                      backgroundColor: _studentColors.primary,
+                                      child: Text(
+                                        displayName
+                                            .split(' ')
+                                            .map((w) => w.isNotEmpty
+                                                ? w[0].toUpperCase()
+                                                : '')
+                                            .join(),
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 32,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  displayName,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .titleLarge
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  userEmail,
+                                  style: TextStyle(
+                                    color: Colors.grey.shade600,
+                                    fontSize: 12,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Form
+                        Form(
+                          key: _formKey,
+                          child: Column(
+                            children: [
+                              _buildTextField('First Name',
+                                  _firstNameController, Icons.person_outline),
+                              _buildTextField('Last Name', _lastNameController,
+                                  Icons.person_outline),
+                              _buildTextField(
+                                  'Phone', _phoneController, Icons.phone),
+                              _buildTextField('Student ID',
+                                  _studentIdController, Icons.badge),
+                              _buildTextField(
+                                  'Program', _programController, Icons.school),
+                              _buildTextField('Year of Study', _yearController,
+                                  Icons.calendar_today),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Action Buttons
+                        Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed:
+                                    _isSaving ? null : () => _saveProfile(),
+                                icon: _isSaving
+                                    ? SizedBox(
+                                        width: 20,
+                                        height: 20,
+                                        child: CircularProgressIndicator(
+                                          valueColor:
+                                              AlwaysStoppedAnimation<Color>(
+                                                  Colors.white),
+                                          strokeWidth: 2,
+                                        ),
+                                      )
+                                    : const Icon(Icons.save),
+                                label: Text(
+                                    _isSaving ? 'Saving...' : 'Save Changes'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.green.shade600,
+                                  foregroundColor: Colors.white,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: ElevatedButton.icon(
+                                onPressed: () => _handleLogout(context),
+                                icon: const Icon(Icons.logout),
+                                label: const Text('Logout'),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red.shade600,
+                                  foregroundColor: Colors.white,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
                       ],
                     ),
-                    child: CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Colors.white,
-                      child: Text(
-                        displayName.isNotEmpty
-                            ? displayName[0].toUpperCase()
-                            : 'S',
-                        style: TextStyle(
-                            fontSize: 40,
-                            color: _studentColors.primary,
-                            fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    displayName,
-                    style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      userEmail,
-                      style: const TextStyle(fontSize: 14, color: Colors.white),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Profile Form
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(20),
-                  boxShadow: [
-                    BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 15,
-                        offset: const Offset(0, 5)),
-                  ],
-                ),
-                child: Form(
-                  key: _formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Personal Information',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          Expanded(
-                              child: _buildTextField('First Name',
-                                  _firstNameController, Icons.person)),
-                          const SizedBox(width: 16),
-                          Expanded(
-                              child: _buildTextField('Last Name',
-                                  _lastNameController, Icons.person_outline)),
-                        ],
-                      ),
-                      _buildTextField(
-                          'Phone Number', _phoneController, Icons.phone),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 8.0),
-                        child: Divider(),
-                      ),
-                      const Text('Academic Information',
-                          style: TextStyle(
-                              fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 20),
-                      _buildTextField(
-                          'Student ID', _studentIdController, Icons.badge),
-                      _buildTextField('Program / Department',
-                          _programController, Icons.school),
-                      _buildTextField('Year of Study', _yearController,
-                          Icons.calendar_today),
-                      const SizedBox(height: 24),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: ElevatedButton(
-                          onPressed: _isSaving ? null : _saveProfile,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _studentColors.primary,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                            elevation: 2,
-                          ),
-                          child: _isSaving
-                              ? const SizedBox(
-                                  height: 24,
-                                  width: 24,
-                                  child: CircularProgressIndicator(
-                                      color: Colors.white, strokeWidth: 2))
-                              : const Text('Save Changes',
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold)),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 54,
-                        child: OutlinedButton.icon(
-                          onPressed: () => _handleLogout(context),
-                          icon: const Icon(Icons.logout, color: Colors.red),
-                          label: const Text('Logout',
-                              style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.red,
-                                  fontWeight: FontWeight.bold)),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: Colors.red.shade300),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12)),
-                            backgroundColor: Colors.red.shade50,
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

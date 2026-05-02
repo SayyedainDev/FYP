@@ -208,101 +208,168 @@ class _StudentAssignmentDetailScreenState
   }
 
   Widget _buildAssignmentHeader(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primary.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                widget.assignment.subject,
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 12,
+    final timeLeft = _getTimeLeft();
+    final urgency = timeLeft == 'Expired' || widget.assignment.isOverdue;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: urgency
+              ? [Colors.red.shade100, Colors.red.shade50]
+              : [Colors.blue.shade100, Colors.blue.shade50],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: urgency
+              ? Colors.red.withValues(alpha: 0.3)
+              : Colors.blue.withValues(alpha: 0.3),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  widget.assignment.subject,
+                  style: TextStyle(
+                    color: theme.colorScheme.primary,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
                 ),
               ),
-            ),
-            const Spacer(),
-            Text(
-              'Max Score: ${widget.assignment.totalMarks.toInt()}',
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                color: theme.colorScheme.onSurface.withOpacity(0.6),
+              const Spacer(),
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: urgency ? Colors.red : Colors.green,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  urgency ? 'Overdue' : 'Active',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 12,
+                  ),
+                ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Text(
-          widget.assignment.title,
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onSurface,
+            ],
           ),
-        ),
-      ],
+          const SizedBox(height: 12),
+          Text(
+            widget.assignment.title,
+            style: theme.textTheme.headlineSmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            'Max Score: ${widget.assignment.totalMarks.toInt()}',
+            style: TextStyle(
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface.withOpacity(0.7),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildInfoSection(ThemeData theme) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.94),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-            color: theme.colorScheme.primary.withValues(alpha: 0.12)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          _buildInfoItem(
-            theme,
-            Icons.calendar_today_outlined,
-            'Deadline',
-            DateFormat('MMM dd, yyyy').format(widget.assignment.dueDate),
-          ),
-          Container(height: 40, width: 1, color: Colors.grey.shade200),
-          _buildInfoItem(
-            theme,
-            Icons.timer_outlined,
-            'Time Left',
-            _getTimeLeft(),
-            color: widget.assignment.isOverdue ? Colors.red : Colors.orange,
-          ),
-        ],
-      ),
-    );
-  }
+    final timeLeft = _getTimeLeft();
+    final isOverdue = widget.assignment.isOverdue || timeLeft == 'Expired';
 
-  Widget _buildInfoItem(
-      ThemeData theme, IconData icon, String label, String value,
-      {Color? color}) {
-    return Expanded(
-      child: Column(
-        children: [
-          Icon(icon, size: 20, color: color ?? theme.colorScheme.primary),
-          const SizedBox(height: 8),
-          Text(label,
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
-          const SizedBox(height: 4),
-          Text(value,
-              style:
-                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
-        ],
-      ),
+    return Row(
+      children: [
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.grey.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.02),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.calendar_today_outlined,
+                    size: 24, color: theme.colorScheme.primary),
+                const SizedBox(height: 8),
+                Text('Deadline',
+                    style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500)),
+                const SizedBox(height: 6),
+                Text(
+                    DateFormat('MMM dd, yyyy')
+                        .format(widget.assignment.dueDate),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 14)),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isOverdue ? Colors.red.shade50 : Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                color: isOverdue ? Colors.red.shade200 : Colors.orange.shade200,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.02),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                Icon(Icons.timer_outlined,
+                    size: 24, color: isOverdue ? Colors.red : Colors.orange),
+                const SizedBox(height: 8),
+                Text('Time Left',
+                    style: TextStyle(
+                        color: isOverdue ? Colors.red : Colors.orange.shade700,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500)),
+                const SizedBox(height: 6),
+                Text(timeLeft,
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 14,
+                        color:
+                            isOverdue ? Colors.red : Colors.orange.shade900)),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -314,33 +381,42 @@ class _StudentAssignmentDetailScreenState
   }
 
   Widget _buildDescriptionSection(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Instructions',
-          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.92),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-                color: theme.colorScheme.primary.withValues(alpha: 0.12)),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-          child: Text(
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Instructions',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
             widget.assignment.description,
             style: TextStyle(
               fontSize: 15,
               height: 1.6,
-              color: theme.colorScheme.onSurface.withValues(alpha: 0.82),
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -385,85 +461,159 @@ class _StudentAssignmentDetailScreenState
   }
 
   Widget _buildSubmissionSection(ThemeData theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildFilePicker(theme),
-        const SizedBox(height: 32),
-        SizedBox(
-          width: double.infinity,
-          height: 56,
-          child: ElevatedButton(
-            onPressed: _isUploading ? null : _submitAssignment,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: theme.colorScheme.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16)),
-              elevation: 0,
-            ),
-            child: _isUploading
-                ? const CircularProgressIndicator(color: Colors.white)
-                : const Text('Submit Work',
-                    style:
-                        TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
-        ),
-      ],
+        ],
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Submit Your Work',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 16),
+          _buildFilePicker(theme),
+          const SizedBox(height: 20),
+          SizedBox(
+            width: double.infinity,
+            height: 54,
+            child: ElevatedButton.icon(
+              onPressed: _isUploading ? null : _submitAssignment,
+              icon: _isUploading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Icon(Icons.send_rounded),
+              label: Text(
+                _isUploading ? 'Submitting...' : 'Submit Assignment',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: theme.colorScheme.primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                elevation: 0,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildFilePicker(ThemeData theme) {
     if (_selectedFile != null) {
       return Container(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.green.withValues(alpha: 0.06),
+          color: Colors.green.shade50,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.green.withValues(alpha: 0.25)),
+          border: Border.all(color: Colors.green.shade300, width: 2),
         ),
         child: Row(
           children: [
-            const Icon(Icons.description, color: Colors.green),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.green.shade100,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(Icons.check_circle,
+                  color: Colors.green.shade700, size: 20),
+            ),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(
-                _selectedFile!.name,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(fontWeight: FontWeight.w500),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'File Selected',
+                    style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF666666),
+                        fontWeight: FontWeight.w500),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    _selectedFile!.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                ],
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.close, color: Colors.redAccent, size: 20),
+              icon:
+                  const Icon(Icons.close_rounded, color: Colors.red, size: 22),
               onPressed: _clearFile,
+              padding: const EdgeInsets.all(8),
             ),
           ],
         ),
       );
     }
 
-    return InkWell(
+    return GestureDetector(
       onTap: _pickFile,
-      borderRadius: BorderRadius.circular(12),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 20),
+        padding: const EdgeInsets.symmetric(vertical: 28),
         decoration: BoxDecoration(
-          color: theme.colorScheme.primary.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(12),
+          color: theme.colorScheme.primary.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(14),
           border: Border.all(
-              color: theme.colorScheme.primary.withValues(alpha: 0.2)),
+            color: theme.colorScheme.primary.withValues(alpha: 0.25),
+            width: 2,
+            style: BorderStyle.solid,
+          ),
         ),
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.upload_file_outlined,
-                color: theme.colorScheme.primary, size: 32),
-            const SizedBox(height: 8),
-            const Text('Tap to choose your file',
-                style: TextStyle(fontWeight: FontWeight.w600)),
+            Icon(Icons.cloud_upload_outlined,
+                color: theme.colorScheme.primary, size: 40),
+            const SizedBox(height: 12),
+            Text(
+              'Click to upload file',
+              style: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: 16,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
             const SizedBox(height: 4),
-            Text('PDF, DOCX, images, and more',
-                style: TextStyle(color: Colors.grey.shade500, fontSize: 12)),
+            Text(
+              'PDF, DOCX, Images, and more',
+              style: TextStyle(
+                color: Colors.grey.shade500,
+                fontSize: 13,
+              ),
+            ),
           ],
         ),
       ),

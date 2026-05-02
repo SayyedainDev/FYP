@@ -1,4 +1,5 @@
 import '../widgets/loading_button.dart';
+import '../../widgets/student_screen_header.dart';
 import '../../providers/loading_provider.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter/material.dart';
@@ -57,128 +58,154 @@ class _StudentQuizAvailableScreenV2State
     return PopScope(
       canPop: true,
       child: Scaffold(
-        appBar: AppBar(
-          title: const Text('Available Quizzes'),
-          backgroundColor: _studentColors.primary,
-          elevation: 0,
-        ),
-        body: Consumer2<QuizProvider, QuizAttemptProvider>(
-          builder: (context, quizProvider, attemptProvider, _) {
-            if (quizProvider.isLoading || attemptProvider.isLoading) {
-              return const Center(
-                child: CircularProgressIndicator(),
-              );
-            }
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                _studentColors.primary.withValues(alpha: 0.08),
+                _studentColors.surface,
+              ],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: Consumer2<QuizProvider, QuizAttemptProvider>(
+            builder: (context, quizProvider, attemptProvider, _) {
+              if (quizProvider.isLoading || attemptProvider.isLoading) {
+                return const Center(
+                  child: CircularProgressIndicator(),
+                );
+              }
 
-            final allQuizzes = quizProvider.publishedQuizzes;
-            final studentAttempts = attemptProvider.studentAttempts;
+              final allQuizzes = quizProvider.publishedQuizzes;
+              final studentAttempts = attemptProvider.studentAttempts;
 
-            if (allQuizzes.isEmpty) {
-              return Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.quiz_outlined,
-                        size: 80, color: Colors.grey.shade300),
-                    const SizedBox(height: 16),
-                    Text(
-                      'No Quizzes Available',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            color: Colors.grey.shade600,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Check back later for new quizzes',
-                      style: TextStyle(color: Colors.grey.shade500),
-                    ),
-                  ],
-                ),
-              );
-            }
-
-            // Separate quizzes into available and completed
-            final completedAttempts =
-                studentAttempts.where((a) => a.isSubmitted).toList();
-            final completedQuizIds =
-                completedAttempts.map((a) => a.quizId).toSet();
-
-            final availableQuizzes = allQuizzes
-                .where((q) => !completedQuizIds.contains(q.id))
-                .toList();
-
-            final completedQuizzes = allQuizzes
-                .where((q) => completedQuizIds.contains(q.id))
-                .toList();
-
-            return SingleChildScrollView(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
-                  children: [
-                    // Available Quizzes Section
-                    if (availableQuizzes.isNotEmpty) ...[
-                      _buildSectionHeader(
-                          'Available Quizzes', Icons.play_circle, Colors.teal),
-                      const SizedBox(height: 12),
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: availableQuizzes.length,
-                        itemBuilder: (context, index) {
-                          final quiz = availableQuizzes[index];
-                          return _buildQuizCard(
-                            context,
-                            quiz,
-                            isCompleted: false,
-                            onTap: () => _startQuiz(context, quiz),
-                          );
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                    ],
-
-                    // Completed Quizzes Section
-                    if (completedQuizzes.isNotEmpty) ...[
-                      _buildSectionHeader(
-                          'Completed Quizzes', Icons.done_all, Colors.blue),
-                      const SizedBox(height: 12),
-                      ListView.builder(
-                        shrinkWrap: true,
-                        physics: const NeverScrollableScrollPhysics(),
-                        itemCount: completedQuizzes.length,
-                        itemBuilder: (context, index) {
-                          final quiz = completedQuizzes[index];
-                          final attempt = completedAttempts.firstWhere(
-                            (a) => a.quizId == quiz.id,
-                            orElse: () => QuizAttempt(
-                              id: '',
-                              quizId: quiz.id,
-                              quizTitle: quiz.title,
-                              studentId: '',
-                              studentName: '',
-                              startTime: DateTime.now(),
-                              totalMarks: quiz.totalMarks,
+              if (allQuizzes.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.quiz_outlined,
+                          size: 80, color: Colors.grey.shade300),
+                      const SizedBox(height: 16),
+                      Text(
+                        'No Quizzes Available',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: Colors.grey.shade600,
                             ),
-                          );
-
-                          return _buildCompletedQuizCard(
-                            context,
-                            quiz,
-                            attempt,
-                            onReview: () => _reviewQuiz(context, quiz, attempt),
-                          );
-                        },
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Check back later for new quizzes',
+                        style: TextStyle(color: Colors.grey.shade500),
                       ),
                     ],
+                  ),
+                );
+              }
 
-                    if (availableQuizzes.isEmpty && completedQuizzes.isEmpty)
-                      const SizedBox(height: 40),
+              // Separate quizzes into available and completed
+              final completedAttempts =
+                  studentAttempts.where((a) => a.isSubmitted).toList();
+              final completedQuizIds =
+                  completedAttempts.map((a) => a.quizId).toSet();
+
+              final availableQuizzes = allQuizzes
+                  .where((q) => !completedQuizIds.contains(q.id))
+                  .toList();
+
+              final completedQuizzes = allQuizzes
+                  .where((q) => completedQuizIds.contains(q.id))
+                  .toList();
+
+              return SafeArea(
+                child: CustomScrollView(
+                  slivers: [
+                    SliverToBoxAdapter(
+                      child: StudentScreenHeader(
+                        title: 'Available Quizzes',
+                        subtitle: 'Take quizzes published by your instructor',
+                        iconData: Icons.quiz,
+                        colorScheme: _studentColors,
+                      ),
+                    ),
+                    SliverToBoxAdapter(
+                      child: SingleChildScrollView(
+                        child: Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            children: [
+                              // Available Quizzes Section
+                              if (availableQuizzes.isNotEmpty) ...[
+                                _buildSectionHeader('Available Quizzes',
+                                    Icons.play_circle, Colors.teal),
+                                const SizedBox(height: 12),
+                                ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: availableQuizzes.length,
+                                  itemBuilder: (context, index) {
+                                    final quiz = availableQuizzes[index];
+                                    return _buildQuizCard(
+                                      context,
+                                      quiz,
+                                      isCompleted: false,
+                                      onTap: () => _startQuiz(context, quiz),
+                                    );
+                                  },
+                                ),
+                                const SizedBox(height: 24),
+                              ],
+
+                              // Completed Quizzes Section
+                              if (completedQuizzes.isNotEmpty) ...[
+                                _buildSectionHeader('Completed Quizzes',
+                                    Icons.done_all, Colors.blue),
+                                const SizedBox(height: 12),
+                                ListView.builder(
+                                  shrinkWrap: true,
+                                  physics: const NeverScrollableScrollPhysics(),
+                                  itemCount: completedQuizzes.length,
+                                  itemBuilder: (context, index) {
+                                    final quiz = completedQuizzes[index];
+                                    final attempt =
+                                        completedAttempts.firstWhere(
+                                      (a) => a.quizId == quiz.id,
+                                      orElse: () => QuizAttempt(
+                                        id: '',
+                                        quizId: quiz.id,
+                                        quizTitle: quiz.title,
+                                        studentId: '',
+                                        studentName: '',
+                                        startTime: DateTime.now(),
+                                        totalMarks: quiz.totalMarks,
+                                      ),
+                                    );
+
+                                    return _buildCompletedQuizCard(
+                                      context,
+                                      quiz,
+                                      attempt,
+                                      onReview: () =>
+                                          _reviewQuiz(context, quiz, attempt),
+                                    );
+                                  },
+                                ),
+                              ],
+
+                              if (availableQuizzes.isEmpty &&
+                                  completedQuizzes.isEmpty)
+                                const SizedBox(height: 40),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
       ),
     );

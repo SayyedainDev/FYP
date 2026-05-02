@@ -13,8 +13,6 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../core/responsive/app_breakpoints.dart';
 import '../core/theme/app_semantic_colors.dart';
-import '../widgets/loaders/app_loader.dart';
-import '../widgets/loaders/skeletons.dart';
 import '../providers/theme_controller.dart';
 
 import '../utils/app_dialogs.dart';
@@ -110,7 +108,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     borderRadius: BorderRadius.circular(20),
                     boxShadow: [
                       BoxShadow(
-                        color: Theme.of(context).colorScheme.primary.withOpacity(0.3),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withOpacity(0.3),
                         blurRadius: 15,
                         offset: const Offset(0, 8),
                       ),
@@ -133,7 +134,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Manage your app preferences and settings.',
+                              'Manage notifications, privacy, and app preferences.',
                               style: TextStyle(
                                 fontSize: 15,
                                 color: Colors.white.withOpacity(0.9),
@@ -148,7 +149,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           color: Colors.white.withOpacity(0.2),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.settings, color: Colors.white, size: 40),
+                        child: const Icon(Icons.settings,
+                            color: Colors.white, size: 40),
                       ),
                     ],
                   ),
@@ -171,12 +173,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             children: [
                               SizedBox(
                                 width: columnWidth,
-                                child: _buildProfileCard(),
+                                child: _buildNotificationCard(),
                               ),
                               const SizedBox(width: 24),
                               SizedBox(
                                 width: columnWidth,
-                                child: _buildNotificationCard(),
+                                child: _buildPrivacyCard(),
                               ),
                             ],
                           ),
@@ -186,25 +188,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             children: [
                               SizedBox(
                                 width: columnWidth,
-                                child: _buildPrivacyCard(),
+                                child: _buildAppearanceCard(),
                               ),
                               const SizedBox(width: 24),
                               SizedBox(
                                 width: columnWidth,
-                                child: _buildAppearanceCard(),
+                                child: _buildAccountSecurityCard(),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 24),
-                          _buildAccountSecurityCard(),
                         ],
                       );
                     }
 
                     return Column(
                       children: [
-                        _buildProfileCard(),
-                        const SizedBox(height: 24),
                         _buildNotificationCard(),
                         const SizedBox(height: 24),
                         _buildPrivacyCard(),
@@ -220,87 +218,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _buildProfileCard() {
-    return Container(
-      decoration: _prominentCardDecoration,
-      padding: const EdgeInsets.all(32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Profile Information',
-            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  color: Theme.of(context).colorScheme.onSurface,
-                ),
-          ),
-          const SizedBox(height: 24),
-          if (_isLoadingProfile || _isLoadingSettings) ...[
-            const Center(
-              child: Padding(
-                padding: EdgeInsets.all(32.0),
-                child: ProfileSkeleton(),
-              ),
-            ),
-          ] else ...[
-            // Name field
-            TextFormField(
-              controller: _nameController,
-              decoration: const InputDecoration(
-                labelText: 'Full Name',
-                hintText: 'Enter your full name',
-                prefixIcon: Icon(Icons.person_outline),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // Email field (disabled)
-            TextFormField(
-              initialValue: _userEmail ?? 'Loading...',
-              decoration: const InputDecoration(
-                labelText: 'Email Address',
-                prefixIcon: Icon(Icons.email_outlined),
-                helperText: 'Email cannot be changed',
-              ),
-              enabled: false,
-            ),
-            const SizedBox(height: 32),
-
-            // Update Profile button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _isUpdatingProfile ? null : _updateProfile,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Theme.of(context).colorScheme.primary,
-                  foregroundColor: Theme.of(context).colorScheme.onPrimary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  elevation: 0,
-                ),
-                child: _isUpdatingProfile
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: AppLoader(size: 20),
-                      )
-                    : const Text(
-                        'Update Profile',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-              ),
-            ),
-          ],
-        ],
       ),
     );
   }

@@ -25,6 +25,9 @@ class CaseModel {
   bool get isAnalyzed => analysisResults.status == 'Analyzed';
   bool get hasPrescription => prescription != null;
 
+  /// Check if ANY disease/finding is detected (not just cavities)
+  bool get hasAnyDiseaseDetected => analysisResults.findingsList.isNotEmpty;
+
   /// Overall display status for the UI badge
   String get displayStatus {
     if (hasPrescription) return 'Prescribed';
@@ -34,7 +37,9 @@ class CaseModel {
       return analysisResults.status;
     }
     if (isAnalyzed) {
-      return analysisResults.hasCavity ? 'Cavity' : 'Healthy';
+      // If we have ANY findings/diseases detected, show "Detected"
+      // Only show "Healthy" if there are zero findings
+      return hasAnyDiseaseDetected ? 'Detected' : 'Healthy';
     }
     return 'Uploaded';
   }
