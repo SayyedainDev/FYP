@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:dental_care/providers/assignment_provider.dart';
-import 'package:dental_care/provider/auth_provider.dart';
 import 'package:dental_care/models/assignment.dart';
 
 class DoctorCreateAssignmentScreen extends StatefulWidget {
@@ -507,22 +507,28 @@ class _DoctorCreateAssignmentScreenState
     setState(() => _isUploading = true);
 
     try {
-      final authProvider = context.read<AuthProvider>();
-      final instructorId = authProvider.user?.uid ?? '';
+      final instructorId = FirebaseAuth.instance.currentUser?.uid ?? '';
+
+      late final AssignmentProvider assignmentProvider;
+      try {
+        assignmentProvider = context.read<AssignmentProvider>();
+      } catch (_) {
+        assignmentProvider = AssignmentProvider();
+      }
 
       // Support for any format: send file bytes and metadata to the provider
-      final success = await context.read<AssignmentProvider>().createAssignment(
-            title: _titleController.text.trim(),
-            description: _descriptionController.text.trim(),
-            subject: _subjectController.text.trim(),
-            totalMarks: double.parse(_marksController.text),
-            dueDate: _selectedDueDate!,
-            instructorId: instructorId,
-            assignedTo: [], // Empty initially
-            fileBytes: _pickedFile?.bytes,
-            fileName: _pickedFile?.name,
-            mimeType: _getMimeType(_pickedFile?.extension),
-          );
+      final success = await assignmentProvider.createAssignment(
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim(),
+        subject: _subjectController.text.trim(),
+        totalMarks: double.parse(_marksController.text),
+        dueDate: _selectedDueDate!,
+        instructorId: instructorId,
+        assignedTo: [], // Empty initially
+        fileBytes: _pickedFile?.bytes,
+        fileName: _pickedFile?.name,
+        mimeType: _getMimeType(_pickedFile?.extension),
+      );
 
       if (mounted) {
         setState(() => _isUploading = false);
@@ -538,7 +544,7 @@ class _DoctorCreateAssignmentScreenState
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(context.read<AssignmentProvider>().errorMessage ??
+              content: Text(assignmentProvider.errorMessage ??
                   'Failed to create assignment'),
               backgroundColor: Colors.redAccent,
               behavior: SnackBarBehavior.floating,

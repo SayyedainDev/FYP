@@ -113,11 +113,9 @@ class _StudentAssignmentsScreenState extends State<StudentAssignmentsScreen>
                         _buildAssignmentList(
                           context,
                           allAssignments
-                              .where((a) =>
-                                  !a.isOverdue &&
-                                  studentSubmissions
-                                      .where((s) => s.assignmentId == a.id)
-                                      .isEmpty)
+                              .where((a) => studentSubmissions
+                                  .where((s) => s.assignmentId == a.id)
+                                  .isEmpty)
                               .toList(),
                         ),
                         // Submitted: at least one submitted record exists.

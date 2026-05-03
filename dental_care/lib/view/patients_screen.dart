@@ -143,6 +143,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                         // Open a simple patient selector then the write prescription dialog
                         final selected = await showDialog<Patient?>(
                           context: context,
+                          useRootNavigator: false,
                           builder: (ctx) {
                             final patients =
                                 Provider.of<PatientProvider>(context).patients;
@@ -220,6 +221,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
                                   listen: false);
                           showDialog<bool>(
                             context: context,
+                            useRootNavigator: false,
                             builder: (_) => MultiProvider(
                               providers: [
                                 ChangeNotifierProvider<
@@ -431,9 +433,19 @@ class _PatientsScreenState extends State<PatientsScreen> {
   }
 
   void _showAddPatientDialog(BuildContext context) {
+    final patientProvider =
+        Provider.of<PatientProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
     showDialog(
       context: context,
-      builder: (context) => const AddPatientDialog(),
+      useRootNavigator: false,
+      builder: (context) => MultiProvider(
+        providers: [
+          ChangeNotifierProvider<PatientProvider>.value(value: patientProvider),
+          ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
+        ],
+        child: const AddPatientDialog(),
+      ),
     );
   }
 
@@ -448,6 +460,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
 
     final result = await showDialog<bool>(
       context: context,
+      useRootNavigator: false,
       barrierColor: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.5),
       builder: (context) => MultiProvider(
         providers: [
@@ -480,6 +493,7 @@ class _PatientsScreenState extends State<PatientsScreen> {
 
     final shouldDelete = await showDialog<bool>(
       context: context,
+      useRootNavigator: false,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Patient'),
         content: Text('Delete ${patient.name}? This cannot be undone.'),
@@ -523,687 +537,788 @@ class _PatientsScreenState extends State<PatientsScreen> {
     final colorScheme = Theme.of(context).colorScheme;
     final semantic = Theme.of(context).extension<AppSemanticColors>();
     final success = semantic?.success ?? colorScheme.primary;
+    ScanProvider? scanProvider;
+    PrescriptionProvider? prescriptionProvider;
+    PatientProvider? patientProvider;
+    CaseProvider? caseProvider;
+    AuthProvider? authProvider;
+    try {
+      scanProvider = Provider.of<ScanProvider>(context, listen: false);
+    } catch (_) {
+      scanProvider = null;
+    }
+    try {
+      prescriptionProvider =
+          Provider.of<PrescriptionProvider>(context, listen: false);
+    } catch (_) {
+      prescriptionProvider = null;
+    }
+    try {
+      patientProvider = Provider.of<PatientProvider>(context, listen: false);
+    } catch (_) {
+      patientProvider = null;
+    }
+    try {
+      caseProvider = Provider.of<CaseProvider>(context, listen: false);
+    } catch (_) {
+      caseProvider = null;
+    }
+    try {
+      authProvider = Provider.of<AuthProvider>(context, listen: false);
+    } catch (_) {
+      authProvider = null;
+    }
     showDialog(
       context: context,
+      useRootNavigator: false,
       barrierColor: colorScheme.shadow.withValues(alpha: 0.5),
       builder: (dialogContext) => MultiProvider(
         providers: [
-          ChangeNotifierProvider<ScanProvider>.value(
-            value: Provider.of<ScanProvider>(context, listen: false),
-          ),
-          ChangeNotifierProvider<PrescriptionProvider>.value(
-            value: Provider.of<PrescriptionProvider>(context, listen: false),
-          ),
+          if (scanProvider != null)
+            ChangeNotifierProvider<ScanProvider>.value(value: scanProvider)
+          else
+            ChangeNotifierProvider(create: (_) => ScanProvider()),
+          if (prescriptionProvider != null)
+            ChangeNotifierProvider<PrescriptionProvider>.value(
+              value: prescriptionProvider,
+            )
+          else
+            ChangeNotifierProvider(create: (_) => PrescriptionProvider()),
+          if (patientProvider != null)
+            ChangeNotifierProvider<PatientProvider>.value(
+                value: patientProvider),
+          if (caseProvider != null)
+            ChangeNotifierProvider<CaseProvider>.value(value: caseProvider),
+          if (authProvider != null)
+            ChangeNotifierProvider<AuthProvider>.value(value: authProvider),
         ],
-        child: Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          elevation: 0,
-          backgroundColor: Colors.transparent,
-          child: Container(
-            width: 650,
-            decoration: BoxDecoration(
-              color: colorScheme.surface,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: colorScheme.shadow.withValues(alpha: 0.15),
-                  blurRadius: 40,
-                  spreadRadius: 10,
-                ),
-              ],
-            ),
-            child: Column(
-              children: [
-                // Professional Header with gradient
-                Container(
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        colorScheme.primary,
-                        colorScheme.primary.withValues(alpha: 0.85),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    borderRadius: const BorderRadius.only(
-                      topLeft: Radius.circular(20),
-                      topRight: Radius.circular(20),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 70,
-                        height: 70,
-                        decoration: BoxDecoration(
-                          color: colorScheme.onPrimary.withValues(alpha: 0.25),
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: colorScheme.onPrimary.withValues(alpha: 0.5),
-                            width: 2,
-                          ),
+        child: Builder(
+            builder: (scopedContext) => Dialog(
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(20)),
+                  elevation: 0,
+                  backgroundColor: Colors.transparent,
+                  child: Container(
+                    width: 650,
+                    decoration: BoxDecoration(
+                      color: colorScheme.surface,
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colorScheme.shadow.withValues(alpha: 0.15),
+                          blurRadius: 40,
+                          spreadRadius: 10,
                         ),
-                        child: Center(
-                          child: Text(
-                            patient.initials,
-                            style: TextStyle(
-                              color: colorScheme.onPrimary,
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        // Professional Header with gradient
+                        Container(
+                          padding: const EdgeInsets.all(28),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                colorScheme.primary,
+                                colorScheme.primary.withValues(alpha: 0.85),
+                              ],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(20),
+                              topRight: Radius.circular(20),
                             ),
                           ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 70,
+                                height: 70,
+                                decoration: BoxDecoration(
+                                  color: colorScheme.onPrimary
+                                      .withValues(alpha: 0.25),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: colorScheme.onPrimary
+                                        .withValues(alpha: 0.5),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    patient.initials,
+                                    style: TextStyle(
+                                      color: colorScheme.onPrimary,
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 20),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      patient.name,
+                                      style: TextStyle(
+                                        color: colorScheme.onPrimary,
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      children: [
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: colorScheme.onPrimary
+                                                .withValues(alpha: 0.2),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                            border: Border.all(
+                                              color: colorScheme.onPrimary
+                                                  .withValues(alpha: 0.3),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            '${patient.age} years',
+                                            style: TextStyle(
+                                              color: colorScheme.onPrimary,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: colorScheme.onPrimary
+                                                .withValues(alpha: 0.2),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                            border: Border.all(
+                                              color: colorScheme.onPrimary
+                                                  .withValues(alpha: 0.3),
+                                            ),
+                                          ),
+                                          child: Text(
+                                            patient.gender,
+                                            style: TextStyle(
+                                              color: colorScheme.onPrimary,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 20),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              patient.name,
-                              style: TextStyle(
-                                color: colorScheme.onPrimary,
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+                        // Content
+                        Expanded(
+                          child: SingleChildScrollView(
+                            child: Padding(
+                              padding: const EdgeInsets.all(28),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // Personal Information Section
+                                  const _SectionHeader('Personal Information'),
+                                  const SizedBox(height: 12),
+                                  _DetailBox(
+                                    icon: Icons.calendar_today,
+                                    label: 'Date of Birth',
+                                    value:
+                                        '${patient.dob.day.toString().padLeft(2, '0')}/${patient.dob.month.toString().padLeft(2, '0')}/${patient.dob.year}',
+                                  ),
+                                  const SizedBox(height: 12),
+
+                                  // Contact Information
+                                  Row(
+                                    children: [
+                                      if (patient.contactPhone.isNotEmpty)
+                                        Expanded(
+                                          child: _DetailBox(
+                                            icon: Icons.phone,
+                                            label: 'Phone',
+                                            value: patient.contactPhone,
+                                          ),
+                                        ),
+                                      if (patient.contactPhone.isNotEmpty &&
+                                          patient.contactEmail.isNotEmpty)
+                                        const SizedBox(width: 12),
+                                      if (patient.contactEmail.isNotEmpty)
+                                        Expanded(
+                                          child: _DetailBox(
+                                            icon: Icons.email,
+                                            label: 'Email',
+                                            value: patient.contactEmail,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+
+                                  // Notes Section
+                                  if (patient.notes.isNotEmpty) ...[
+                                    const SizedBox(height: 20),
+                                    const _SectionHeader('Medical Notes'),
+                                    const SizedBox(height: 10),
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.all(16),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            colorScheme.surfaceContainerLowest,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: colorScheme.outlineVariant,
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        patient.notes,
+                                        style: TextStyle(
+                                          color: colorScheme.onSurface,
+                                          fontSize: 13,
+                                          height: 1.5,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+
+                                  // Prescriptions Section
+                                  const SizedBox(height: 20),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const _SectionHeader('Prescriptions'),
+                                      TextButton.icon(
+                                        onPressed: () {
+                                          // Prescriptions are already fully displayed below
+                                          // So just scroll to show them
+                                          ScaffoldMessenger.of(context)
+                                              .showSnackBar(
+                                            const SnackBar(
+                                              content: Text(
+                                                  'Scroll down to see all prescriptions'),
+                                            ),
+                                          );
+                                        },
+                                        icon: const Icon(Icons.visibility,
+                                            size: 16),
+                                        label: const Text('View All'),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  PrescriptionListView(
+                                    key: _prescriptionListKey,
+                                    patientId: patient.id,
+                                    patientName: patient.name,
+                                    patientPhone: patient.contactPhone,
+                                  ),
+
+                                  const SizedBox(height: 20),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const _SectionHeader('Recent Scans'),
+                                      TextButton.icon(
+                                        onPressed: () async {
+                                          final scans =
+                                              await Provider.of<ScanProvider>(
+                                            scopedContext,
+                                            listen: false,
+                                          ).fetchScansForPatient(patient.id);
+
+                                          if (!scopedContext.mounted) return;
+
+                                          showDialog(
+                                            context: scopedContext,
+                                            useRootNavigator: false,
+                                            builder: (_) => AlertDialog(
+                                              title: const Text('Recent Scans'),
+                                              content: SizedBox(
+                                                width: 700,
+                                                child: scans.isEmpty
+                                                    ? const Text(
+                                                        'No scans found for this patient.',
+                                                      )
+                                                    : ListView.separated(
+                                                        shrinkWrap: true,
+                                                        itemCount: scans.length,
+                                                        separatorBuilder: (_,
+                                                                __) =>
+                                                            const SizedBox(
+                                                                height: 12),
+                                                        itemBuilder:
+                                                            (_, index) {
+                                                          final scan =
+                                                              scans[index];
+                                                          return ListTile(
+                                                            contentPadding:
+                                                                const EdgeInsets
+                                                                    .symmetric(
+                                                              horizontal: 0,
+                                                              vertical: 0,
+                                                            ),
+                                                            leading: ClipRRect(
+                                                              borderRadius:
+                                                                  BorderRadius
+                                                                      .circular(
+                                                                10,
+                                                              ),
+                                                              child:
+                                                                  Image.network(
+                                                                scan.imageUrl,
+                                                                width: 56,
+                                                                height: 56,
+                                                                fit: BoxFit
+                                                                    .cover,
+                                                                errorBuilder: (_,
+                                                                        __,
+                                                                        ___) =>
+                                                                    Container(
+                                                                  width: 56,
+                                                                  height: 56,
+                                                                  color: Colors
+                                                                      .grey
+                                                                      .shade200,
+                                                                  child:
+                                                                      const Icon(
+                                                                    Icons.image,
+                                                                  ),
+                                                                ),
+                                                              ),
+                                                            ),
+                                                            title: Text(scan
+                                                                .cavityStatus),
+                                                            subtitle: Text(
+                                                              '${scan.scanDate.toLocal().toString().split('.').first} • ${scan.timeAgo}',
+                                                            ),
+                                                          );
+                                                        },
+                                                      ),
+                                              ),
+                                              actions: [
+                                                TextButton(
+                                                  onPressed: () =>
+                                                      Navigator.pop(
+                                                    scopedContext,
+                                                  ),
+                                                  child: const Text('Close'),
+                                                ),
+                                              ],
+                                            ),
+                                          );
+                                        },
+                                        icon: const Icon(Icons.visibility,
+                                            size: 16),
+                                        label: const Text('View All'),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 12),
+                                  FutureBuilder<List<Scan>>(
+                                    future: Provider.of<ScanProvider>(
+                                      scopedContext,
+                                      listen: false,
+                                    ).fetchScansForPatient(patient.id),
+                                    builder: (context, snapshot) {
+                                      if (snapshot.connectionState ==
+                                          ConnectionState.waiting) {
+                                        return const Padding(
+                                          padding: EdgeInsets.symmetric(
+                                              vertical: 12),
+                                          child: Center(
+                                            child: CircularProgressIndicator(),
+                                          ),
+                                        );
+                                      }
+
+                                      final scans = snapshot.data ?? [];
+                                      if (scans.isEmpty) {
+                                        return Container(
+                                          width: double.infinity,
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            color: colorScheme
+                                                .surfaceContainerLowest,
+                                            borderRadius:
+                                                BorderRadius.circular(12),
+                                            border: Border.all(
+                                              color: colorScheme.outlineVariant,
+                                            ),
+                                          ),
+                                          child: Text(
+                                            'No scans found for this patient.',
+                                            style: TextStyle(
+                                              color:
+                                                  colorScheme.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        );
+                                      }
+
+                                      final recentScans =
+                                          scans.take(3).toList();
+                                      return Column(
+                                        children: recentScans.map((scan) {
+                                          return Padding(
+                                            padding: const EdgeInsets.only(
+                                                bottom: 12),
+                                            child: Container(
+                                              padding: const EdgeInsets.all(12),
+                                              decoration: BoxDecoration(
+                                                color: colorScheme.surface,
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: colorScheme
+                                                      .outlineVariant,
+                                                ),
+                                              ),
+                                              child: Row(
+                                                children: [
+                                                  ClipRRect(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            10),
+                                                    child: Image.network(
+                                                      scan.imageUrl,
+                                                      width: 56,
+                                                      height: 56,
+                                                      fit: BoxFit.cover,
+                                                      errorBuilder:
+                                                          (_, __, ___) =>
+                                                              Container(
+                                                        width: 56,
+                                                        height: 56,
+                                                        color: Colors
+                                                            .grey.shade200,
+                                                        child: const Icon(
+                                                            Icons.image),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 12),
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
+                                                      children: [
+                                                        Text(
+                                                          scan.cavityStatus,
+                                                          style:
+                                                              const TextStyle(
+                                                            fontWeight:
+                                                                FontWeight.w600,
+                                                          ),
+                                                        ),
+                                                        const SizedBox(
+                                                            height: 4),
+                                                        Text(
+                                                          scan.timeAgo,
+                                                          style: TextStyle(
+                                                            color: colorScheme
+                                                                .onSurfaceVariant,
+                                                            fontSize: 12,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  Text(
+                                                    scan.hasCavity
+                                                        ? 'Cavity'
+                                                        : 'Healthy',
+                                                    style: TextStyle(
+                                                      color: scan.hasCavity
+                                                          ? Colors.red
+                                                          : Colors.green,
+                                                      fontWeight:
+                                                          FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          );
+                                        }).toList(),
+                                      );
+                                    },
+                                  ),
+
+                                  // Metadata
+                                  const SizedBox(height: 20),
+                                  Divider(color: colorScheme.outlineVariant),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'Record Created',
+                                        style: TextStyle(
+                                          color: colorScheme.onSurfaceVariant,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                      Text(
+                                        '${patient.createdAt.day.toString().padLeft(2, '0')}/${patient.createdAt.month.toString().padLeft(2, '0')}/${patient.createdAt.year}',
+                                        style: TextStyle(
+                                          color: colorScheme.onSurface,
+                                          fontSize: 12,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Row(
+                          ),
+                        ),
+                        // Action Buttons
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: colorScheme.surfaceContainerLowest,
+                            borderRadius: const BorderRadius.only(
+                              bottomLeft: Radius.circular(20),
+                              bottomRight: Radius.circular(20),
+                            ),
+                            border: Border(
+                              top: BorderSide(
+                                  color: colorScheme.outlineVariant, width: 1),
+                            ),
+                          ),
+                          child: SingleChildScrollView(
+                            scrollDirection: Axis.horizontal,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.onPrimary
-                                        .withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: colorScheme.onPrimary
-                                          .withValues(alpha: 0.3),
+                                TextButton(
+                                  onPressed: () => Navigator.pop(scopedContext),
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 12,
                                     ),
                                   ),
                                   child: Text(
-                                    '${patient.age} years',
+                                    'Close',
                                     style: TextStyle(
-                                      color: colorScheme.onPrimary,
-                                      fontSize: 12,
+                                      color: colorScheme.onSurfaceVariant,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
                                 ),
-                                const SizedBox(width: 10),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 12,
-                                    vertical: 6,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.onPrimary
-                                        .withValues(alpha: 0.2),
-                                    borderRadius: BorderRadius.circular(20),
-                                    border: Border.all(
-                                      color: colorScheme.onPrimary
-                                          .withValues(alpha: 0.3),
+                                const SizedBox(width: 12),
+                                ElevatedButton.icon(
+                                  onPressed: () async {
+                                    Navigator.pop(scopedContext);
+                                    // Open create case dialog with this patient preselected
+                                    final patientProv =
+                                        Provider.of<PatientProvider>(
+                                            scopedContext,
+                                            listen: false);
+                                    final caseProv = Provider.of<CaseProvider>(
+                                        scopedContext,
+                                        listen: false);
+                                    final authProv = Provider.of<AuthProvider>(
+                                        scopedContext,
+                                        listen: false);
+
+                                    await showDialog(
+                                      context: scopedContext,
+                                      useRootNavigator: false,
+                                      builder: (context) => MultiProvider(
+                                        providers: [
+                                          ChangeNotifierProvider.value(
+                                              value: patientProv),
+                                          ChangeNotifierProvider.value(
+                                              value: caseProv),
+                                          ChangeNotifierProvider.value(
+                                              value: authProv),
+                                        ],
+                                        child: CreateCaseDialog(
+                                            initialPatientId: patient.id),
+                                      ),
+                                    );
+                                  },
+                                  icon: const Icon(Icons.add_box, size: 18),
+                                  label: const Text('New Case'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: success,
+                                    foregroundColor: colorScheme.onPrimary,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 12,
                                     ),
-                                  ),
-                                  child: Text(
-                                    patient.gender,
-                                    style: TextStyle(
-                                      color: colorScheme.onPrimary,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
                                     ),
+                                    elevation: 0,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                ElevatedButton.icon(
+                                  onPressed: () async {
+                                    // Get the latest case for this patient to link prescription
+                                    final caseProvider =
+                                        Provider.of<CaseProvider>(scopedContext,
+                                            listen: false);
+                                    final patientCases = caseProvider.cases
+                                        .where((c) => c.patientId == patient.id)
+                                        .toList();
+
+                                    // Use the most recent case or create a minimal one
+                                    Case caseData = Case(
+                                      id: '',
+                                      patientId: patient.id,
+                                      patientName: patient.name,
+                                      toothNumber: '',
+                                      caseDate: DateTime.now(),
+                                      imageUrls: const [],
+                                      analysisResults: const {
+                                        'status': 'Pending'
+                                      },
+                                      notes: '',
+                                    );
+
+                                    if (patientCases.isNotEmpty) {
+                                      caseData = patientCases.last;
+                                    }
+
+                                    // Use the case (either existing or minimal)
+                                    final latestCase = caseData;
+
+                                    if (mounted) {
+                                      Navigator.pop(scopedContext);
+                                      final messenger =
+                                          ScaffoldMessenger.of(scopedContext);
+                                      final prescriptionProvider =
+                                          Provider.of<PrescriptionProvider>(
+                                              scopedContext,
+                                              listen: false);
+                                      final authProv =
+                                          Provider.of<AuthProvider>(
+                                              scopedContext,
+                                              listen: false);
+                                      final created = await showDialog<bool>(
+                                        context: scopedContext,
+                                        useRootNavigator: false,
+                                        builder: (context) => MultiProvider(
+                                          providers: [
+                                            ChangeNotifierProvider<
+                                                    PrescriptionProvider>.value(
+                                                value: prescriptionProvider),
+                                            ChangeNotifierProvider.value(
+                                                value: authProv),
+                                          ],
+                                          child: WritePrescriptionDialog(
+                                            patient: patient,
+                                            caseId: latestCase.id,
+                                          ),
+                                        ),
+                                      );
+
+                                      if (created == true && mounted) {
+                                        // Recreate the prescription list to force reload
+                                        setState(() {
+                                          _prescriptionListKey = UniqueKey();
+                                        });
+                                        messenger.showSnackBar(const SnackBar(
+                                            content:
+                                                Text('Prescription created')));
+                                      }
+                                    }
+                                  },
+                                  icon: const Icon(Icons.description, size: 18),
+                                  label: const Text('Write Prescription'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: colorScheme.secondary,
+                                    foregroundColor: colorScheme.onSecondary,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                ElevatedButton.icon(
+                                  onPressed: () async {
+                                    await _showEditPatientDialog(
+                                        scopedContext, patient);
+                                  },
+                                  icon: const Icon(Icons.edit, size: 18),
+                                  label: const Text('Edit Patient'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: colorScheme.primary,
+                                    foregroundColor: colorScheme.onPrimary,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    elevation: 0,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                ElevatedButton.icon(
+                                  onPressed: () async {
+                                    await _confirmDeletePatient(
+                                        scopedContext, patient);
+                                  },
+                                  icon: const Icon(Icons.delete_outline,
+                                      size: 18),
+                                  label: const Text('Delete Patient'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: colorScheme.error,
+                                    foregroundColor: colorScheme.onError,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 12,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    elevation: 0,
                                   ),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Content
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Padding(
-                      padding: const EdgeInsets.all(28),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // Personal Information Section
-                          const _SectionHeader('Personal Information'),
-                          const SizedBox(height: 12),
-                          _DetailBox(
-                            icon: Icons.calendar_today,
-                            label: 'Date of Birth',
-                            value:
-                                '${patient.dob.day.toString().padLeft(2, '0')}/${patient.dob.month.toString().padLeft(2, '0')}/${patient.dob.year}',
-                          ),
-                          const SizedBox(height: 12),
-
-                          // Contact Information
-                          Row(
-                            children: [
-                              if (patient.contactPhone.isNotEmpty)
-                                Expanded(
-                                  child: _DetailBox(
-                                    icon: Icons.phone,
-                                    label: 'Phone',
-                                    value: patient.contactPhone,
-                                  ),
-                                ),
-                              if (patient.contactPhone.isNotEmpty &&
-                                  patient.contactEmail.isNotEmpty)
-                                const SizedBox(width: 12),
-                              if (patient.contactEmail.isNotEmpty)
-                                Expanded(
-                                  child: _DetailBox(
-                                    icon: Icons.email,
-                                    label: 'Email',
-                                    value: patient.contactEmail,
-                                  ),
-                                ),
-                            ],
-                          ),
-
-                          // Notes Section
-                          if (patient.notes.isNotEmpty) ...[
-                            const SizedBox(height: 20),
-                            const _SectionHeader('Medical Notes'),
-                            const SizedBox(height: 10),
-                            Container(
-                              width: double.infinity,
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: colorScheme.surfaceContainerLowest,
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: colorScheme.outlineVariant,
-                                  width: 1,
-                                ),
-                              ),
-                              child: Text(
-                                patient.notes,
-                                style: TextStyle(
-                                  color: colorScheme.onSurface,
-                                  fontSize: 13,
-                                  height: 1.5,
-                                ),
-                              ),
-                            ),
-                          ],
-
-                          // Prescriptions Section
-                          const SizedBox(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const _SectionHeader('Prescriptions'),
-                              TextButton.icon(
-                                onPressed: () {
-                                  // Prescriptions are already fully displayed below
-                                  // So just scroll to show them
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                          'Scroll down to see all prescriptions'),
-                                    ),
-                                  );
-                                },
-                                icon: const Icon(Icons.visibility, size: 16),
-                                label: const Text('View All'),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          PrescriptionListView(
-                            key: _prescriptionListKey,
-                            patientId: patient.id,
-                            patientName: patient.name,
-                            patientPhone: patient.contactPhone,
-                          ),
-
-                          const SizedBox(height: 20),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const _SectionHeader('Recent Scans'),
-                              TextButton.icon(
-                                onPressed: () async {
-                                  final scans = await Provider.of<ScanProvider>(
-                                    dialogContext,
-                                    listen: false,
-                                  ).fetchScansForPatient(patient.id);
-
-                                  if (!context.mounted) return;
-
-                                  showDialog(
-                                    context: context,
-                                    builder: (_) => AlertDialog(
-                                      title: const Text('Recent Scans'),
-                                      content: SizedBox(
-                                        width: 700,
-                                        child: scans.isEmpty
-                                            ? const Text(
-                                                'No scans found for this patient.',
-                                              )
-                                            : ListView.separated(
-                                                shrinkWrap: true,
-                                                itemCount: scans.length,
-                                                separatorBuilder: (_, __) =>
-                                                    const SizedBox(height: 12),
-                                                itemBuilder: (_, index) {
-                                                  final scan = scans[index];
-                                                  return ListTile(
-                                                    contentPadding:
-                                                        const EdgeInsets
-                                                            .symmetric(
-                                                      horizontal: 0,
-                                                      vertical: 0,
-                                                    ),
-                                                    leading: ClipRRect(
-                                                      borderRadius:
-                                                          BorderRadius.circular(
-                                                        10,
-                                                      ),
-                                                      child: Image.network(
-                                                        scan.imageUrl,
-                                                        width: 56,
-                                                        height: 56,
-                                                        fit: BoxFit.cover,
-                                                        errorBuilder:
-                                                            (_, __, ___) =>
-                                                                Container(
-                                                          width: 56,
-                                                          height: 56,
-                                                          color: Colors
-                                                              .grey.shade200,
-                                                          child: const Icon(
-                                                            Icons.image,
-                                                          ),
-                                                        ),
-                                                      ),
-                                                    ),
-                                                    title:
-                                                        Text(scan.cavityStatus),
-                                                    subtitle: Text(
-                                                      '${scan.scanDate.toLocal().toString().split('.').first} • ${scan.timeAgo}',
-                                                    ),
-                                                  );
-                                                },
-                                              ),
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(
-                                            context,
-                                          ),
-                                          child: const Text('Close'),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                },
-                                icon: const Icon(Icons.visibility, size: 16),
-                                label: const Text('View All'),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          FutureBuilder<List<Scan>>(
-                            future: Provider.of<ScanProvider>(
-                              dialogContext,
-                              listen: false,
-                            ).fetchScansForPatient(patient.id),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState ==
-                                  ConnectionState.waiting) {
-                                return const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 12),
-                                  child: Center(
-                                    child: CircularProgressIndicator(),
-                                  ),
-                                );
-                              }
-
-                              final scans = snapshot.data ?? [];
-                              if (scans.isEmpty) {
-                                return Container(
-                                  width: double.infinity,
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: colorScheme.surfaceContainerLowest,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: colorScheme.outlineVariant,
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'No scans found for this patient.',
-                                    style: TextStyle(
-                                      color: colorScheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                );
-                              }
-
-                              final recentScans = scans.take(3).toList();
-                              return Column(
-                                children: recentScans.map((scan) {
-                                  return Padding(
-                                    padding: const EdgeInsets.only(bottom: 12),
-                                    child: Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: colorScheme.surface,
-                                        borderRadius: BorderRadius.circular(12),
-                                        border: Border.all(
-                                          color: colorScheme.outlineVariant,
-                                        ),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          ClipRRect(
-                                            borderRadius:
-                                                BorderRadius.circular(10),
-                                            child: Image.network(
-                                              scan.imageUrl,
-                                              width: 56,
-                                              height: 56,
-                                              fit: BoxFit.cover,
-                                              errorBuilder: (_, __, ___) =>
-                                                  Container(
-                                                width: 56,
-                                                height: 56,
-                                                color: Colors.grey.shade200,
-                                                child: const Icon(Icons.image),
-                                              ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
-                                              children: [
-                                                Text(
-                                                  scan.cavityStatus,
-                                                  style: const TextStyle(
-                                                    fontWeight: FontWeight.w600,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  scan.timeAgo,
-                                                  style: TextStyle(
-                                                    color: colorScheme
-                                                        .onSurfaceVariant,
-                                                    fontSize: 12,
-                                                  ),
-                                                ),
-                                              ],
-                                            ),
-                                          ),
-                                          Text(
-                                            scan.hasCavity
-                                                ? 'Cavity'
-                                                : 'Healthy',
-                                            style: TextStyle(
-                                              color: scan.hasCavity
-                                                  ? Colors.red
-                                                  : Colors.green,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                }).toList(),
-                              );
-                            },
-                          ),
-
-                          // Metadata
-                          const SizedBox(height: 20),
-                          Divider(color: colorScheme.outlineVariant),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                'Record Created',
-                                style: TextStyle(
-                                  color: colorScheme.onSurfaceVariant,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                              Text(
-                                '${patient.createdAt.day.toString().padLeft(2, '0')}/${patient.createdAt.month.toString().padLeft(2, '0')}/${patient.createdAt.year}',
-                                style: TextStyle(
-                                  color: colorScheme.onSurface,
-                                  fontSize: 12,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-                // Action Buttons
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerLowest,
-                    borderRadius: const BorderRadius.only(
-                      bottomLeft: Radius.circular(20),
-                      bottomRight: Radius.circular(20),
-                    ),
-                    border: Border(
-                      top: BorderSide(
-                          color: colorScheme.outlineVariant, width: 1),
-                    ),
-                  ),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
-                            ),
-                          ),
-                          child: Text(
-                            'Close',
-                            style: TextStyle(
-                              color: colorScheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        ElevatedButton.icon(
-                          onPressed: () async {
-                            Navigator.pop(context);
-                            // Open create case dialog with this patient preselected
-                            final patientProv = Provider.of<PatientProvider>(
-                                context,
-                                listen: false);
-                            final caseProv = Provider.of<CaseProvider>(context,
-                                listen: false);
-                            final authProv = Provider.of<AuthProvider>(context,
-                                listen: false);
-
-                            await showDialog(
-                              context: context,
-                              builder: (context) => MultiProvider(
-                                providers: [
-                                  ChangeNotifierProvider.value(
-                                      value: patientProv),
-                                  ChangeNotifierProvider.value(value: caseProv),
-                                  ChangeNotifierProvider.value(value: authProv),
-                                ],
-                                child: CreateCaseDialog(
-                                    initialPatientId: patient.id),
-                              ),
-                            );
-                          },
-                          icon: const Icon(Icons.add_box, size: 18),
-                          label: const Text('New Case'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: success,
-                            foregroundColor: colorScheme.onPrimary,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            elevation: 0,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        ElevatedButton.icon(
-                          onPressed: () async {
-                            // Get the latest case for this patient to link prescription
-                            final caseProvider = Provider.of<CaseProvider>(
-                                context,
-                                listen: false);
-                            final patientCases = caseProvider.cases
-                                .where((c) => c.patientId == patient.id)
-                                .toList();
-
-                            // Use the most recent case or create a minimal one
-                            Case caseData = Case(
-                              id: '',
-                              patientId: patient.id,
-                              patientName: patient.name,
-                              toothNumber: '',
-                              caseDate: DateTime.now(),
-                              imageUrls: const [],
-                              analysisResults: const {'status': 'Pending'},
-                              notes: '',
-                            );
-
-                            if (patientCases.isNotEmpty) {
-                              caseData = patientCases.last;
-                            }
-
-                            // Use the case (either existing or minimal)
-                            final latestCase = caseData;
-
-                            if (mounted) {
-                              Navigator.pop(context);
-                              final messenger = ScaffoldMessenger.of(context);
-                              final prescriptionProvider =
-                                  Provider.of<PrescriptionProvider>(context,
-                                      listen: false);
-                              final authProv = Provider.of<AuthProvider>(
-                                  context,
-                                  listen: false);
-                              final created = await showDialog<bool>(
-                                context: context,
-                                builder: (context) => MultiProvider(
-                                  providers: [
-                                    ChangeNotifierProvider<
-                                            PrescriptionProvider>.value(
-                                        value: prescriptionProvider),
-                                    ChangeNotifierProvider.value(
-                                        value: authProv),
-                                  ],
-                                  child: WritePrescriptionDialog(
-                                    patient: patient,
-                                    caseId: latestCase.id,
-                                  ),
-                                ),
-                              );
-
-                              if (created == true && mounted) {
-                                // Recreate the prescription list to force reload
-                                setState(() {
-                                  _prescriptionListKey = UniqueKey();
-                                });
-                                messenger.showSnackBar(const SnackBar(
-                                    content: Text('Prescription created')));
-                              }
-                            }
-                          },
-                          icon: const Icon(Icons.description, size: 18),
-                          label: const Text('Write Prescription'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: colorScheme.secondary,
-                            foregroundColor: colorScheme.onSecondary,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            elevation: 0,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        ElevatedButton.icon(
-                          onPressed: () async {
-                            await _showEditPatientDialog(context, patient);
-                          },
-                          icon: const Icon(Icons.edit, size: 18),
-                          label: const Text('Edit Patient'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: colorScheme.primary,
-                            foregroundColor: colorScheme.onPrimary,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 24,
-                              vertical: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            elevation: 0,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        ElevatedButton.icon(
-                          onPressed: () async {
-                            await _confirmDeletePatient(context, patient);
-                          },
-                          icon: const Icon(Icons.delete_outline, size: 18),
-                          label: const Text('Delete Patient'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: colorScheme.error,
-                            foregroundColor: colorScheme.onError,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 20,
-                              vertical: 12,
-                            ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            elevation: 0,
                           ),
                         ),
                       ],
                     ),
                   ),
-                ),
-              ],
-            ),
-          ),
-        ),
+                )),
       ),
     );
   }

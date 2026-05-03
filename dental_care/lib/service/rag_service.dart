@@ -23,6 +23,98 @@ class RagService {
   static const Duration _uploadTimeout = Duration(seconds: 120);
   static const Duration _generationTimeout = Duration(seconds: 90);
 
+  static const List<String> _uploadEndpoints = [
+    '/api/upload-pdf',
+    '/upload-pdf',
+    '/api/upload',
+  ];
+
+  static const List<String> _generateEndpoints = [
+    '/api/generate-rag-quiz',
+    '/generate-rag-quiz',
+    '/api/generate-quiz-from-kb',
+    '/api/generate-from-kb',
+  ];
+
+  static const List<String> _attachEndpoints = [
+    '/api/attach-document',
+    '/api/attach-kb',
+    '/api/index-document',
+    '/api/build-knowledge-base',
+    '/api/prepare-rag',
+    '/api/process-document',
+  ];
+
+  static bool _looksLikeKnowledgeBaseMissing(String body) {
+    final lower = body.toLowerCase();
+    return lower.contains('knowledge base') ||
+        lower.contains('upload first') ||
+        lower.contains('not indexed') ||
+        lower.contains('indexing');
+  }
+
+  static Future<String> _uploadToAnyEndpoint(
+      Uint8List bytes, String filename) async {
+    String? lastError;
+
+    for (final endpoint in _uploadEndpoints) {
+      try {
+        final uri = Uri.parse('$baseUrl$endpoint');
+        final request = http.MultipartRequest('POST', uri)
+          ..files.add(
+              http.MultipartFile.fromBytes('file', bytes, filename: filename));
+
+        final response = await request.send().timeout(_uploadTimeout);
+        final responseData =
+            await response.stream.bytesToString().timeout(_uploadTimeout);
+
+        if (response.statusCode == 200) {
+          final json = jsonDecode(responseData) as Map<String, dynamic>;
+          final docId = json['documentId']?.toString() ??
+              json['docId']?.toString() ??
+              json['id']?.toString() ??
+              '';
+          if (docId.isNotEmpty) {
+            debugPrintSynchronously(
+                '✅ PDF uploaded via $endpoint (DocID: $docId)');
+            return docId;
+          }
+          lastError = 'Upload succeeded but no documentId returned';
+          continue;
+        }
+
+        lastError = 'Upload failed at $endpoint (${response.statusCode})';
+      } catch (e) {
+        lastError = 'Upload exception at $endpoint: $e';
+      }
+    }
+
+    throw GroqException(lastError ?? 'Failed to upload PDF.');
+  }
+
+  static Future<void> _attachKnowledgeBaseIfSupported(
+      Map<String, dynamic> requestBody) async {
+    for (final endpoint in _attachEndpoints) {
+      try {
+        final response = await http
+            .post(
+              Uri.parse('$baseUrl$endpoint'),
+              headers: {'Content-Type': 'application/json'},
+              body: jsonEncode(requestBody),
+            )
+            .timeout(_generationTimeout);
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          debugPrintSynchronously(
+              '🔗 Knowledge base attached/indexed via $endpoint');
+          return;
+        }
+      } catch (_) {
+        // Ignore endpoint mismatch and try the next attach path.
+      }
+    }
+  }
+
   static Future<String> uploadPdfBytes(Uint8List bytes, String filename,
       {void Function(double)? onProgress}) async {
     if (bytes.length > 10 * 1024 * 1024) {
@@ -37,42 +129,7 @@ class RagService {
     Future<String> attemptUpload() async {
       debugPrintSynchronously(
           '📤 Uploading PDF bytes ($filename, ${processedBytes.length} bytes)...');
-      final uri = Uri.parse('$baseUrl/api/upload-pdf');
-      final request = http.MultipartRequest('POST', uri)
-        ..files.add(http.MultipartFile.fromBytes('file', processedBytes,
-            filename: filename));
-
-      final http.StreamedResponse response =
-          await request.send().timeout(_uploadTimeout);
-      int total = response.contentLength ?? 0;
-      int bytesReceived = 0;
-      List<int> responseBytes = [];
-
-      await for (final chunk in response.stream.timeout(_uploadTimeout)) {
-        responseBytes.addAll(chunk);
-        if (total > 0 && onProgress != null) {
-          bytesReceived += chunk.length;
-          onProgress(bytesReceived / total);
-        }
-      }
-
-      final responseData = utf8.decode(responseBytes);
-
-      if (response.statusCode == 200) {
-        final json = jsonDecode(responseData) as Map<String, dynamic>;
-        final docId = json['documentId']?.toString() ?? '';
-        debugPrintSynchronously('✅ PDF uploaded successfully (DocID: $docId)');
-        return docId;
-      }
-
-      String errorMsg = 'Failed to process PDF. Please try again.';
-      try {
-        final errorData = jsonDecode(responseData) as Map<String, dynamic>;
-        errorMsg = errorData['error'] ?? errorData['message'] ?? errorMsg;
-      } catch (_) {
-        errorMsg = 'Backend error (${response.statusCode})';
-      }
-      throw GroqException(errorMsg, statusCode: response.statusCode);
+      return _uploadToAnyEndpoint(processedBytes, filename);
     }
 
     int maxAttempts = 3;
@@ -107,40 +164,7 @@ class RagService {
 
     Future<String> attemptUpload() async {
       debugPrintSynchronously('📤 Uploading PDF file (${file.path})...');
-      final uri = Uri.parse('$baseUrl/api/upload-pdf');
-      final request = http.MultipartRequest('POST', uri)
-        ..files.add(http.MultipartFile.fromBytes('file', processedBytes,
-            filename: file.uri.pathSegments.last));
-
-      final response = await request.send().timeout(_uploadTimeout);
-
-      int total = response.contentLength ?? 0;
-      int bytesReceived = 0;
-      List<int> responseBytes = [];
-      await for (final chunk in response.stream.timeout(_uploadTimeout)) {
-        responseBytes.addAll(chunk);
-        if (total > 0 && onProgress != null) {
-          bytesReceived += chunk.length;
-          onProgress(bytesReceived / total);
-        }
-      }
-
-      final responseData = utf8.decode(responseBytes);
-
-      if (response.statusCode == 200) {
-        final json = jsonDecode(responseData) as Map<String, dynamic>;
-        final docId = json['documentId']?.toString() ?? '';
-        return docId;
-      }
-
-      String errorMsg = 'Failed to process PDF. Please try again.';
-      try {
-        final errorData = jsonDecode(responseData) as Map<String, dynamic>;
-        errorMsg = errorData['error'] ?? errorData['message'] ?? errorMsg;
-      } catch (_) {
-        errorMsg = 'Backend error (${response.statusCode})';
-      }
-      throw GroqException(errorMsg, statusCode: response.statusCode);
+      return _uploadToAnyEndpoint(processedBytes, file.uri.pathSegments.last);
     }
 
     int maxAttempts = 3;
@@ -165,7 +189,7 @@ class RagService {
     try {
       debugPrintSynchronously(
           '📤 Uploading raw text (${text.length} characters)...');
-      final uri = Uri.parse('$baseUrl/api/upload-pdf');
+      final uri = Uri.parse('$baseUrl${_uploadEndpoints.first}');
       final request = http.MultipartRequest('POST', uri)..fields['text'] = text;
 
       debugPrintSynchronously('⏳ Waiting for upload response...');
@@ -231,16 +255,35 @@ class RagService {
       // Retry logic for transient server errors (e.g., 500)
       const int maxAttempts = 3;
       for (int attempt = 0; attempt < maxAttempts; attempt++) {
-        final response = await http
-            .post(
-              Uri.parse('$baseUrl/api/generate-rag-quiz'),
-              headers: {'Content-Type': 'application/json'},
-              body: jsonEncode(requestBody),
-            )
-            .timeout(_generationTimeout);
+        http.Response? response;
+        String? activeEndpoint;
+
+        for (final endpoint in _generateEndpoints) {
+          try {
+            final candidate = await http
+                .post(
+                  Uri.parse('$baseUrl$endpoint'),
+                  headers: {'Content-Type': 'application/json'},
+                  body: jsonEncode(requestBody),
+                )
+                .timeout(_generationTimeout);
+
+            response = candidate;
+            activeEndpoint = endpoint;
+            if (candidate.statusCode != 404) {
+              break;
+            }
+          } catch (_) {
+            // Try next endpoint.
+          }
+        }
+
+        if (response == null) {
+          throw GroqException('Backend is unreachable for quiz generation.');
+        }
 
         debugPrintSynchronously(
-            '📡 Backend response status: ${response.statusCode} (attempt ${attempt + 1}/$maxAttempts)');
+            '📡 Backend response status: ${response.statusCode} (attempt ${attempt + 1}/$maxAttempts) at ${activeEndpoint ?? 'unknown endpoint'}');
 
         if (response.statusCode == 200) {
           // proceed to parse below
@@ -305,6 +348,14 @@ class RagService {
 
         // Non-200 response: log and decide whether to retry
         debugPrintSynchronously('📄 Response body: ${response.body}');
+
+        // Some deployed backends require a separate indexing/attach step
+        // before generation can find the uploaded document.
+        if (response.statusCode == 404 &&
+            _looksLikeKnowledgeBaseMissing(response.body)) {
+          await _attachKnowledgeBaseIfSupported(requestBody);
+        }
+
         String errorMessage = 'Failed to generate quiz. Please try again.';
         try {
           final errorData = jsonDecode(response.body) as Map<String, dynamic>;

@@ -1,7 +1,7 @@
 services:
   - type: web
     name: fyp-groq
-    env: node
+    runtime: node
     region: oregon
     plan: free
     buildCommand: npm install

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/patient.dart';
@@ -7,6 +8,10 @@ import '../utils/provider_error_utils.dart';
 class PatientProvider extends ChangeNotifier {
   final FirebaseFirestore _firestore;
   final FirebaseAuth _auth;
+  StreamSubscription<User?>? _authSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>?
+      _patientsSubscription;
+  bool _isDisposed = false;
   List<Patient> _patients = [];
   bool _loading = false;
   String? _error;
@@ -20,15 +25,23 @@ class PatientProvider extends ChangeNotifier {
       : _firestore = firestore ?? FirebaseFirestore.instance,
         _auth = auth ?? FirebaseAuth.instance {
     // Listen for auth state and fetch/listen when user logs in
-    _auth.authStateChanges().listen((user) {
+    _authSubscription = _auth.authStateChanges().listen((user) {
       if (user != null) {
         fetchPatients(user.uid);
         listenToPatients(user.uid);
       } else {
+        _patientsSubscription?.cancel();
+        _patientsSubscription = null;
         _patients = [];
         notifyListeners();
       }
     });
+  }
+
+  @override
+  void notifyListeners() {
+    if (_isDisposed) return;
+    super.notifyListeners();
   }
 
   // Fetch patients from Firestore for a specific dentist
@@ -45,7 +58,8 @@ class PatientProvider extends ChangeNotifier {
       QuerySnapshot querySnapshot;
       try {
         querySnapshot = await query
-            .orderBy('createdAt', descending: true).limit(20)
+            .orderBy('createdAt', descending: true)
+            .limit(20)
             .get()
             .timeout(ProviderErrorUtils.requestTimeout);
       } catch (e) {
@@ -76,7 +90,8 @@ class PatientProvider extends ChangeNotifier {
   // Listen to real-time updates from Firestore for a specific dentist
   void listenToPatients(String dentistUid) {
     try {
-      _firestore
+      _patientsSubscription?.cancel();
+      _patientsSubscription = _firestore
           .collection('patients')
           .where('dentistUid', isEqualTo: dentistUid)
           .snapshots()
@@ -104,6 +119,16 @@ class PatientProvider extends ChangeNotifier {
       notifyListeners();
       debugPrint('Failed to initialize patient listener: $e');
     }
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _patientsSubscription?.cancel();
+    _authSubscription?.cancel();
+    _patientsSubscription = null;
+    _authSubscription = null;
+    super.dispose();
   }
 
   // Add a new patient to Firestore and update user's patient list

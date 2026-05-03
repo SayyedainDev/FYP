@@ -18,6 +18,9 @@ class CaseProvider extends ChangeNotifier {
 
   // Auth
   final FirebaseAuth _auth;
+  StreamSubscription<User?>? _authSubscription;
+  StreamSubscription<QuerySnapshot<Map<String, dynamic>>>? _casesSubscription;
+  bool _isDisposed = false;
 
   // Filters
   String? _filterPatientId;
@@ -53,15 +56,23 @@ class CaseProvider extends ChangeNotifier {
         _auth = auth ?? FirebaseAuth.instance {
     // Fetch cases if user already logged in and listen for auth changes
     fetchCases();
-    _auth.authStateChanges().listen((user) {
+    _authSubscription = _auth.authStateChanges().listen((user) {
       if (user != null) {
         fetchCases();
         listenToCases();
       } else {
+        _casesSubscription?.cancel();
+        _casesSubscription = null;
         _cases = [];
         notifyListeners();
       }
     });
+  }
+
+  @override
+  void notifyListeners() {
+    if (_isDisposed) return;
+    super.notifyListeners();
   }
 
   String? get _uid => _auth.currentUser?.uid;
@@ -85,7 +96,8 @@ class CaseProvider extends ChangeNotifier {
           .get()
           .timeout(ProviderErrorUtils.requestTimeout);
 
-      final items = querySnapshot.docs.map((doc) => Case.fromFirestore(doc)).toList();
+      final items =
+          querySnapshot.docs.map((doc) => Case.fromFirestore(doc)).toList();
       items.sort((a, b) => b.caseDate.compareTo(a.caseDate));
       _cases = items;
 
@@ -108,13 +120,15 @@ class CaseProvider extends ChangeNotifier {
     if (uid == null) return;
 
     try {
-      _firestore
+      _casesSubscription?.cancel();
+      _casesSubscription = _firestore
           .collection('cases')
           .where('dentistUid', isEqualTo: uid)
           .snapshots()
           .listen(
         (snapshot) {
-          final items = snapshot.docs.map((doc) => Case.fromFirestore(doc)).toList();
+          final items =
+              snapshot.docs.map((doc) => Case.fromFirestore(doc)).toList();
           items.sort((a, b) => b.caseDate.compareTo(a.caseDate));
           _cases = items;
           notifyListeners();
@@ -136,6 +150,16 @@ class CaseProvider extends ChangeNotifier {
       notifyListeners();
       debugPrint('Failed to initialize cases listener: $e');
     }
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    _casesSubscription?.cancel();
+    _authSubscription?.cancel();
+    _casesSubscription = null;
+    _authSubscription = null;
+    super.dispose();
   }
 
   // Create a new case with image uploads
@@ -175,16 +199,17 @@ class CaseProvider extends ChangeNotifier {
           try {
             final storagePath =
                 'cases/$caseId/image_${DateTime.now().millisecondsSinceEpoch}.jpg';
-            
+
             await SupabaseConfig.client.storage
                 .from('Image')
                 .uploadBinary(
                   storagePath,
                   file,
-                  fileOptions: const FileOptions(contentType: 'image/jpeg', upsert: true),
+                  fileOptions: const FileOptions(
+                      contentType: 'image/jpeg', upsert: true),
                 )
                 .timeout(const Duration(seconds: 60));
-                
+
             final url = SupabaseConfig.client.storage
                 .from('Image')
                 .getPublicUrl(storagePath);
@@ -289,7 +314,8 @@ class CaseProvider extends ChangeNotifier {
           .get()
           .timeout(ProviderErrorUtils.requestTimeout);
 
-      final items = querySnapshot.docs.map((doc) => Case.fromFirestore(doc)).toList();
+      final items =
+          querySnapshot.docs.map((doc) => Case.fromFirestore(doc)).toList();
       items.sort((a, b) => b.caseDate.compareTo(a.caseDate));
       return items;
     } catch (e) {

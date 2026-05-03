@@ -54,7 +54,26 @@ class FirebaseTest {
       }
 
       return false;
+    } on FirebaseException catch (e) {
+      if (e.code == 'permission-denied') {
+        debugPrint(
+            '⚠️ Firestore rules blocked test write/read (permission-denied).');
+        debugPrint(
+            '✅ Firestore is reachable, but security rules restrict this test path.');
+        return true;
+      }
+      debugPrint('❌ Firestore Error: $e');
+      return false;
     } catch (e) {
+      final msg = e.toString().toLowerCase();
+      if (msg.contains('permission-denied') ||
+          msg.contains('missing or insufficient permissions')) {
+        debugPrint(
+            '⚠️ Firestore rules blocked test write/read (permission-denied).');
+        debugPrint(
+            '✅ Firestore is reachable, but security rules restrict this test path.');
+        return true;
+      }
       debugPrint('❌ Firestore Error: $e');
       return false;
     }

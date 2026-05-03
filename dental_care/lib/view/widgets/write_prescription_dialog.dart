@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../models/patient.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../providers/prescription_provider.dart';
-import '../../provider/auth_provider.dart';
 import '../../utils/app_dialogs.dart';
 import '../../service/diagnosis_suggestion_service.dart';
 
@@ -57,13 +58,44 @@ class _WritePrescriptionDialogState extends State<WritePrescriptionDialog> {
 
     try {
       setState(() => _isSubmitting = true);
+      // Try to obtain a PrescriptionProvider from the tree; if not available,
+      // create a local instance so the dialog still works when providers
+      // haven't been injected into this route's context (e.g. launched from
+      // an external route or Riverpod-scoped area).
+      PrescriptionProvider prescriptionProvider;
+      try {
+        prescriptionProvider =
+            Provider.of<PrescriptionProvider>(context, listen: false);
+      } catch (_) {
+        prescriptionProvider = PrescriptionProvider();
+      }
 
-      final auth = Provider.of<AuthProvider>(context, listen: false);
-      final prescriptionProvider = Provider.of<PrescriptionProvider>(context, listen: false);
+      // Obtain dentist identity directly from FirebaseAuth/Firestore rather
+      // than relying on AuthProvider being present in the widget tree.
+      String dentistUid = FirebaseAuth.instance.currentUser?.uid ?? '';
+      String dentistName = 'Dentist';
+      if (dentistUid.isNotEmpty) {
+        try {
+          final doc = await FirebaseFirestore.instance
+              .collection('users')
+              .doc(dentistUid)
+              .get();
+          if (doc.exists && doc.data() != null) {
+            final data = doc.data()!;
+            final first = (data['firstName'] as String?) ?? '';
+            final last = (data['lastName'] as String?) ?? '';
+            dentistName = ('$first $last'.trim().isEmpty)
+                ? 'Dentist'
+                : '$first $last'.trim();
+          }
+        } catch (e) {
+          debugPrint('Error fetching dentist profile for prescription: $e');
+        }
+      }
 
       final rx = await prescriptionProvider.createPrescription(
-        dentistUid: auth.uid ?? '',
-        dentistName: auth.userName ?? 'Dentist',
+        dentistUid: dentistUid,
+        dentistName: dentistName,
         patientId: widget.patient.id,
         patientName: widget.patient.name,
         patientPhone: widget.patient.contactPhone,
@@ -77,13 +109,14 @@ class _WritePrescriptionDialogState extends State<WritePrescriptionDialog> {
       if (!mounted) return;
 
       setState(() => _isSubmitting = false);
-      
+
       if (rx != null) {
         Navigator.pop(context, true);
       } else {
         AppDialogs.showErrorDialog(
           context,
-          message: prescriptionProvider.errorMessage ?? 'Error saving prescription',
+          message:
+              prescriptionProvider.errorMessage ?? 'Error saving prescription',
         );
       }
     } catch (e) {

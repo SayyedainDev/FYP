@@ -25,16 +25,19 @@ import '../models/detection_response.dart';
 import '../service/dental_disease_detection_service.dart';
 import 'dart:async';
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:http/http.dart' as http;
 import '../utils/app_dialogs.dart';
 import '../utils/global_error_handler.dart';
 import '../widgets/loaders/app_loader.dart';
 import 'widgets/write_prescription_dialog.dart';
 import '../models/patient.dart';
 import 'package:provider/provider.dart';
-import '../providers/patient_provider.dart';
 import '../providers/case_provider.dart';
 import '../providers/prescription_provider.dart';
-import '../provider/auth_provider.dart';
+// auth provider not required here; detection screen will avoid depending
+// on AuthProvider being present in the route.
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Design System — clinical palette
@@ -122,7 +125,17 @@ Color _conditionColor(String label) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class DentalDetectionScreen extends StatefulWidget {
-  const DentalDetectionScreen({super.key});
+  final String? initialImageUrl;
+  final String? initialImageName;
+  final String? initialCaseId;
+
+  const DentalDetectionScreen({
+    super.key,
+    this.initialImageUrl,
+    this.initialImageName,
+    this.initialCaseId,
+  });
+
   @override
   State<DentalDetectionScreen> createState() => _DentalDetectionScreenState();
 }
@@ -156,6 +169,50 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
   void initState() {
     super.initState();
     _checkServer();
+    if (widget.initialImageUrl != null) {
+      _loadInitialFromUrl();
+    }
+  }
+
+  Future<List<Patient>> _fetchPatientsForCurrentUser() async {
+    try {
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid == null) return <Patient>[];
+      final q = await FirebaseFirestore.instance
+          .collection('patients')
+          .where('dentistUid', isEqualTo: uid)
+          .orderBy('createdAt', descending: true)
+          .limit(200)
+          .get();
+      final patients = q.docs.map((d) => Patient.fromFirestore(d)).toList();
+      return patients;
+    } catch (e) {
+      debugPrint('Error fetching patients for dialog: $e');
+      return <Patient>[];
+    }
+  }
+
+  Future<void> _loadInitialFromUrl() async {
+    final url = widget.initialImageUrl;
+    if (url == null) return;
+    try {
+      final resp = await http.get(Uri.parse(url));
+      if (resp.statusCode == 200) {
+        final bytes = resp.bodyBytes;
+        if (!mounted) return;
+        setState(() {
+          _pickedBytes = bytes;
+          _pickedName = widget.initialImageName ?? url.split('/').last;
+          _result = null;
+          _errorMsg = null;
+          _highlightIdx = -1;
+        });
+      } else {
+        debugPrint('Failed to fetch initial image: ${resp.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error fetching initial image: $e');
+    }
   }
 
   // ───────────────────────────── server ────────────────────────────────────
@@ -872,18 +929,18 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
             message: 'Write Prescription',
             child: InkWell(
               onTap: () async {
-                // Select patient, then open dialog (similar to Patients screen)
+                // Select patient, then open dialog (fetch patients directly to avoid
+                // relying on a provider being present in this route)
                 final selected = await showDialog<Patient?>(
                   context: context,
-                  builder: (ctx) {
-                    final patientProvider =
-                        Provider.of<PatientProvider>(context, listen: false);
-                    final patients = patientProvider.patients;
-                    return MultiProvider(
-                      providers: [
-                        ChangeNotifierProvider.value(value: patientProvider),
-                      ],
-                      child: Dialog(
+                  builder: (ctx) => FutureBuilder<List<Patient>>(
+                    future: _fetchPatientsForCurrentUser(),
+                    builder: (ctx2, snap) {
+                      if (snap.connectionState != ConnectionState.done) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      final patients = snap.data ?? <Patient>[];
+                      return Dialog(
                         child: Container(
                           constraints: const BoxConstraints(maxWidth: 600),
                           padding: const EdgeInsets.all(16),
@@ -916,9 +973,9 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
                             ],
                           ),
                         ),
-                      ),
-                    );
-                  },
+                      );
+                    },
+                  ),
                 );
 
                 if (selected != null) {
@@ -931,8 +988,16 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
                             const Center(child: CircularProgressIndicator()),
                       );
 
-                      final caseProvider =
-                          Provider.of<CaseProvider>(context, listen: false);
+                      // Acquire CaseProvider if available, otherwise create a
+                      // local instance so saving still works even when this
+                      // route isn't under the global provider scope.
+                      late CaseProvider caseProvider;
+                      try {
+                        caseProvider =
+                            Provider.of<CaseProvider>(context, listen: false);
+                      } catch (_) {
+                        caseProvider = CaseProvider();
+                      }
 
                       final currentResult = _result;
                       final initialAnalysis = {
@@ -964,28 +1029,44 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
                         initialAnalysisResults: initialAnalysis,
                       );
 
-                      if (context.mounted) Navigator.pop(context);
+                      if (!mounted) return;
 
-                      if (caseId != null && context.mounted) {
-                        final authProv =
-                            Provider.of<AuthProvider>(context, listen: false);
-                        final prescriptionProvider =
-                            Provider.of<PrescriptionProvider>(context,
-                                listen: false);
-                        showDialog<bool>(
+                      Navigator.pop(context);
+
+                      if (caseId != null) {
+                        // Obtain or fallback to a local PrescriptionProvider so
+                        // the write-prescription dialog can function if the
+                        // global providers are not present in this route.
+                        late PrescriptionProvider prescriptionProvider;
+                        try {
+                          prescriptionProvider =
+                              Provider.of<PrescriptionProvider>(context,
+                                  listen: false);
+                        } catch (_) {
+                          prescriptionProvider = PrescriptionProvider();
+                        }
+
+                        final wrote = await showDialog<bool>(
                           context: context,
-                          builder: (_) => MultiProvider(
-                            providers: [
-                              ChangeNotifierProvider<
-                                      PrescriptionProvider>.value(
-                                  value: prescriptionProvider),
-                              ChangeNotifierProvider.value(value: authProv),
-                            ],
+                          builder: (_) => ChangeNotifierProvider<
+                              PrescriptionProvider>.value(
+                            value: prescriptionProvider,
                             child: WritePrescriptionDialog(
                                 patient: selected, caseId: caseId),
                           ),
                         );
-                      } else if (caseId == null && context.mounted) {
+
+                        // If user wrote and saved a prescription, remove the original
+                        // unprocessed case image/case (if we were launched from a case)
+                        if ((wrote ?? false) && widget.initialCaseId != null) {
+                          try {
+                            await caseProvider
+                                .deleteCase(widget.initialCaseId!);
+                          } catch (e) {
+                            debugPrint('Failed to delete original case: $e');
+                          }
+                        }
+                      } else if (caseId == null) {
                         final errMsg = caseProvider.error ??
                             'Failed to save case. Please try again.';
                         AppDialogs.showErrorDialog(context, message: errMsg);

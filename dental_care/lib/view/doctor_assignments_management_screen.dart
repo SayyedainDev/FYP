@@ -214,12 +214,22 @@ class _DoctorAssignmentsManagementScreenState
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () {
+                          final assignmentProvider =
+                              context.read<AssignmentProvider>();
+                          final authProvider = context.read<AuthProvider>();
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (context) =>
-                                  DoctorCreateAssignmentScreen(
-                                assignmentToEdit: assignment,
+                              builder: (_) => MultiProvider(
+                                providers: [
+                                  ChangeNotifierProvider.value(
+                                      value: assignmentProvider),
+                                  ChangeNotifierProvider.value(
+                                      value: authProvider),
+                                ],
+                                child: DoctorCreateAssignmentScreen(
+                                  assignmentToEdit: assignment,
+                                ),
                               ),
                             ),
                           );
