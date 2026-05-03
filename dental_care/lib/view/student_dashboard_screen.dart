@@ -388,8 +388,20 @@ class _QuickStats extends StatelessWidget {
   Widget _tile(BuildContext context, String label, String value) {
     return Expanded(
       child: InkWell(
-        onTap: () => Navigator.push(context,
-            MaterialPageRoute(builder: (_) => const StudentAnalyticsScreen())),
+        onTap: () {
+          final quizAttemptProvider = context.read<QuizAttemptProvider>();
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => MultiProvider(
+                providers: [
+                  ChangeNotifierProvider.value(value: quizAttemptProvider),
+                ],
+                child: const StudentAnalyticsScreen(),
+              ),
+            ),
+          );
+        },
         borderRadius: BorderRadius.circular(14),
         child: Container(
           padding: const EdgeInsets.all(14),

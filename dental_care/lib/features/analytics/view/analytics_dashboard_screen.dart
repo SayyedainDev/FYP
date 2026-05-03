@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'dart:convert';
+import 'dart:html' as html;
 import '../../../core/responsive/app_breakpoints.dart';
 import '../../../core/theme/app_tokens.dart';
 import '../../../providers/quiz_provider.dart';
@@ -21,6 +23,11 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
   bool _isLoading = true;
   List<QuizAttempt> _attempts = [];
   Map<String, String> _quizNames = {};
+  String _searchQuery = '';
+  String? _selectedQuizId;
+  String? _gradeFilter;
+  DateTime? _startDate;
+  DateTime? _endDate;
 
   @override
   void initState() {
@@ -62,6 +69,7 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
 
     final contentWidth = AppBreakpoints.contentMaxWidth(context);
     final horizontal = AppBreakpoints.horizontalPadding(context);
+    final filteredAttempts = _getFilteredAttempts();
 
     return Scaffold(
       appBar: AppBar(
@@ -83,10 +91,12 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
               children: [
                 _buildSummaryCards(context, _attempts, contentWidth),
                 const SizedBox(height: AppSpacing.section),
+                _buildFilters(),
+                const SizedBox(height: AppSpacing.section),
                 Text('Student Results',
                     style: Theme.of(context).textTheme.titleLarge),
                 const SizedBox(height: AppSpacing.md),
-                _buildResultsTable(_attempts),
+                _buildResultsTable(filteredAttempts),
               ],
             ),
           ),
@@ -218,5 +228,232 @@ class _AnalyticsDashboardScreenState extends State<AnalyticsDashboardScreen> {
         ),
       ),
     );
+  }
+
+  List<QuizAttempt> _getFilteredAttempts() {
+    final filtered = _attempts.where((attempt) {
+      if (_searchQuery.isNotEmpty &&
+          !attempt.studentName
+              .toLowerCase()
+              .contains(_searchQuery.toLowerCase())) {
+        return false;
+      }
+
+      if (_selectedQuizId != null && attempt.quizId != _selectedQuizId) {
+        return false;
+      }
+
+      if (_gradeFilter != null) {
+        final passed = attempt.scorePercentage >= 50;
+        if (_gradeFilter == 'pass' && !passed) return false;
+        if (_gradeFilter == 'fail' && passed) return false;
+      }
+
+      if (_startDate != null && attempt.startTime.isBefore(_startDate!)) {
+        return false;
+      }
+
+      if (_endDate != null) {
+        final endOfDay =
+            _endDate!.add(const Duration(hours: 23, minutes: 59, seconds: 59));
+        if (attempt.startTime.isAfter(endOfDay)) return false;
+      }
+
+      return true;
+    }).toList();
+
+    filtered.sort((a, b) => b.startTime.compareTo(a.startTime));
+    return filtered;
+  }
+
+  Widget _buildFilters() {
+    final hasFilters = _searchQuery.isNotEmpty ||
+        _selectedQuizId != null ||
+        _gradeFilter != null ||
+        _startDate != null ||
+        _endDate != null;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Filters', style: Theme.of(context).textTheme.titleMedium),
+              Row(
+                children: [
+                  if (hasFilters)
+                    TextButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _searchQuery = '';
+                          _selectedQuizId = null;
+                          _gradeFilter = null;
+                          _startDate = null;
+                          _endDate = null;
+                        });
+                      },
+                      icon: const Icon(Icons.clear, size: 16),
+                      label: const Text('Clear'),
+                    ),
+                  TextButton.icon(
+                    onPressed: () =>
+                        _downloadFilteredCSV(_getFilteredAttempts()),
+                    icon: const Icon(Icons.download, size: 16),
+                    label: const Text('CSV'),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            decoration: InputDecoration(
+              hintText: 'Search student name...',
+              prefixIcon: const Icon(Icons.search),
+              border:
+                  OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+              isDense: true,
+            ),
+            onChanged: (value) => setState(() => _searchQuery = value),
+          ),
+          const SizedBox(height: 12),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isNarrow = constraints.maxWidth < 900;
+              final children = [
+                Expanded(
+                  child: DropdownButtonFormField<String?>(
+                    value: _selectedQuizId,
+                    decoration: InputDecoration(
+                      labelText: 'Quiz',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      isDense: true,
+                    ),
+                    items: [
+                      const DropdownMenuItem(
+                          value: null, child: Text('All Quizzes')),
+                      ..._quizNames.entries.map((entry) => DropdownMenuItem(
+                            value: entry.key,
+                            child: Text(entry.value),
+                          )),
+                    ],
+                    onChanged: (value) =>
+                        setState(() => _selectedQuizId = value),
+                  ),
+                ),
+                const SizedBox(width: 12, height: 12),
+                Expanded(
+                  child: DropdownButtonFormField<String?>(
+                    value: _gradeFilter,
+                    decoration: InputDecoration(
+                      labelText: 'Grade',
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      isDense: true,
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: null, child: Text('All Grades')),
+                      DropdownMenuItem(value: 'pass', child: Text('Pass')),
+                      DropdownMenuItem(value: 'fail', child: Text('Fail')),
+                    ],
+                    onChanged: (value) => setState(() => _gradeFilter = value),
+                  ),
+                ),
+              ];
+
+              return isNarrow
+                  ? Column(
+                      children: [
+                        children[0],
+                        const SizedBox(height: 12),
+                        children[2],
+                      ],
+                    )
+                  : Row(children: children);
+            },
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: TextButton.icon(
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _startDate ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      setState(() => _startDate = picked);
+                    }
+                  },
+                  icon: const Icon(Icons.date_range),
+                  label: Text(_startDate == null
+                      ? 'Start Date'
+                      : DateFormat('MMM d, yyyy').format(_startDate!)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextButton.icon(
+                  onPressed: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _endDate ?? DateTime.now(),
+                      firstDate: DateTime(2020),
+                      lastDate: DateTime.now(),
+                    );
+                    if (picked != null) {
+                      setState(() => _endDate = picked);
+                    }
+                  },
+                  icon: const Icon(Icons.date_range),
+                  label: Text(_endDate == null
+                      ? 'End Date'
+                      : DateFormat('MMM d, yyyy').format(_endDate!)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _downloadFilteredCSV(List<QuizAttempt> attempts) {
+    final buffer = StringBuffer();
+    buffer.writeln('Student,Quiz,Date,Score,Grade,Duration,Violations');
+    for (final a in attempts) {
+      final violationCount =
+          a.tabSwitchCount + a.fullscreenExitCount + a.inactivityCount;
+      final safe = (String value) => '"${value.replaceAll('"', '""')}"';
+      buffer.writeln([
+        safe(a.studentName),
+        safe(_quizNames[a.quizId] ?? a.quizTitle),
+        safe(DateFormat('MMM d, y, h:mm a').format(a.startTime)),
+        safe(
+            '${a.score}/${a.totalMarks} (${a.scorePercentage.toStringAsFixed(1)}%)'),
+        safe(a.grade),
+        safe(a.durationText),
+        safe(violationCount > 0 ? '$violationCount Flags' : 'None'),
+      ].join(','));
+    }
+
+    final blob = html.Blob([utf8.encode(buffer.toString())], 'text/csv');
+    final url = html.Url.createObjectUrlFromBlob(blob);
+    html.AnchorElement(href: url)
+      ..setAttribute('download', 'quiz_results.csv')
+      ..click();
+    html.Url.revokeObjectUrl(url);
   }
 }

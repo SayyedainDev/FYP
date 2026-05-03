@@ -31,25 +31,34 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
   @override
   void initState() {
     super.initState();
-    _loadInitialData();
+    // Defer data loading to after the first frame to avoid setState during build
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _loadInitialData();
+      }
+    });
   }
 
   Future<void> _loadInitialData() async {
-    final auth = context.read<AuthProvider>();
-    final uid = auth.user?.uid;
-    if (uid == null) return;
+    try {
+      final auth = context.read<AuthProvider>();
+      final uid = auth.user?.uid;
+      if (uid == null) return;
 
-    final quizProv = context.read<QuizProvider>();
-    final attemptProv = context.read<QuizAttemptProvider>();
-    final assignmentProv = context.read<AssignmentProvider>();
-    final lectureNoteProv = context.read<LectureNoteProvider>();
+      final quizProv = context.read<QuizProvider>();
+      final attemptProv = context.read<QuizAttemptProvider>();
+      final assignmentProv = context.read<AssignmentProvider>();
+      final lectureNoteProv = context.read<LectureNoteProvider>();
 
-    await Future.wait([
-      quizProv.fetchPublishedQuizzes(),
-      attemptProv.fetchStudentAttempts(uid),
-      assignmentProv.fetchStudentAssignments(uid),
-      lectureNoteProv.fetchAll(),
-    ]);
+      await Future.wait([
+        quizProv.fetchPublishedQuizzes(),
+        attemptProv.fetchStudentAttempts(uid),
+        assignmentProv.fetchStudentAssignments(uid),
+        lectureNoteProv.fetchAll(),
+      ]);
+    } catch (e) {
+      debugPrint('Error loading student data: $e');
+    }
   }
 
   Widget _getContent() {

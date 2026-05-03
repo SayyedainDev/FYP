@@ -4,7 +4,6 @@ import 'package:provider/provider.dart';
 import '../provider/auth_provider.dart' as app_auth;
 import '../utils/session_manager.dart';
 import 'login.dart';
-import 'student_lms_dashboard.dart' as student_dashboard;
 
 class AuthWrapper extends StatefulWidget {
   const AuthWrapper({Key? key}) : super(key: key);
@@ -38,10 +37,7 @@ class _AuthWrapperState extends State<AuthWrapper> {
       if (role.toLowerCase() == 'doctor' || role.toLowerCase() == 'dentist') {
         Navigator.pushReplacementNamed(context, '/dashboard');
       } else if (role.toLowerCase() == 'student') {
-        Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-                builder: (_) => const student_dashboard.StudentLMSDashboard()));
+        Navigator.pushReplacementNamed(context, '/dashboard');
       } else {
         // Unknown role, fallback to doctor/dashboard
         Navigator.pushReplacementNamed(context, '/dashboard');

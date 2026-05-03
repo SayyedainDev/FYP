@@ -381,17 +381,25 @@ class _ActivityFeedSection extends StatelessWidget {
                   ),
                   itemBuilder: (context, index) {
                     final case_ = recentCases[index];
-                    final isCavity =
-                        case_.analysisResults['status'] == 'Cavity';
-                    final statusColor = isCavity
+                    final statusValue = (case_.analysisResults['status'] as String?) ?? 'Uploaded';
+                    final statusIsHealthy = statusValue == 'Healthy';
+                    final statusIsPositive = statusValue == 'Cavity' ||
+                        statusValue == 'Disease Detected' ||
+                        statusValue == 'Detected';
+                    final statusColor = statusIsHealthy
                         ? (Theme.of(context)
                                 .extension<AppSemanticColors>()
-                                ?.danger ??
-                            Colors.red)
-                        : (Theme.of(context)
-                                .extension<AppSemanticColors>()
                                 ?.success ??
-                            Colors.green);
+                            Colors.green)
+                        : (statusIsPositive
+                            ? (Theme.of(context)
+                                    .extension<AppSemanticColors>()
+                                    ?.danger ??
+                                Colors.red)
+                            : (Theme.of(context)
+                                    .extension<AppSemanticColors>()
+                                    ?.info ??
+                                Colors.blue));
 
                     return InkWell(
                       onTap: () {
@@ -481,7 +489,7 @@ class _ActivityFeedSection extends StatelessWidget {
                                     color: statusColor.withOpacity(0.2)),
                               ),
                               child: Text(
-                                isCavity ? 'Disease Detected' : 'Healthy',
+                                statusValue,
                                 style: TextStyle(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -610,39 +618,46 @@ class _PatientHighlightsSection extends StatelessWidget {
                     final patient = recentPatients[index];
                     return InkWell(
                       onTap: () {
+                        final navProvider = context.read<NavigationProvider>();
                         showDialog(
                           context: context,
-                          builder: (dialogContext) => AlertDialog(
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            title: Text(patient.name),
-                            content: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('${patient.age} years old'),
-                                const SizedBox(height: 8),
-                                Text('Gender: ${patient.gender}'),
-                                const SizedBox(height: 8),
-                                Text('Health status: ${patient.healthStatus}'),
+                          builder: (dialogContext) => MultiProvider(
+                            providers: [
+                              ChangeNotifierProvider.value(value: navProvider),
+                            ],
+                            child: AlertDialog(
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              title: Text(patient.name),
+                              content: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('${patient.age} years old'),
+                                  const SizedBox(height: 8),
+                                  Text('Gender: ${patient.gender}'),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                      'Health status: ${patient.healthStatus}'),
+                                ],
+                              ),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(dialogContext),
+                                  child: const Text('Close'),
+                                ),
+                                FilledButton(
+                                  onPressed: () {
+                                    Navigator.pop(dialogContext);
+                                    dialogContext
+                                        .read<NavigationProvider>()
+                                        .setPage('Patients');
+                                  },
+                                  child: const Text('Open Patients'),
+                                ),
                               ],
                             ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(dialogContext),
-                                child: const Text('Close'),
-                              ),
-                              FilledButton(
-                                onPressed: () {
-                                  Navigator.pop(dialogContext);
-                                  context
-                                      .read<NavigationProvider>()
-                                      .setPage('Patients');
-                                },
-                                child: const Text('Open Patients'),
-                              ),
-                            ],
                           ),
                         );
                       },

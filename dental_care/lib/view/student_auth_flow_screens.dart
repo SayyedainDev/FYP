@@ -188,8 +188,7 @@ class _EmailVerificationContentState extends State<_EmailVerificationContent> {
     final verified = await auth.refreshEmailVerificationStatus();
     if (!mounted) return;
     if (verified) {
-      Navigator.pushReplacement(context,
-          MaterialPageRoute(builder: (_) => const StudentDashboardScreen()));
+      Navigator.pushReplacementNamed(context, '/dashboard');
       return;
     }
     setState(() =>

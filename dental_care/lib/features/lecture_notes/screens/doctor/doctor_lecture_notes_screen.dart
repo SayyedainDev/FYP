@@ -39,32 +39,39 @@ class _DoctorLectureNotesScreenState extends State<DoctorLectureNotesScreen> {
   }
 
   void _confirmDelete(BuildContext context, note) {
+    final provider = context.read<LectureNoteProvider>();
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Delete Note'),
-        content: const Text(
-            'Are you sure you want to delete this lecture note? This action cannot be undone.'),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              context.read<LectureNoteProvider>().deleteNote(note);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade600,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8)),
-            ),
-            child: const Text('Delete'),
-          ),
+      builder: (ctx) => MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: provider),
         ],
+        child: AlertDialog(
+          title: const Text('Delete Note'),
+          content: const Text(
+              'Are you sure you want to delete this lecture note? This action cannot be undone.'),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                ctx.read<LectureNoteProvider>().deleteNote(note);
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade600,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8)),
+              ),
+              child: const Text('Delete'),
+            ),
+          ],
+        ),
       ),
     );
   }

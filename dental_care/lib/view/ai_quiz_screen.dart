@@ -5,7 +5,7 @@ import 'package:provider/provider.dart';
 
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, listEquals;
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import '../providers/quiz_provider.dart';
@@ -31,6 +31,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
   List<Question> _generatedQuestions = [];
   String _generationStatusText = 'Analyzing your PDF content...';
   Timer? _statusTimer;
+  List<LectureNoteModel> _availableLectureNotes = [];
 
   // Quiz configuration
   DifficultyLevel _selectedDifficulty = DifficultyLevel.medium;
@@ -226,6 +227,18 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                 }
 
                 final notes = snapshot.data ?? [];
+                if (!listEquals(
+                  _availableLectureNotes.map((n) => n.id).toList(),
+                  notes.map((n) => n.id).toList(),
+                )) {
+                  WidgetsBinding.instance.addPostFrameCallback((_) {
+                    if (mounted) {
+                      setState(() {
+                        _availableLectureNotes = notes;
+                      });
+                    }
+                  });
+                }
 
                 if (notes.isEmpty) {
                   return Container(
@@ -493,8 +506,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                                       );
                                     }
                                   }
+
                                   await Future.sync(() => (op as dynamic)());
-                                                                }),
+                                }),
                         icon: const Icon(Icons.arrow_forward),
                         label: const Text('Next'),
                         style: ElevatedButton.styleFrom(
@@ -704,7 +718,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                           : () => loadingState.runAsyncAction(() async {
                                 op() => setState(() => _currentStep = 0);
                                 await Future.sync(() => (op as dynamic)());
-                                                            }),
+                              }),
                       icon: const Icon(Icons.arrow_back),
                       label: const Text('Back'),
                       style: TextButton.styleFrom(
@@ -724,7 +738,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                           : () => loadingState.runAsyncAction(() async {
                                 op() => setState(() => _currentStep = 2);
                                 await Future.sync(() => (op as dynamic)());
-                                                            }),
+                              }),
                       icon: const Icon(Icons.check),
                       label: const Text('Next'),
                       style: ElevatedButton.styleFrom(
@@ -857,7 +871,8 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    quizProvider.groqError!.contains('RAG') || quizProvider.groqError!.contains('500')
+                    quizProvider.groqError!.contains('RAG') ||
+                            quizProvider.groqError!.contains('500')
                         ? 'We couldn\'t generate a quiz from this document. It may lack relevant educational content, or the AI could not process the text. Please try another document or topic.\n\nTechnical Details: ${quizProvider.groqError}'
                         : quizProvider.groqError!,
                     textAlign: TextAlign.center,
@@ -879,9 +894,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                                       quizProvider.clearGroqError();
                                       _generateQuiz(quizProvider, authProvider);
                                     }
-                                    await Future.sync(
-                                        () => (op as dynamic)());
-                                                                    }),
+
+                                    await Future.sync(() => (op as dynamic)());
+                                  }),
                           icon: const Icon(Icons.refresh, size: 18),
                           label: const Text('Retry Generation'),
                           style: ElevatedButton.styleFrom(
@@ -909,7 +924,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                                 op() =>
                                     _generateQuiz(quizProvider, authProvider);
                                 await Future.sync(() => (op as dynamic)());
-                                                            }),
+                              }),
                       icon: const Icon(Icons.auto_awesome, size: 20),
                       label: const Text('Generate Questions with AI'),
                       style: ElevatedButton.styleFrom(
@@ -944,7 +959,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                         : () => loadingState.runAsyncAction(() async {
                               op() => setState(() => _currentStep = 1);
                               await Future.sync(() => (op as dynamic)());
-                                                        }),
+                            }),
                     icon: const Icon(Icons.arrow_back),
                     label: const Text('Back to Settings'),
                     style: TextButton.styleFrom(
@@ -1031,7 +1046,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                           : () => loadingState.runAsyncAction(() async {
                                 final op = _addManualQuestion;
                                 await Future.sync(() => (op as dynamic)());
-                                                            }),
+                              }),
                       icon: const Icon(Icons.add, size: 18),
                       label: const Text('Add Question'),
                       style: OutlinedButton.styleFrom(
@@ -1103,7 +1118,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                           : () => loadingState.runAsyncAction(() async {
                                 op() => setState(() => _currentStep = 2);
                                 await Future.sync(() => (op as dynamic)());
-                                                            }),
+                              }),
                       icon: const Icon(Icons.arrow_back),
                       label: const Text('Regenerate'),
                       style: TextButton.styleFrom(
@@ -1235,7 +1250,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                           : () => loadingState.runAsyncAction(() async {
                                 op() => _deleteQuestion(index);
                                 await Future.sync(() => (op as dynamic)());
-                                                            }),
+                              }),
                       icon: Icon(
                         Icons.delete_outline,
                         color: _sem?.danger ?? _cs.error,
@@ -1416,7 +1431,7 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                       : () => loadingState.runAsyncAction(() async {
                             op() => Navigator.pop(ctx);
                             await Future.sync(() => (op as dynamic)());
-                                                    }),
+                          }),
                   child: const Text('Cancel'),
                 ),
               );
@@ -1435,8 +1450,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                                   () => _generatedQuestions.removeAt(index));
                               Navigator.pop(ctx);
                             }
+
                             await Future.sync(() => (op as dynamic)());
-                                                    }),
+                          }),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _sem?.danger ?? _cs.error,
                     foregroundColor: _cs.onError,
@@ -1738,8 +1754,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                                     listen: false,
                                   ).clearCurrentQuiz();
                                 }
+
                                 await Future.sync(() => (op as dynamic)());
-                                                            }),
+                              }),
                       icon: const Icon(Icons.add),
                       label: const Text('Create Another'),
                       style: OutlinedButton.styleFrom(
@@ -1772,8 +1789,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                                     );
                                   }
                                 }
+
                                 await Future.sync(() => (op as dynamic)());
-                                                            }),
+                              }),
                       icon: const Icon(Icons.print),
                       label: const Text('Print'),
                       style: ElevatedButton.styleFrom(
@@ -1806,8 +1824,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                                     );
                                   }
                                 }
+
                                 await Future.sync(() => (op as dynamic)());
-                                                            }),
+                              }),
                       icon: const Icon(Icons.share),
                       label: const Text('Share'),
                       style: ElevatedButton.styleFrom(
@@ -1843,8 +1862,9 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
                                     ),
                                   );
                                 }
+
                                 await Future.sync(() => (op as dynamic)());
-                                                            }),
+                              }),
                       icon: const Icon(Icons.visibility),
                       label: const Text('View Quiz'),
                       style: ElevatedButton.styleFrom(
@@ -2182,12 +2202,29 @@ class _AIQuizScreenState extends State<AIQuizScreen> {
     );
 
     // Generate questions
+    final selectedNotes = _availableLectureNotes
+        .where((note) => _selectedLectureNoteIds.contains(note.id))
+        .toList();
+    final noteContent = selectedNotes.isNotEmpty
+        ? selectedNotes
+            .map(
+              (note) => [
+                'Title: ${note.title}',
+                'Module: ${note.moduleId}',
+                if (note.description != null && note.description!.isNotEmpty)
+                  'Description: ${note.description}',
+              ].join('\n'),
+            )
+            .join('\n\n')
+        : null;
+
     List<Question>? questions = await quizProvider.generateQuestionsWithAI(
       config: config,
       topic: _titleController.text.isNotEmpty
           ? _titleController.text
           : 'Dental Quiz',
       uid: user.uid,
+      noteContent: noteContent,
     );
 
     // Stop status cycling

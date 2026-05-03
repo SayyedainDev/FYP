@@ -876,38 +876,45 @@ class _DentalDetectionScreenState extends State<DentalDetectionScreen> {
                 final selected = await showDialog<Patient?>(
                   context: context,
                   builder: (ctx) {
-                    final patients =
-                        Provider.of<PatientProvider>(context).patients;
-                    return Dialog(
-                      child: Container(
-                        constraints: const BoxConstraints(maxWidth: 600),
-                        padding: const EdgeInsets.all(16),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Text('Select Patient for Prescription',
-                                style: TextStyle(fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 12),
-                            SizedBox(
-                              height: 300,
-                              child: ListView.builder(
-                                shrinkWrap: true,
-                                itemCount: patients.length,
-                                itemBuilder: (_, i) {
-                                  final p = patients[i];
-                                  return ListTile(
-                                    title: Text(p.name),
-                                    subtitle: Text(p.contactPhone),
-                                    onTap: () => Navigator.of(ctx).pop(p),
-                                  );
-                                },
+                    final patientProvider =
+                        Provider.of<PatientProvider>(context, listen: false);
+                    final patients = patientProvider.patients;
+                    return MultiProvider(
+                      providers: [
+                        ChangeNotifierProvider.value(value: patientProvider),
+                      ],
+                      child: Dialog(
+                        child: Container(
+                          constraints: const BoxConstraints(maxWidth: 600),
+                          padding: const EdgeInsets.all(16),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Text('Select Patient for Prescription',
+                                  style:
+                                      TextStyle(fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 12),
+                              SizedBox(
+                                height: 300,
+                                child: ListView.builder(
+                                  shrinkWrap: true,
+                                  itemCount: patients.length,
+                                  itemBuilder: (_, i) {
+                                    final p = patients[i];
+                                    return ListTile(
+                                      title: Text(p.name),
+                                      subtitle: Text(p.contactPhone),
+                                      onTap: () => Navigator.of(ctx).pop(p),
+                                    );
+                                  },
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            TextButton(
-                                onPressed: () => Navigator.of(ctx).pop(null),
-                                child: const Text('Cancel')),
-                          ],
+                              const SizedBox(height: 8),
+                              TextButton(
+                                  onPressed: () => Navigator.of(ctx).pop(null),
+                                  child: const Text('Cancel')),
+                            ],
+                          ),
                         ),
                       ),
                     );

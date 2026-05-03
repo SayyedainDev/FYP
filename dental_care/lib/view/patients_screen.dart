@@ -5,6 +5,7 @@ import 'dart:async';
 import 'dart:io';
 
 import '../models/patient.dart';
+import '../models/scan.dart';
 import '../models/case.dart';
 import '../providers/patient_provider.dart';
 import '../providers/scan_provider.dart';
@@ -442,11 +443,19 @@ class _PatientsScreenState extends State<PatientsScreen> {
   ) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
     final uid = authProvider.currentUserId ?? authProvider.uid;
+    final patientProvider =
+        Provider.of<PatientProvider>(context, listen: false);
 
     final result = await showDialog<bool>(
       context: context,
       barrierColor: Theme.of(context).colorScheme.shadow.withValues(alpha: 0.5),
-      builder: (context) => EditPatientDialog(patient: patient),
+      builder: (context) => MultiProvider(
+        providers: [
+          ChangeNotifierProvider.value(value: patientProvider),
+          ChangeNotifierProvider.value(value: authProvider),
+        ],
+        child: EditPatientDialog(patient: patient),
+      ),
     );
 
     if (!mounted) return;
@@ -458,6 +467,55 @@ class _PatientsScreenState extends State<PatientsScreen> {
         listen: false,
       );
       await patientProvider.fetchPatients(uid);
+    }
+  }
+
+  Future<void> _confirmDeletePatient(
+    BuildContext context,
+    Patient patient,
+  ) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final uid = authProvider.currentUserId ?? authProvider.uid;
+    if (uid == null) return;
+
+    final shouldDelete = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Patient'),
+        content: Text('Delete ${patient.name}? This cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (shouldDelete != true) return;
+
+    try {
+      await Provider.of<PatientProvider>(context, listen: false)
+          .deletePatient(patient.id, uid);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Patient deleted successfully')),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to delete patient: $e')),
+        );
+      }
     }
   }
 
@@ -710,6 +768,207 @@ class _PatientsScreenState extends State<PatientsScreen> {
                             patientPhone: patient.contactPhone,
                           ),
 
+                          const SizedBox(height: 20),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const _SectionHeader('Recent Scans'),
+                              TextButton.icon(
+                                onPressed: () async {
+                                  final scans = await Provider.of<ScanProvider>(
+                                    dialogContext,
+                                    listen: false,
+                                  ).fetchScansForPatient(patient.id);
+
+                                  if (!context.mounted) return;
+
+                                  showDialog(
+                                    context: context,
+                                    builder: (_) => AlertDialog(
+                                      title: const Text('Recent Scans'),
+                                      content: SizedBox(
+                                        width: 700,
+                                        child: scans.isEmpty
+                                            ? const Text(
+                                                'No scans found for this patient.',
+                                              )
+                                            : ListView.separated(
+                                                shrinkWrap: true,
+                                                itemCount: scans.length,
+                                                separatorBuilder: (_, __) =>
+                                                    const SizedBox(height: 12),
+                                                itemBuilder: (_, index) {
+                                                  final scan = scans[index];
+                                                  return ListTile(
+                                                    contentPadding:
+                                                        const EdgeInsets
+                                                            .symmetric(
+                                                      horizontal: 0,
+                                                      vertical: 0,
+                                                    ),
+                                                    leading: ClipRRect(
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                        10,
+                                                      ),
+                                                      child: Image.network(
+                                                        scan.imageUrl,
+                                                        width: 56,
+                                                        height: 56,
+                                                        fit: BoxFit.cover,
+                                                        errorBuilder:
+                                                            (_, __, ___) =>
+                                                                Container(
+                                                          width: 56,
+                                                          height: 56,
+                                                          color: Colors
+                                                              .grey.shade200,
+                                                          child: const Icon(
+                                                            Icons.image,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    title:
+                                                        Text(scan.cavityStatus),
+                                                    subtitle: Text(
+                                                      '${scan.scanDate.toLocal().toString().split('.').first} • ${scan.timeAgo}',
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.pop(
+                                            context,
+                                          ),
+                                          child: const Text('Close'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.visibility, size: 16),
+                                label: const Text('View All'),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          FutureBuilder<List<Scan>>(
+                            future: Provider.of<ScanProvider>(
+                              dialogContext,
+                              listen: false,
+                            ).fetchScansForPatient(patient.id),
+                            builder: (context, snapshot) {
+                              if (snapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const Padding(
+                                  padding: EdgeInsets.symmetric(vertical: 12),
+                                  child: Center(
+                                    child: CircularProgressIndicator(),
+                                  ),
+                                );
+                              }
+
+                              final scans = snapshot.data ?? [];
+                              if (scans.isEmpty) {
+                                return Container(
+                                  width: double.infinity,
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    color: colorScheme.surfaceContainerLowest,
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: colorScheme.outlineVariant,
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'No scans found for this patient.',
+                                    style: TextStyle(
+                                      color: colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              final recentScans = scans.take(3).toList();
+                              return Column(
+                                children: recentScans.map((scan) {
+                                  return Padding(
+                                    padding: const EdgeInsets.only(bottom: 12),
+                                    child: Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        color: colorScheme.surface,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: colorScheme.outlineVariant,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        children: [
+                                          ClipRRect(
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                            child: Image.network(
+                                              scan.imageUrl,
+                                              width: 56,
+                                              height: 56,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (_, __, ___) =>
+                                                  Container(
+                                                width: 56,
+                                                height: 56,
+                                                color: Colors.grey.shade200,
+                                                child: const Icon(Icons.image),
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  scan.cavityStatus,
+                                                  style: const TextStyle(
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  scan.timeAgo,
+                                                  style: TextStyle(
+                                                    color: colorScheme
+                                                        .onSurfaceVariant,
+                                                    fontSize: 12,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          Text(
+                                            scan.hasCavity
+                                                ? 'Cavity'
+                                                : 'Healthy',
+                                            style: TextStyle(
+                                              color: scan.hasCavity
+                                                  ? Colors.red
+                                                  : Colors.green,
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                }).toList(),
+                              );
+                            },
+                          ),
+
                           // Metadata
                           const SizedBox(height: 20),
                           Divider(color: colorScheme.outlineVariant),
@@ -900,7 +1159,6 @@ class _PatientsScreenState extends State<PatientsScreen> {
                         const SizedBox(width: 12),
                         ElevatedButton.icon(
                           onPressed: () async {
-                            Navigator.pop(context);
                             await _showEditPatientDialog(context, patient);
                           },
                           icon: const Icon(Icons.edit, size: 18),
@@ -910,6 +1168,26 @@ class _PatientsScreenState extends State<PatientsScreen> {
                             foregroundColor: colorScheme.onPrimary,
                             padding: const EdgeInsets.symmetric(
                               horizontal: 24,
+                              vertical: 12,
+                            ),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            elevation: 0,
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        ElevatedButton.icon(
+                          onPressed: () async {
+                            await _confirmDeletePatient(context, patient);
+                          },
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          label: const Text('Delete Patient'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: colorScheme.error,
+                            foregroundColor: colorScheme.onError,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 20,
                               vertical: 12,
                             ),
                             shape: RoundedRectangleBorder(

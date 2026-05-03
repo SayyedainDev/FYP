@@ -4,7 +4,10 @@ class AssignmentSubmission {
   final String id;
   final String assignmentId;
   final String studentId;
+  final String studentName;
   final String submissionFileUrl;
+  final String fileName;
+  final String submissionNotes;
   final DateTime submittedAt;
   final DateTime? gradedAt;
   final double? marksObtained;
@@ -16,7 +19,10 @@ class AssignmentSubmission {
     required this.id,
     required this.assignmentId,
     required this.studentId,
+    required this.studentName,
     required this.submissionFileUrl,
+    required this.fileName,
+    required this.submissionNotes,
     required this.submittedAt,
     this.gradedAt,
     this.marksObtained,
@@ -32,7 +38,10 @@ class AssignmentSubmission {
     return {
       'assignmentId': assignmentId,
       'studentId': studentId,
+      'studentName': studentName,
       'submissionFileUrl': submissionFileUrl,
+      'fileName': fileName,
+      'submissionNotes': submissionNotes,
       'submittedAt': Timestamp.fromDate(submittedAt),
       'gradedAt': gradedAt != null ? Timestamp.fromDate(gradedAt!) : null,
       'marksObtained': marksObtained,
@@ -48,7 +57,10 @@ class AssignmentSubmission {
       id: doc.id,
       assignmentId: data['assignmentId'] ?? '',
       studentId: data['studentId'] ?? '',
+      studentName: data['studentName'] ?? data['studentId'] ?? '',
       submissionFileUrl: data['submissionFileUrl'] ?? '',
+      fileName: data['fileName'] ?? 'Submission File',
+      submissionNotes: data['submissionNotes'] ?? '',
       submittedAt: (data['submittedAt'] as Timestamp).toDate(),
       gradedAt: data['gradedAt'] != null
           ? (data['gradedAt'] as Timestamp).toDate()

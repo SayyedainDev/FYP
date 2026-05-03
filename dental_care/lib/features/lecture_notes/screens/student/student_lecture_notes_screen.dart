@@ -11,7 +11,7 @@ class StudentLectureNotesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.read<LectureNoteProvider>();
+    final provider = context.watch<LectureNoteProvider>();
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
       body: Container(
@@ -29,15 +29,7 @@ class StudentLectureNotesScreen extends StatelessWidget {
           child: StreamBuilder<List<LectureNoteModel>>(
             stream: provider.streamByModule(moduleId),
             builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return const Center(
-                    child: Text('Could not load notes. Please try again.'));
-              }
-
-              final notes = snapshot.data ?? [];
+              var notes = snapshot.data ?? [];
 
               return CustomScrollView(
                 slivers: [

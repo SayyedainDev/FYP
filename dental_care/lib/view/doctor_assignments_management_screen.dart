@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'dart:html' as html;
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:dental_care/providers/assignment_provider.dart';
 import 'package:dental_care/provider/auth_provider.dart';
+import 'package:dental_care/providers/loading_provider.dart';
+import 'package:dental_care/widgets/loading_button.dart';
 import 'doctor_create_assignment_screen.dart';
 
 class DoctorAssignmentsManagementScreen extends StatefulWidget {
@@ -268,11 +271,9 @@ class _DoctorAssignmentsManagementScreenState
       itemCount: submissions.length,
       itemBuilder: (context, index) {
         final submission = submissions[index];
-        // Try to get studentName, fallback to studentId if not available
-        final studentName = (submission.studentName != null &&
-                submission.studentName!.isNotEmpty)
+        final studentName = submission.studentName.isNotEmpty
             ? submission.studentName
-            : (submission.studentId?.isNotEmpty ?? false
+            : (submission.studentId.isNotEmpty
                 ? submission.studentId
                 : 'Unknown Student');
 
@@ -332,7 +333,9 @@ class _DoctorAssignmentsManagementScreenState
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              submission.fileName ?? 'Submission File',
+                              submission.fileName.isNotEmpty
+                                  ? submission.fileName
+                                  : 'Submission File',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: const TextStyle(
@@ -340,7 +343,7 @@ class _DoctorAssignmentsManagementScreenState
                                 fontSize: 13,
                               ),
                             ),
-                            if (submission.submissionNotes?.isNotEmpty ?? false)
+                            if (submission.submissionNotes.isNotEmpty)
                               Text(
                                 'Notes: ${submission.submissionNotes}',
                                 maxLines: 1,
@@ -364,10 +367,9 @@ class _DoctorAssignmentsManagementScreenState
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () async {
-                          if (submission.submissionFileUrl != null &&
-                              submission.submissionFileUrl!.isNotEmpty) {
+                          if (submission.submissionFileUrl.isNotEmpty) {
                             try {
-                              await _launchUrl(submission.submissionFileUrl!);
+                              await _launchUrl(submission.submissionFileUrl);
                             } catch (e) {
                               if (mounted) {
                                 ScaffoldMessenger.of(context).showSnackBar(
@@ -386,12 +388,13 @@ class _DoctorAssignmentsManagementScreenState
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () async {
-                          if (submission.submissionFileUrl != null &&
-                              submission.submissionFileUrl!.isNotEmpty) {
+                          if (submission.submissionFileUrl.isNotEmpty) {
                             try {
                               await _downloadFile(
-                                submission.submissionFileUrl!,
-                                submission.fileName ?? 'submission',
+                                submission.submissionFileUrl,
+                                submission.fileName.isNotEmpty
+                                    ? submission.fileName
+                                    : 'submission',
                               );
                             } catch (e) {
                               if (mounted) {
@@ -480,16 +483,10 @@ class _DoctorAssignmentsManagementScreenState
 
   Future<void> _downloadFile(String url, String fileName) async {
     try {
-      final uri = Uri.parse(url);
-      if (!await canLaunchUrl(uri)) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Could not download file')),
-          );
-        }
-        return;
-      }
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+      final link = html.AnchorElement(href: url)
+        ..download = fileName
+        ..target = '_blank';
+      link.click();
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -514,8 +511,9 @@ class _DoctorAssignmentsManagementScreenState
               controller: marksController,
               keyboardType: TextInputType.number,
               decoration: const InputDecoration(
-                labelText: 'Marks Obtained',
+                labelText: 'Marks Obtained (required)',
                 border: OutlineInputBorder(),
+                hintText: 'e.g., 45.5',
               ),
             ),
             const SizedBox(height: 16),
@@ -525,6 +523,7 @@ class _DoctorAssignmentsManagementScreenState
               decoration: const InputDecoration(
                 labelText: 'Feedback',
                 border: OutlineInputBorder(),
+                hintText: 'Provide constructive feedback...',
               ),
             ),
           ],
@@ -534,19 +533,80 @@ class _DoctorAssignmentsManagementScreenState
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              context.read<AssignmentProvider>().gradeAssignment(
-                    submission.id,
-                    double.parse(marksController.text),
-                    feedbackController.text,
-                  );
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Assignment graded successfully')),
+          Consumer<LoadingProvider>(
+            builder: (context, loadingState, _) {
+              return LoadingButton(
+                isLoading: loadingState.isLoading,
+                child: ElevatedButton(
+                  onPressed: loadingState.isLoading
+                      ? null
+                      : () => loadingState.runAsyncAction(() async {
+                            final marks = marksController.text.trim();
+                            if (marks.isEmpty) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content:
+                                        Text('Please enter marks obtained'),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                              return;
+                            }
+
+                            try {
+                              final marksValue = double.parse(marks);
+                              final feedback = feedbackController.text.trim();
+
+                              final success = await context
+                                  .read<AssignmentProvider>()
+                                  .gradeAssignment(
+                                    submission.id,
+                                    marksValue,
+                                    feedback,
+                                  );
+
+                              if (mounted) {
+                                if (success) {
+                                  Navigator.pop(context);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text(
+                                          'Assignment graded successfully'),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(
+                                        context
+                                                .read<AssignmentProvider>()
+                                                .errorMessage ??
+                                            'Failed to grade assignment',
+                                      ),
+                                      behavior: SnackBarBehavior.floating,
+                                    ),
+                                  );
+                                }
+                              }
+                            } on FormatException {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                        'Invalid marks. Please enter a valid number'),
+                                    behavior: SnackBarBehavior.floating,
+                                  ),
+                                );
+                              }
+                            }
+                          }),
+                  child: const Text('Submit Grade'),
+                ),
               );
             },
-            child: const Text('Submit Grade'),
           ),
         ],
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:collection';
+import 'package:dental_care/utils/global_error_handler.dart';
 import '../widgets/loaders/app_loader.dart';
 
 class AppDialogs {
@@ -55,6 +56,38 @@ class AppDialogs {
     return true;
   }
 
+  static Future<T?> _enqueueDialogWithRootNavigator<T>(
+    BuildContext context,
+    Future<T?> Function(BuildContext dialogContext) presenter,
+  ) {
+    NavigatorState? rootState;
+
+    // Try to get the root navigator from the caller's context first.
+    try {
+      rootState = Navigator.maybeOf(context, rootNavigator: true);
+    } catch (_) {
+      rootState = null;
+    }
+
+    // Fallback to the global navigator key if the caller context is
+    // deactivated or cannot resolve a root navigator.
+    if (rootState == null) {
+      try {
+        rootState = GlobalErrorHandler.instance.navigatorKey.currentState;
+      } catch (_) {
+        rootState = null;
+      }
+    }
+
+    if (rootState == null) return Future.value(null);
+
+    final dialogContext = rootState.context;
+
+    return _enqueueBlockingDialog<T>(() async {
+      return presenter(dialogContext);
+    });
+  }
+
   static Widget _buildDialogTitle({
     required IconData icon,
     required Color color,
@@ -79,9 +112,10 @@ class AppDialogs {
     required String message,
     VoidCallback? onRetry,
   }) async {
-    return _enqueueBlockingDialog<void>(
-      () => showDialog<void>(
-        context: context,
+    return _enqueueDialogWithRootNavigator<void>(
+      context,
+      (dialogContext) => showDialog<void>(
+        context: dialogContext,
         builder: (ctx) {
           bool retryTapped = false;
           return StatefulBuilder(
@@ -143,9 +177,10 @@ class AppDialogs {
     String confirmLabel = "Confirm",
     required VoidCallback onConfirm,
   }) async {
-    return _enqueueBlockingDialog<void>(
-      () => showDialog<void>(
-        context: context,
+    return _enqueueDialogWithRootNavigator<void>(
+      context,
+      (dialogContext) => showDialog<void>(
+        context: dialogContext,
         barrierDismissible: false,
         builder: (ctx) => PopScope(
           canPop: false,
@@ -197,9 +232,10 @@ class AppDialogs {
     String title = "Info",
     required String message,
   }) async {
-    return _enqueueBlockingDialog<void>(
-      () => showDialog<void>(
-        context: context,
+    return _enqueueDialogWithRootNavigator<void>(
+      context,
+      (dialogContext) => showDialog<void>(
+        context: dialogContext,
         builder: (ctx) => Semantics(
           namesRoute: true,
           label: 'dialog_info',
@@ -232,9 +268,10 @@ class AppDialogs {
     BuildContext context, {
     required VoidCallback onLoginAgain,
   }) async {
-    return _enqueueBlockingDialog<void>(
-      () => showDialog<void>(
-        context: context,
+    return _enqueueDialogWithRootNavigator<void>(
+      context,
+      (dialogContext) => showDialog<void>(
+        context: dialogContext,
         barrierDismissible: false,
         builder: (ctx) => PopScope(
           canPop: false,
@@ -275,9 +312,10 @@ class AppDialogs {
     BuildContext context, {
     VoidCallback? onRetry,
   }) async {
-    return _enqueueBlockingDialog<void>(
-      () => showDialog<void>(
-        context: context,
+    return _enqueueDialogWithRootNavigator<void>(
+      context,
+      (dialogContext) => showDialog<void>(
+        context: dialogContext,
         builder: (ctx) {
           bool retryTapped = false;
           return StatefulBuilder(
@@ -337,8 +375,13 @@ class AppDialogs {
   }) {
     // If we pop this specific dialog, we use a global key or just return a dismissal function.
     bool isClosed = false;
+    final rootNavigator = Navigator.maybeOf(context, rootNavigator: true);
+    if (rootNavigator == null || !rootNavigator.mounted) {
+      return () {};
+    }
+
     showDialog(
-      context: context,
+      context: rootNavigator.context,
       barrierDismissible: false,
       builder: (ctx) => PopScope(
         canPop: false,
@@ -362,8 +405,8 @@ class AppDialogs {
     });
 
     return () {
-      if (!isClosed && Navigator.of(context, rootNavigator: true).canPop()) {
-        Navigator.of(context, rootNavigator: true).pop();
+      if (!isClosed && rootNavigator.mounted && rootNavigator.canPop()) {
+        rootNavigator.pop();
       }
     };
   }
@@ -373,9 +416,10 @@ class AppDialogs {
     BuildContext context, {
     required VoidCallback onDiscard,
   }) async {
-    return _enqueueBlockingDialog<void>(
-      () => showDialog<void>(
-        context: context,
+    return _enqueueDialogWithRootNavigator<void>(
+      context,
+      (dialogContext) => showDialog<void>(
+        context: dialogContext,
         barrierDismissible: false,
         builder: (ctx) => PopScope(
           canPop: false,
@@ -428,9 +472,10 @@ class AppDialogs {
     String title = "Success",
     required String message,
   }) async {
-    return _enqueueBlockingDialog<void>(
-      () => showDialog<void>(
-        context: context,
+    return _enqueueDialogWithRootNavigator<void>(
+      context,
+      (dialogContext) => showDialog<void>(
+        context: dialogContext,
         builder: (ctx) => AlertDialog(
           title: _buildDialogTitle(
             icon: Icons.check_circle,
@@ -457,9 +502,10 @@ class AppDialogs {
     String confirmLabel = "Confirm",
     String cancelLabel = "Cancel",
   }) async {
-    return _enqueueBlockingDialog<bool?>(
-      () => showDialog<bool?>(
-        context: context,
+    return _enqueueDialogWithRootNavigator<bool?>(
+      context,
+      (dialogContext) => showDialog<bool?>(
+        context: dialogContext,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
           title: _buildDialogTitle(

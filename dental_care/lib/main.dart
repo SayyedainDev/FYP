@@ -15,6 +15,7 @@ import 'package:dental_care/core/config/supabase_config.dart';
 import 'package:dental_care/providers/navigation_provider.dart';
 import 'package:dental_care/providers/loading_provider.dart';
 import 'package:dental_care/providers/theme_provider.dart';
+import 'package:dental_care/utils/global_error_handler.dart';
 import 'package:dental_care/utils/firebase_test.dart';
 import 'firebase_options.dart';
 
@@ -123,6 +124,7 @@ class MyApp extends StatelessWidget {
         }
 
         return MaterialApp(
+          navigatorKey: GlobalErrorHandler.instance.navigatorKey,
           debugShowCheckedModeBanner: false,
           title: 'PalPath',
           theme: themeProvider.currentTheme,

@@ -55,8 +55,11 @@ class ScanDetailPane extends ConsumerWidget {
       data: (data) {
         final c = data.caseModel;
         final rx = data.prescription;
-
-        final isNegative = !c.analysisResults.hasCavity;
+        final statusValue = c.displayStatus;
+        final statusIsHealthy = statusValue == 'Healthy';
+        final statusIsPositive = statusValue == 'Cavity' ||
+            statusValue == 'Disease Detected' ||
+            statusValue == 'Detected';
 
         return Scaffold(
           backgroundColor: Colors.white,
@@ -230,11 +233,13 @@ class ScanDetailPane extends ConsumerWidget {
                               const SizedBox(width: 16),
                               Expanded(
                                 child: _StatCardDesign(
-                                  title: 'CAVITY STATUS',
-                                  value: isNegative ? 'Negative' : 'Positive',
-                                  valueColor: isNegative
+                                  title: 'AI STATUS',
+                                  value: statusValue,
+                                  valueColor: statusIsHealthy
                                       ? const Color(0xFF059669)
-                                      : const Color(0xFFDC2626),
+                                      : (statusIsPositive
+                                          ? const Color(0xFFDC2626)
+                                          : const Color(0xFF2563EB)),
                                   icon: null,
                                 ),
                               ),
@@ -625,8 +630,7 @@ class ScanDetailPane extends ConsumerWidget {
   }
 
   Widget _buildFindingChip(String finding) {
-    Color baseColor = findingColor(finding);
-    // In light theme, a tiny tint bg with strong border and text
+    final baseColor = findingColor(finding);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
@@ -637,9 +641,9 @@ class ScanDetailPane extends ConsumerWidget {
       child: Text(
         finding,
         style: TextStyle(
-          color: baseColor.withOpacity(0.9),
-          fontSize: 12,
+          color: baseColor,
           fontWeight: FontWeight.w600,
+          fontSize: 12,
         ),
       ),
     );

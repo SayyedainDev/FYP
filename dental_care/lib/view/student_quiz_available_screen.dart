@@ -8,7 +8,6 @@ import 'package:dental_care/providers/quiz_attempt_provider.dart';
 import 'package:dental_care/provider/auth_provider.dart';
 import 'package:dental_care/models/quiz.dart';
 import 'package:dental_care/models/quiz_attempt.dart';
-import 'package:dental_care/utils/app_dialogs.dart';
 import 'student_quiz_taking_screen.dart';
 
 class StudentQuizAvailableScreenV2 extends StatefulWidget {
@@ -542,20 +541,69 @@ class _StudentQuizAvailableScreenV2State
           ),
         );
       } else {
+        // If startAttempt returned null, it may be because the student has
+        // already completed the quiz. Check provider state and show results
+        // if available, otherwise present the provider error message.
+        final current = attemptProvider.currentAttempt;
+        if (current != null && current.isSubmitted == true) {
+          if (mounted) {
+            navigator.pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => MultiProvider(
+                  providers: [
+                    ChangeNotifierProvider.value(value: attemptProvider),
+                    ChangeNotifierProvider.value(
+                        value:
+                            Provider.of<QuizProvider>(context, listen: false)),
+                    ChangeNotifierProvider.value(
+                        value:
+                            Provider.of<AuthProvider>(context, listen: false)),
+                  ],
+                  child: StudentQuizTakingScreen(
+                    quiz: quiz,
+                    isReview: true,
+                  ),
+                ),
+              ),
+            );
+          }
+          return;
+        }
+
+        final msg = attemptProvider.errorMessage ??
+            'Failed to start quiz. Please try again.';
         if (mounted) {
-          AppDialogs.showErrorDialog(
-            context,
-            message: 'Failed to start quiz. Please try again.',
-          );
+          // Use ScaffoldMessenger instead of dialog to avoid deactivated context
+          try {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(msg),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 5),
+              ),
+            );
+          } catch (_) {
+            // If ScaffoldMessenger fails, silently fail (no crash)
+            debugPrint('⚠️ Could not show error: context invalid');
+          }
         }
       }
     } catch (e) {
       debugPrint('❌ Error starting quiz: $e');
       if (mounted) {
-        AppDialogs.showErrorDialog(
-          context,
-          message: 'Error starting quiz: $e',
-        );
+        // Use ScaffoldMessenger to avoid deactivated context errors
+        try {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Error starting quiz: ${e.toString().substring(0, 100)}'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        } catch (_) {
+          debugPrint('⚠️ Could not show error snackbar');
+        }
       }
     }
   }
@@ -606,19 +654,34 @@ class _StudentQuizAvailableScreenV2State
         );
       } else {
         if (mounted) {
-          AppDialogs.showErrorDialog(
-            context,
-            message: 'Failed to load quiz attempt. Please try again.',
-          );
+          try {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Failed to load quiz attempt. Please try again.'),
+                backgroundColor: Colors.red,
+                duration: Duration(seconds: 5),
+              ),
+            );
+          } catch (_) {
+            debugPrint('⚠️ Could not show error');
+          }
         }
       }
     } catch (e) {
       debugPrint('❌ Error loading attempt for review: $e');
       if (mounted) {
-        AppDialogs.showErrorDialog(
-          context,
-          message: 'Error loading attempt: $e',
-        );
+        try {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                  'Error loading attempt: ${e.toString().substring(0, 100)}'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        } catch (_) {
+          debugPrint('⚠️ Could not show error');
+        }
       }
     }
   }
