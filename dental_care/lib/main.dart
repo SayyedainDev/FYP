@@ -11,6 +11,7 @@ import 'package:dental_care/service/firebase_service.dart';
 import 'package:dental_care/service/shared_prefs_helper.dart';
 import 'package:dental_care/provider/auth_provider.dart';
 import 'package:dental_care/core/config/supabase_config.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import 'package:dental_care/providers/navigation_provider.dart';
 import 'package:dental_care/providers/loading_provider.dart';
@@ -127,8 +128,14 @@ class MyApp extends StatelessWidget {
           navigatorKey: GlobalErrorHandler.instance.navigatorKey,
           debugShowCheckedModeBanner: false,
           title: 'PalPath',
-          theme: themeProvider.currentTheme,
-          darkTheme: themeProvider.currentDarkTheme,
+          theme: themeProvider.currentTheme.copyWith(
+            textTheme: GoogleFonts.notoSansTextTheme(
+                themeProvider.currentTheme.textTheme),
+          ),
+          darkTheme: themeProvider.currentDarkTheme.copyWith(
+            textTheme: GoogleFonts.notoSansTextTheme(
+                themeProvider.currentDarkTheme.textTheme),
+          ),
           themeMode: themeProvider.themeMode,
           initialRoute: '/',
           routes: {

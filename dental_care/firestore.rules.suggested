@@ -1,0 +1,71 @@
+// Suggested Firestore rules for the FYP project.
+// Copy the contents of this file into the Firebase Console (Firestore -> Rules)
+// and publish. These rules are intentionally explicit: they allow authenticated
+// users to read published quizzes, allow students to read their own attempts,
+// and keep stricter write/update permissions.
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Allow any authenticated user to read their own user doc
+    match /users/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Quizzes: anyone authenticated can READ a quiz only if it's published,
+    // or if the requesting user is the creator (dentist/teacher).
+    match /quizzes/{quizId} {
+      allow read: if request.auth != null && (
+        // published quizzes are visible to authenticated users
+        resource.data.status == 'published'
+        // creators can always read their own quiz
+        || request.auth.uid == resource.data.dentistUid
+      );
+
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.dentistUid;
+    }
+
+    // Attempts: students may create an attempt and read only their own attempts.
+    // Dentists (creators) may read all attempts for grading/review.
+    match /attempts/{attemptId} {
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.studentId;
+
+      allow read: if request.auth != null && (
+        // student can read their own attempts
+        request.auth.uid == resource.data.studentId
+        // or the dentist who created the quiz can read attempts
+        || get(/databases/$(database)/documents/quizzes/$(resource.data.quizId)).data.dentistUid == request.auth.uid
+      );
+
+      // Updates/deletes are only allowed to the owner (student) before submission,
+      // or the dentist for grading operations.
+      allow update, delete: if request.auth != null && (
+        // owner can update their attempt (e.g., progress saving) but not after submission
+        (request.auth.uid == resource.data.studentId && resource.data.isSubmitted == false)
+        // dentist can update (e.g., grading fields)
+        || get(/databases/$(database)/documents/quizzes/$(resource.data.quizId)).data.dentistUid == request.auth.uid
+      );
+    }
+
+    // Assignments and submissions: basic patterns
+    match /assignments/{assignmentId} {
+      allow read: if request.auth != null && resource.data.published == true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && request.auth.uid == resource.data.createdByUid;
+    }
+
+    match /assignment_submissions/{submissionId} {
+      allow create: if request.auth != null && request.auth.uid == request.resource.data.studentId;
+      allow read: if request.auth != null && (request.auth.uid == resource.data.studentId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Doctor','Dentist','Teacher']);
+      allow update: if request.auth != null && (request.auth.uid == resource.data.studentId || get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['Doctor','Dentist','Teacher']);
+    }
+
+    // Default: deny everything else
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

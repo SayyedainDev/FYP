@@ -453,7 +453,10 @@ class _DoctorAssignmentsManagementScreenState
                     width: double.infinity,
                     child: ElevatedButton(
                       onPressed: () {
-                        _showGradingDialog(context, submission);
+                        final assignmentProvider =
+                            context.read<AssignmentProvider>();
+                        _showGradingDialog(
+                            context, submission, assignmentProvider);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.blue.shade700,
@@ -506,13 +509,14 @@ class _DoctorAssignmentsManagementScreenState
     }
   }
 
-  void _showGradingDialog(BuildContext context, dynamic submission) {
+  void _showGradingDialog(BuildContext context, dynamic submission,
+      AssignmentProvider assignmentProvider) {
     final marksController = TextEditingController();
     final feedbackController = TextEditingController();
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Grade Assignment'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -569,13 +573,12 @@ class _DoctorAssignmentsManagementScreenState
                               final marksValue = double.parse(marks);
                               final feedback = feedbackController.text.trim();
 
-                              final success = await context
-                                  .read<AssignmentProvider>()
-                                  .gradeAssignment(
-                                    submission.id,
-                                    marksValue,
-                                    feedback,
-                                  );
+                              final success =
+                                  await assignmentProvider.gradeAssignment(
+                                submission.id,
+                                marksValue,
+                                feedback,
+                              );
 
                               if (mounted) {
                                 if (success) {
@@ -591,9 +594,7 @@ class _DoctorAssignmentsManagementScreenState
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     SnackBar(
                                       content: Text(
-                                        context
-                                                .read<AssignmentProvider>()
-                                                .errorMessage ??
+                                        assignmentProvider.errorMessage ??
                                             'Failed to grade assignment',
                                       ),
                                       behavior: SnackBarBehavior.floating,

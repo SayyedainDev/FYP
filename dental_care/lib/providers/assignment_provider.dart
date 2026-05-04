@@ -325,6 +325,7 @@ class AssignmentProvider extends ChangeNotifier {
 }
 
 extension on AssignmentSubmission {
+  // ignore: unused_element
   AssignmentSubmission copyWith({
     String? id,
     String? assignmentId,

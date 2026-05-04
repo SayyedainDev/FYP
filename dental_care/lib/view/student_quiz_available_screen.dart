@@ -36,7 +36,19 @@ class _StudentQuizAvailableScreenV2State
 
       debugPrint('🔍 Fetching published quizzes for students...');
       // Load all published quizzes
-      context.read<QuizProvider>().fetchPublishedQuizzes();
+      final quizProv = context.read<QuizProvider>();
+      quizProv.fetchPublishedQuizzes().then((_) {
+        if (!mounted) return;
+        if (quizProv.errorMessage != null) {
+          try {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content: Text(quizProv.errorMessage!),
+                  backgroundColor: Colors.red),
+            );
+          } catch (_) {}
+        }
+      });
       // Load student's attempts
       context
           .read<QuizAttemptProvider>()
@@ -495,18 +507,78 @@ class _StudentQuizAvailableScreenV2State
   }
 
   Future<void> _startQuiz(BuildContext context, Quiz quiz) async {
+    final navigator = Navigator.of(context);
     try {
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final attemptProvider =
           Provider.of<QuizAttemptProvider>(context, listen: false);
-      final navigator = Navigator.of(context);
+      final quizProvider = Provider.of<QuizProvider>(context, listen: false);
 
       final studentId = authProvider.currentUserId ?? authProvider.uid ?? '';
       final studentName = authProvider.user?.displayName ?? 'Student';
 
-      debugPrint('🎯 Starting new quiz: ${quiz.id}');
+      debugPrint('🎯 Starting/Resuming quiz: ${quiz.id}');
 
-      // Create new attempt
+      // First, check for any existing attempt (submitted or in-progress)
+      final existing = await attemptProvider.getExistingAttempt(
+        quiz.id,
+        studentId,
+      );
+
+      if (!mounted) return;
+
+      if (existing != null) {
+        // If already submitted, open review/result view
+        if (existing.isSubmitted) {
+          debugPrint(
+              '📖 Quiz already submitted, opening review: ${existing.id}');
+          final complete = await attemptProvider.getAttemptForReview(
+            quizId: quiz.id,
+            studentId: studentId,
+          );
+          if (!mounted) return;
+          if (complete != null) {
+            navigator.pushReplacement(
+              MaterialPageRoute(
+                builder: (_) => MultiProvider(
+                  providers: [
+                    ChangeNotifierProvider.value(value: attemptProvider),
+                    ChangeNotifierProvider.value(value: quizProvider),
+                    ChangeNotifierProvider.value(value: authProvider),
+                  ],
+                  child: StudentQuizTakingScreen(quiz: quiz, isReview: true),
+                ),
+              ),
+            );
+            return;
+          }
+        }
+
+        // For an in-progress attempt, check whether its time window already elapsed
+        if (!existing.isSubmitted && quiz.config.timeLimitMinutes != null) {
+          final elapsed =
+              DateTime.now().difference(existing.startTime).inSeconds;
+          final totalSeconds = quiz.config.timeLimitMinutes! * 60;
+          debugPrint(
+              '⏱️ Existing attempt elapsed: $elapsed / $totalSeconds seconds');
+          if (elapsed >= totalSeconds) {
+            // Attempt time already elapsed — inform the student and avoid resuming
+            try {
+              ScaffoldMessenger.of(navigator.context).showSnackBar(
+                const SnackBar(
+                  content: Text('This attempt has already expired.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            } catch (_) {}
+            return;
+          }
+        }
+
+        // Otherwise fall through to startAttempt which will resume the in-progress attempt
+      }
+
+      // No existing attempt — create a new one
       final attempt = await attemptProvider.startAttempt(
         quizId: quiz.id,
         quizTitle: quiz.title,
@@ -519,86 +591,42 @@ class _StudentQuizAvailableScreenV2State
       if (!mounted) return;
 
       if (attempt != null) {
-        debugPrint('📖 Started attempt: ${attempt.id}');
+        debugPrint('📖 Started new attempt: ${attempt.id}');
         final quizAttemptProvider = attemptProvider;
-        final quizProvider = Provider.of<QuizProvider>(context, listen: false);
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
         navigator.push(
           MaterialPageRoute(
             builder: (routeContext) => MultiProvider(
               providers: [
-                ChangeNotifierProvider.value(
-                  value: quizAttemptProvider,
-                ),
+                ChangeNotifierProvider.value(value: quizAttemptProvider),
                 ChangeNotifierProvider.value(value: quizProvider),
                 ChangeNotifierProvider.value(value: authProvider),
               ],
-              child: StudentQuizTakingScreen(
-                quiz: quiz,
-                isReview: false,
-              ),
+              child: StudentQuizTakingScreen(quiz: quiz, isReview: false),
             ),
           ),
         );
-      } else {
-        // If startAttempt returned null, it may be because the student has
-        // already completed the quiz. Check provider state and show results
-        // if available, otherwise present the provider error message.
-        final current = attemptProvider.currentAttempt;
-        if (current != null && current.isSubmitted == true) {
-          if (mounted) {
-            navigator.pushReplacement(
-              MaterialPageRoute(
-                builder: (_) => MultiProvider(
-                  providers: [
-                    ChangeNotifierProvider.value(value: attemptProvider),
-                    ChangeNotifierProvider.value(
-                        value:
-                            Provider.of<QuizProvider>(context, listen: false)),
-                    ChangeNotifierProvider.value(
-                        value:
-                            Provider.of<AuthProvider>(context, listen: false)),
-                  ],
-                  child: StudentQuizTakingScreen(
-                    quiz: quiz,
-                    isReview: true,
-                  ),
-                ),
-              ),
-            );
-          }
-          return;
-        }
+        return;
+      }
 
-        final msg = attemptProvider.errorMessage ??
-            'Failed to start quiz. Please try again.';
-        if (mounted) {
-          // Use ScaffoldMessenger instead of dialog to avoid deactivated context
-          try {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(msg),
-                backgroundColor: Colors.red,
-                duration: const Duration(seconds: 5),
-              ),
-            );
-          } catch (_) {
-            // If ScaffoldMessenger fails, silently fail (no crash)
-            debugPrint('⚠️ Could not show error: context invalid');
-          }
+      // If we reach here, starting attempt failed — show error
+      final msg = attemptProvider.errorMessage ?? 'Failed to start quiz.';
+      if (mounted) {
+        try {
+          ScaffoldMessenger.of(navigator.context).showSnackBar(
+            SnackBar(content: Text(msg), backgroundColor: Colors.red),
+          );
+        } catch (_) {
+          debugPrint('⚠️ Could not show error snackbar');
         }
       }
     } catch (e) {
       debugPrint('❌ Error starting quiz: $e');
       if (mounted) {
-        // Use ScaffoldMessenger to avoid deactivated context errors
         try {
-          ScaffoldMessenger.of(context).showSnackBar(
+          ScaffoldMessenger.of(navigator.context).showSnackBar(
             SnackBar(
-              content: Text(
-                  'Error starting quiz: ${e.toString().substring(0, 100)}'),
+              content: Text('Error starting quiz: ${e.toString()}'),
               backgroundColor: Colors.red,
-              duration: const Duration(seconds: 5),
             ),
           );
         } catch (_) {
@@ -619,6 +647,7 @@ class _StudentQuizAvailableScreenV2State
       final authProvider = Provider.of<AuthProvider>(context, listen: false);
       final attemptProvider =
           Provider.of<QuizAttemptProvider>(context, listen: false);
+      final quizProvider = Provider.of<QuizProvider>(context, listen: false);
       final navigator = Navigator.of(context);
 
       final studentId = authProvider.currentUserId ?? authProvider.uid ?? '';
@@ -633,8 +662,6 @@ class _StudentQuizAvailableScreenV2State
 
       if (completeAttempt != null) {
         final quizAttemptProvider = attemptProvider;
-        final quizProvider = Provider.of<QuizProvider>(context, listen: false);
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
         navigator.push(
           MaterialPageRoute(
             builder: (routeContext) => MultiProvider(

@@ -71,4 +71,36 @@ class AssignmentSubmission {
       isLate: data['isLate'] ?? false,
     );
   }
+
+  AssignmentSubmission copyWith({
+    String? id,
+    String? assignmentId,
+    String? studentId,
+    String? studentName,
+    String? submissionFileUrl,
+    String? fileName,
+    String? submissionNotes,
+    DateTime? submittedAt,
+    DateTime? gradedAt,
+    double? marksObtained,
+    String? feedback,
+    String? status,
+    bool? isLate,
+  }) {
+    return AssignmentSubmission(
+      id: id ?? this.id,
+      assignmentId: assignmentId ?? this.assignmentId,
+      studentId: studentId ?? this.studentId,
+      studentName: studentName ?? this.studentName,
+      submissionFileUrl: submissionFileUrl ?? this.submissionFileUrl,
+      fileName: fileName ?? this.fileName,
+      submissionNotes: submissionNotes ?? this.submissionNotes,
+      submittedAt: submittedAt ?? this.submittedAt,
+      gradedAt: gradedAt ?? this.gradedAt,
+      marksObtained: marksObtained ?? this.marksObtained,
+      feedback: feedback ?? this.feedback,
+      status: status ?? this.status,
+      isLate: isLate ?? this.isLate,
+    );
+  }
 }

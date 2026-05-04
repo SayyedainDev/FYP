@@ -2,6 +2,7 @@ import 'student_profile_screen.dart';
 import 'student_quiz_detail_screen.dart';
 import 'student_notifications_screen.dart';
 import 'student_analytics_screen.dart';
+import 'student_3d_disease_models_screen.dart';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -159,6 +160,8 @@ class _StudentDashboardScreenState extends State<StudentDashboardScreen> {
               children: [
                 _Header(firstName: firstName, greeting: _greeting()),
                 const SizedBox(height: 20),
+                const _ThreeDDiseaseModelsCard(),
+                const SizedBox(height: 20),
                 _AssignedQuizzesPanel(quizzes: quizzes, attempts: _attemptMap),
                 const SizedBox(height: 20),
                 _QuickStats(
@@ -235,6 +238,68 @@ class _Header extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _ThreeDDiseaseModelsCard extends StatelessWidget {
+  const _ThreeDDiseaseModelsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colorScheme.outlineVariant),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.view_in_ar_outlined,
+                color: Colors.white, size: 28),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '3D Disease Models',
+                  style: TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  'Open the 360 degree tooth disease viewer with pinch and zoom controls.',
+                  style: TextStyle(fontSize: 13, height: 1.4),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          FilledButton.icon(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => const Student3DDiseaseModelsScreen(),
+                ),
+              );
+            },
+            icon: const Icon(Icons.play_arrow_rounded),
+            label: const Text('Open'),
+          ),
+        ],
+      ),
     );
   }
 }

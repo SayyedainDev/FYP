@@ -14,6 +14,7 @@ import 'student_assignments_screen.dart';
 import 'student_results_screen.dart';
 import 'student_profile_screen.dart';
 import 'settings_screen.dart';
+import 'student_3d_disease_models_screen.dart';
 
 class StudentLMSDashboard extends StatefulWidget {
   const StudentLMSDashboard({super.key});
@@ -73,6 +74,8 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
         return const StudentLectureNotesScreen(moduleId: 'general');
       case 'Assignments':
         return const StudentAssignmentsScreen();
+      case '3D Disease Models':
+        return const Student3DDiseaseModelsScreen();
       case 'Settings':
         return const SettingsScreen();
       case 'Profile':
@@ -253,6 +256,8 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
                     _buildNavItem(
                         'Lecture Notes', Icons.library_books_outlined),
                     _buildNavItem('Assignments', Icons.assignment_outlined),
+                    _buildNavItem(
+                        '3D Disease Models', Icons.view_in_ar_outlined),
                     const Divider(height: 24),
                     _buildNavItem('Settings', Icons.settings_outlined),
                     _buildNavItem('Profile', Icons.person_outline),
@@ -356,6 +361,8 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
                     _buildNavItem(
                         'Lecture Notes', Icons.library_books_outlined),
                     _buildNavItem('Assignments', Icons.assignment_outlined),
+                    _buildNavItem(
+                        '3D Disease Models', Icons.view_in_ar_outlined),
                     const SizedBox(height: 24),
                     _buildNavItem('Settings', Icons.settings_outlined),
                     _buildNavItem('Profile', Icons.person_outline),
@@ -692,8 +699,97 @@ class _StudentLMSDashboardState extends State<StudentLMSDashboard> {
               }
             },
           ),
+          const SizedBox(height: 24),
+          _buildThreeDModelCta(),
         ],
       ),
+    );
+  }
+
+  Widget _buildThreeDModelCta() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 700;
+
+          if (compact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildModelCtaContent(),
+                const SizedBox(height: 14),
+                ElevatedButton.icon(
+                  onPressed: () => _navigateTo('3D Disease Models'),
+                  icon: const Icon(Icons.play_arrow_rounded),
+                  label: const Text('Open 3D Lab'),
+                ),
+              ],
+            );
+          }
+
+          return Row(
+            children: [
+              Expanded(child: _buildModelCtaContent()),
+              const SizedBox(width: 12),
+              ElevatedButton.icon(
+                onPressed: () => _navigateTo('3D Disease Models'),
+                icon: const Icon(Icons.play_arrow_rounded),
+                label: const Text('Open 3D Lab'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildModelCtaContent() {
+    return Row(
+      children: [
+        Container(
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F172A),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const Icon(
+            Icons.view_in_ar_outlined,
+            color: Colors.white,
+            size: 26,
+          ),
+        ),
+        const SizedBox(width: 14),
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '3D Disease Models',
+                style: TextStyle(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              SizedBox(height: 4),
+              Text(
+                'Explore single-tooth disease examples with full 360 rotation and zoom controls.',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Color(0xFF475569),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
