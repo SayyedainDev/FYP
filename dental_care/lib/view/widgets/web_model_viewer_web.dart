@@ -28,22 +28,17 @@ class _WebModelViewerState extends State<WebModelViewer> {
     _viewType = 'web-model-viewer-${DateTime.now().microsecondsSinceEpoch}';
 
     ui.platformViewRegistry.registerViewFactory(_viewType, (int viewId) {
-      final modelUrl = widget.modelUrl;
       final viewerUrl = widget.viewerUrl;
-      final frameUrl = (modelUrl != null && modelUrl.isNotEmpty)
-          ? Uri.base
-              .resolve(
-                'model_viewer_host.html?model=${Uri.encodeComponent(modelUrl)}',
-              )
-              .toString()
-          : (viewerUrl ?? 'about:blank');
+      final modelUrl = widget.modelUrl;
+      final frameUrl = viewerUrl ?? modelUrl ?? 'about:blank';
 
       final iframe = html.IFrameElement()
         ..src = frameUrl
         ..style.border = '0'
         ..style.width = '100%'
         ..style.height = '100%'
-        ..allow = 'autoplay; fullscreen; xr-spatial-tracking'
+        ..allow =
+            'autoplay; fullscreen; xr-spatial-tracking; gyroscope; accelerometer'
         ..referrerPolicy = 'no-referrer';
 
       return iframe;

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import 'widgets/web_model_viewer.dart';
 
@@ -15,8 +14,20 @@ class _Student3DDiseaseModelsScreenState
     extends State<Student3DDiseaseModelsScreen> {
   int _selectedIndex = 0;
 
-  String _viewerHostUrlFor(String modelUrl) =>
-      'model_viewer_host.html?model=${Uri.encodeComponent(modelUrl)}';
+  @override
+  void initState() {
+    super.initState();
+    // Ensure _selectedIndex is within valid bounds
+    if (_selectedIndex >= _models.length) {
+      _selectedIndex = 0;
+    }
+  }
+
+  static const String _sketchfabModelPageUrl =
+      'https://sketchfab.com/3d-models/tooth-decay-progression-dental-caries-4aeb54b6f5ca4615b36cbdcdf398b27b';
+
+  static const String _sketchfabEmbedUrl =
+      'https://sketchfab.com/models/4aeb54b6f5ca4615b36cbdcdf398b27b/embed?autostart=1&preload=1&transparent=1&ui_infos=0&ui_controls=0&ui_stop=0&ui_hint=0&ui_help=0&ui_settings=0&ui_watermark=0&ui_watermark_link=0&ui_vr=0&ui_fullscreen=0&ui_annotations=0&dnt=1';
 
   static const List<_DiseaseToothModel> _models = [
     _DiseaseToothModel(
@@ -25,29 +36,9 @@ class _Student3DDiseaseModelsScreenState
       severity: 'Early to Moderate',
       learningFocus:
           'Observe darkened occlusal grooves and enamel loss limited to the chewing surface.',
-      modelUrl: 'disease:occlusal_cavity',
-      viewerUrl: 'model_viewer_host.html',
+      modelUrl: _sketchfabModelPageUrl,
+      viewerUrl: _sketchfabEmbedUrl,
       accent: Color(0xFFB45309),
-    ),
-    _DiseaseToothModel(
-      diseaseName: 'Root Caries',
-      toothName: 'Lower Right Canine (Tooth 43)',
-      severity: 'Moderate',
-      learningFocus:
-          'Focus on the cervical region near the gumline where root surface demineralization begins.',
-      modelUrl: 'disease:root_caries',
-      viewerUrl: 'model_viewer_host.html',
-      accent: Color(0xFF2563EB),
-    ),
-    _DiseaseToothModel(
-      diseaseName: 'Periapical Infection',
-      toothName: 'Upper Right Premolar (Tooth 14)',
-      severity: 'Advanced',
-      learningFocus:
-          'Inspect root apex region to understand spread of infection and surrounding bone involvement.',
-      modelUrl: 'disease:periapical_infection',
-      viewerUrl: 'model_viewer_host.html',
-      accent: Color(0xFFDC2626),
     ),
   ];
 
@@ -78,32 +69,33 @@ class _Student3DDiseaseModelsScreenState
                   style: TextStyle(color: colorScheme.onSurfaceVariant),
                 ),
                 const SizedBox(height: 20),
-                Wrap(
-                  spacing: 10,
-                  runSpacing: 10,
-                  children: List.generate(_models.length, (index) {
-                    final item = _models[index];
-                    final selected = index == _selectedIndex;
-                    return ChoiceChip(
-                      label: Text(item.diseaseName),
-                      selected: selected,
-                      onSelected: (_) {
-                        setState(() => _selectedIndex = index);
-                      },
-                      selectedColor: item.accent.withValues(alpha: 0.16),
-                      side: BorderSide(
-                        color: selected
-                            ? item.accent
-                            : colorScheme.outline.withValues(alpha: 0.4),
-                      ),
-                      labelStyle: TextStyle(
-                        color: selected ? item.accent : colorScheme.onSurface,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      showCheckmark: false,
-                    );
-                  }),
-                ),
+                if (_models.length > 1)
+                  Wrap(
+                    spacing: 10,
+                    runSpacing: 10,
+                    children: List.generate(_models.length, (index) {
+                      final item = _models[index];
+                      final selected = index == _selectedIndex;
+                      return ChoiceChip(
+                        label: Text(item.diseaseName),
+                        selected: selected,
+                        onSelected: (_) {
+                          setState(() => _selectedIndex = index);
+                        },
+                        selectedColor: item.accent.withValues(alpha: 0.16),
+                        side: BorderSide(
+                          color: selected
+                              ? item.accent
+                              : colorScheme.outline.withValues(alpha: 0.4),
+                        ),
+                        labelStyle: TextStyle(
+                          color: selected ? item.accent : colorScheme.onSurface,
+                          fontWeight: FontWeight.w600,
+                        ),
+                        showCheckmark: false,
+                      );
+                    }),
+                  ),
                 const SizedBox(height: 16),
                 LayoutBuilder(
                   builder: (context, constraints) {
@@ -152,62 +144,16 @@ class _Student3DDiseaseModelsScreenState
         child: SizedBox(
           height: 500,
           width: double.infinity,
-          child: Stack(
-            children: [
-              // 3D Model Viewer
-              _build3DModelViewer(model),
-              // Badge
-              Positioned(
-                top: 12,
-                left: 12,
-                child: Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.35),
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: const Text(
-                    'Interactive 3D',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
-                      fontSize: 12,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+          child: _build3DModelViewer(model),
         ),
       ),
     );
   }
 
   Widget _build3DModelViewer(_DiseaseToothModel model) {
-    return Stack(
-      children: [
-        WebModelViewer(modelUrl: model.modelUrl),
-        Positioned(
-          bottom: 12,
-          right: 12,
-          child: ElevatedButton.icon(
-            onPressed: () async {
-              final uri = Uri.parse(_viewerHostUrlFor(model.modelUrl));
-              if (await canLaunchUrl(uri)) {
-                await launchUrl(uri, mode: LaunchMode.externalApplication);
-              }
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF2563EB),
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-            icon: const Icon(Icons.open_in_new, size: 16),
-            label: const Text('Open Full'),
-          ),
-        ),
-      ],
+    return WebModelViewer(
+      viewerUrl: model.viewerUrl ?? model.modelUrl,
+      modelUrl: model.modelUrl,
     );
   }
 
