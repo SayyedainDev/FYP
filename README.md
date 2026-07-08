@@ -244,15 +244,7 @@ cd dental_care
 flutter test
 ```
 
-## 🗺 Roadmap
 
-- [ ] Train the detection model on a larger, more varied X-ray dataset
-- [ ] Real-time camera-based detection (not just uploaded images)
-- [ ] Role-based Firestore security rules (currently: any authenticated user can read/write)
-- [ ] Telemedicine / remote-consultation support
-- [ ] Multi-language support
-- [ ] Mobile-first UI refinements
-- [ ] Formal prior-art / IP search ahead of any commercialization
 
 ## 🎓 Academic Context
 
