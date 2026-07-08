@@ -24,10 +24,13 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   try {
-    // Sequential initialization for Supabase to ensure it's ready before the app starts
-    await _initializeFirebase();
-    await _initializeSupabase();
-    await _initializeSharedPreferences();
+    // The three services are independent — initialize them in parallel
+    // so startup waits for the slowest one instead of the sum of all three.
+    await Future.wait([
+      _initializeFirebase(),
+      _initializeSupabase(),
+      _initializeSharedPreferences(),
+    ]);
 
     debugPrint('✅ All services initialized successfully');
 

@@ -226,7 +226,7 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
                   children: [
                     // Patient Dropdown
                     DropdownButtonFormField<String?>(
-                      initialValue: _selectedPatientId,
+                      value: _selectedPatientId,
                       decoration: const InputDecoration(labelText: 'Patient'),
                       items: patients
                           .map(
@@ -257,7 +257,7 @@ class _CreateCaseDialogState extends State<CreateCaseDialog> {
                         const SizedBox(width: 16),
                         Expanded(
                           child: DropdownButtonFormField<String?>(
-                            initialValue: _selectedStatus,
+                            value: _selectedStatus,
                             decoration: const InputDecoration(
                                 labelText: 'Initial Status'),
                             items: <String>[

@@ -54,11 +54,13 @@ class CaseProvider extends ChangeNotifier {
   CaseProvider({FirebaseFirestore? firestore, FirebaseAuth? auth})
       : _firestore = firestore ?? FirebaseFirestore.instance,
         _auth = auth ?? FirebaseAuth.instance {
-    // Fetch cases if user already logged in and listen for auth changes
-    fetchCases();
+    // Attach the realtime listener when a user is available. authStateChanges
+    // emits the current user immediately, and the snapshot listener delivers
+    // the initial data — an extra one-shot fetch would triple the reads here.
     _authSubscription = _auth.authStateChanges().listen((user) {
       if (user != null) {
-        fetchCases();
+        _loading = true;
+        notifyListeners();
         listenToCases();
       } else {
         _casesSubscription?.cancel();
@@ -131,6 +133,7 @@ class CaseProvider extends ChangeNotifier {
               snapshot.docs.map((doc) => Case.fromFirestore(doc)).toList();
           items.sort((a, b) => b.caseDate.compareTo(a.caseDate));
           _cases = items;
+          _loading = false;
           notifyListeners();
         },
         onError: (e) {
@@ -138,6 +141,7 @@ class CaseProvider extends ChangeNotifier {
             e,
             fallback: 'Unable to sync cases right now.',
           );
+          _loading = false;
           notifyListeners();
           debugPrint('Error listening to cases: $e');
         },

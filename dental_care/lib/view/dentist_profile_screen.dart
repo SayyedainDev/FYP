@@ -272,7 +272,7 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
                     Container(
                       padding: const EdgeInsets.all(32),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: colorScheme.surface,
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: colorScheme.outlineVariant.withOpacity(0.5),
@@ -632,7 +632,7 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: colorScheme.outlineVariant.withOpacity(0.5),
@@ -669,7 +669,7 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: colorScheme.outlineVariant.withOpacity(0.5),
@@ -721,7 +721,7 @@ class _DentistProfileScreenState extends State<DentistProfileScreen>
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: colorScheme.outlineVariant.withOpacity(0.5),

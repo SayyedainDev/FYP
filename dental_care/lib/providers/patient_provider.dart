@@ -24,10 +24,13 @@ class PatientProvider extends ChangeNotifier {
   PatientProvider({FirebaseFirestore? firestore, FirebaseAuth? auth})
       : _firestore = firestore ?? FirebaseFirestore.instance,
         _auth = auth ?? FirebaseAuth.instance {
-    // Listen for auth state and fetch/listen when user logs in
+    // Listen for auth state and attach the realtime listener when user logs in.
+    // The snapshot listener delivers the initial data too, so a separate
+    // one-shot fetch would just double every Firestore read.
     _authSubscription = _auth.authStateChanges().listen((user) {
       if (user != null) {
-        fetchPatients(user.uid);
+        _loading = true;
+        notifyListeners();
         listenToPatients(user.uid);
       } else {
         _patientsSubscription?.cancel();
@@ -100,6 +103,7 @@ class PatientProvider extends ChangeNotifier {
           _patients =
               snapshot.docs.map((doc) => Patient.fromFirestore(doc)).toList();
           _patients.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          _loading = false;
           notifyListeners();
         },
         onError: (e) {
@@ -107,6 +111,7 @@ class PatientProvider extends ChangeNotifier {
             e,
             fallback: 'Unable to sync patients right now.',
           );
+          _loading = false;
           notifyListeners();
           debugPrint('Error listening to patients: $e');
         },

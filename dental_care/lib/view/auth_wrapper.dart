@@ -28,10 +28,10 @@ class _AuthWrapperState extends State<AuthWrapper> {
     // Give AuthProvider a moment to restore the session role from remember_me if necessary
     await Future.delayed(const Duration(milliseconds: 100));
 
+    if (!mounted) return;
+
     final provider = context.read<app_auth.AuthProvider>();
     final role = getUserRole() ?? provider.userRole;
-
-    if (!mounted) return;
 
     if (user != null && role.isNotEmpty) {
       if (role.toLowerCase() == 'doctor' || role.toLowerCase() == 'dentist') {

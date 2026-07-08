@@ -13,7 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../core/responsive/app_breakpoints.dart';
 import '../core/theme/app_semantic_colors.dart';
-import '../providers/theme_controller.dart';
+import '../provider/auth_provider.dart';
 
 import '../utils/app_dialogs.dart';
 import '../utils/global_error_handler.dart';
@@ -156,6 +156,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 32),
+                if (_isLoadingSettings) ...[
+                  const LinearProgressIndicator(minHeight: 3),
+                  const SizedBox(height: 16),
+                ],
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final isWide =
@@ -274,37 +278,44 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
           ),
           const SizedBox(height: 16),
-          Builder(
-            builder: (context) {
-              final themeController = Provider.of<ThemeController?>(context);
-              if (themeController == null) {
-                return const Text(
-                    'Theme controls unavailable in this context.');
-              }
-
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  RadioListTile<AppThemeMode>(
-                    value: AppThemeMode.light,
-                    groupValue: themeController.mode,
-                    onChanged: (value) {
-                      if (value != null) {
-                        themeController.setMode(value);
-                      }
-                    },
-                    title: const Text('Light'),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Blue & white theme is enabled by default.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                  ),
-                ],
-              );
-            },
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .primaryContainer
+                    .withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.light_mode_outlined,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+            title: const Text('Light theme'),
+            subtitle: const Text(
+              'Clinical blue & white palette, tuned for your role',
+            ),
+            trailing: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Theme.of(context)
+                    .colorScheme
+                    .primaryContainer
+                    .withValues(alpha: 0.4),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Text(
+                'Active',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Theme.of(context).colorScheme.primary,
+                ),
+              ),
+            ),
           ),
         ],
       ),
@@ -437,19 +448,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
       message: 'Are you sure you want to log out?',
     );
 
-    if (confirmed == true) {
-      try {
-        await FirebaseAuth.instance.signOut();
-        if (mounted) {
-          Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
-        }
-      } catch (e) {
-        if (mounted) {
-          AppDialogs.showErrorDialog(
-            context,
-            message: 'Error logging out: $e',
-          );
-        }
+    if (confirmed != true || !mounted) return;
+
+    // Go through AuthProvider so session storage and cached user data
+    // are cleared too — a bare FirebaseAuth.signOut leaves them behind.
+    final auth = context.read<AuthProvider>();
+    try {
+      await auth.logout();
+      if (mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+      }
+    } catch (e) {
+      if (mounted) {
+        AppDialogs.showErrorDialog(
+          context,
+          message: 'Error logging out: $e',
+        );
       }
     }
   }
@@ -632,11 +646,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         TextButton(
                           onPressed: isDeleting
                               ? null
-                              : () {
-                                  Navigator.pop(context);
-                                  passwordController.dispose();
-                                  emailController.dispose();
-                                },
+                              : () => Navigator.pop(context),
                           child: Text(
                             'Cancel',
                             style: TextStyle(
@@ -775,6 +785,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
         },
       ),
     );
+
+    passwordController.dispose();
+    emailController.dispose();
   }
 
   Future<void> _loadUserData() async {

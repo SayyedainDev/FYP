@@ -11,7 +11,6 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'student_auth_flow_screens.dart';
 import '../provider/auth_provider.dart';
 import '../utils/app_dialogs.dart';
 import '../utils/global_error_handler.dart';
@@ -154,12 +153,9 @@ class _RegisterPageState extends State<RegisterPage>
     try {
       await auth.register(form, password).timeout(const Duration(seconds: 30));
       if (!mounted) return;
-      Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-              builder: (_) => const EmailVerificationScreen(),
-              settings:
-                  RouteSettings(arguments: {'email': _email.text.trim()})));
+      // Account is created and signed in — go straight to the app,
+      // no email verification step.
+      Navigator.pushReplacementNamed(context, '/dashboard');
     } on TimeoutException catch (_) {
       if (!mounted) return;
       AppDialogs.showErrorDialog(context,

@@ -64,9 +64,12 @@ class AuthProvider extends ChangeNotifier {
 
   // Get initials for avatar
   String get initials {
-    if (_userName != null && _userName!.isNotEmpty) {
-      final parts = _userName!.trim().split(' ');
-      if (parts.isEmpty) return 'S';
+    final parts = (_userName ?? '')
+        .trim()
+        .split(' ')
+        .where((p) => p.isNotEmpty)
+        .toList();
+    if (parts.isNotEmpty) {
       if (parts.length == 1) return parts[0][0].toUpperCase();
       return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
     }
@@ -240,6 +243,9 @@ class AuthProvider extends ChangeNotifier {
     _loading = true;
     notifyListeners();
     try {
+      // Same tab-scoped persistence as login so the session behaves identically
+      await FirebaseAuth.instance.setPersistence(Persistence.SESSION);
+
       final id = await _controller.register(
         email: email,
         password: password,
@@ -261,6 +267,10 @@ class AuthProvider extends ChangeNotifier {
 
       // Fetch user data from Firestore to ensure consistency
       await _fetchUserData(id);
+
+      // Save role in session storage — without this the userRole getter
+      // treats the session as invalid and forces a logout after signup
+      saveUserRole(_role);
     } finally {
       _loading = false;
       notifyListeners();
