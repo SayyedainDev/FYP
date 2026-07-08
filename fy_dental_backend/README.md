@@ -384,8 +384,8 @@ npm test
 
 ## License
 
-MIT
+Academic Final Year Project — all rights reserved. See the [root README](../README.md#-license) for details.
 
 ## Support
 
-For issues or questions, contact: sabeeh@example.com
+For issues or questions, open a GitHub issue on this repository.

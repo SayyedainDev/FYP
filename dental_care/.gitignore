@@ -47,3 +47,14 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 .vercel
+
+# One-off local dev/patch scripts (not part of the shipped app)
+fix_*.js
+fix_*.dart
+patch_*.js
+patch_*.dart
+temp.js
+run_web_fix.bat
+out.txt
+e2e_student_results.txt
+/y/
